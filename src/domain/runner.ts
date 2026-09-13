@@ -18,7 +18,7 @@ import {
     PermissionsInsufficientError,
     UpstreamError,
 } from "@/global-errors.ts";
-import { createLogger } from "@/logger.ts";
+import { addLogContext, createLogger } from "@/logger.ts";
 import { getProvider, getProviderById } from "./providers/index.ts";
 
 const log = createLogger("runner");
@@ -133,17 +133,10 @@ export async function createRunner(
         .join(",");
     const runnerName = slugify(input.name) || `runner-${uuid.v4().slice(0, 8)}`;
 
-    log.info("creating runner", {
-        provider: provider.id,
-        name: input.name,
-        runnerName,
-        size,
-        projectId,
-        userId,
-    });
+    addLogContext({ provider: provider.id, projectId });
+    log.info("creating runner", { name: input.name, runnerName, size });
     const prepared = await provider.prepare({ ...input, labels }, runnerName);
     log.debug("provider prepared runner", {
-        provider: provider.id,
         target: prepared.target,
         image: prepared.image,
         environmentKeys: Object.keys(prepared.environment),
@@ -165,7 +158,8 @@ export async function createRunner(
         });
     }
     const stackId = created.data.id;
-    log.debug("stack created", { stackId, projectId });
+    addLogContext({ stackId });
+    log.debug("stack created");
 
     const volumes = Object.fromEntries(
         prepared.volumes.map((mount) => {
@@ -226,9 +220,7 @@ export async function createRunner(
         .returning();
     log.info("runner created", {
         runnerId: inserted.id,
-        provider: provider.id,
         target: prepared.target,
-        stackId,
         serviceId: row.serviceId,
     });
     return toView(inserted, service);

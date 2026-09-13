@@ -4,7 +4,7 @@ import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { detectBrowserLocale } from "@/i18n/react.tsx";
 import { isLocalModeEnabled, localModeHeader } from "@/local-mode.ts";
-import { createLogger } from "@/logger.ts";
+import { addLogContext, createLogger } from "@/logger.ts";
 import { createMittwaldClient } from "@/mittwald/client.ts";
 import { getEnvironmentVariables } from "../env";
 import { localModeContext } from "./local-mode.ts";
@@ -39,11 +39,12 @@ async function getVerifiedSessionToken(): Promise<
         throw new Error("No session token found");
     }
     const verifiedSessionToken = await verify(sessionToken);
-    log.debug("session token verified", {
+    addLogContext({
         userId: verifiedSessionToken.userId,
         contextId: verifiedSessionToken.contextId,
         extensionInstanceId: verifiedSessionToken.extensionInstanceId,
     });
+    log.debug("session token verified");
     return [verifiedSessionToken, sessionToken];
 }
 
@@ -85,9 +86,7 @@ export const authenticationMiddlewareWithAccessToken = createMiddleware({
         const extensionSecret = env.EXTENSION_SECRET;
 
         const accessToken = await getAccessToken(sessionToken, extensionSecret);
-        log.debug("access token obtained", {
-            userId: verifiedSessionToken.userId,
-        });
+        log.debug("access token obtained");
         const mittwaldClient = createMittwaldClient(accessToken.publicToken);
 
         return next({

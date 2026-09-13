@@ -8,7 +8,12 @@ import { getDatabase } from "@/db";
 import { extensionInstances, runners } from "@/db/schema.ts";
 import { deleteAllRunnersOfInstance } from "@/domain/runner.ts";
 import { getEnvironmentVariables } from "@/env.ts";
-import { createLogger } from "@/logger.ts";
+import {
+    addLogContext,
+    createLogger,
+    newRequestId,
+    withLogContext,
+} from "@/logger.ts";
 import { createMittwaldClient } from "@/mittwald/client.ts";
 
 const db = getDatabase();
@@ -27,7 +32,8 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
             body = {};
         }
 
-        log.info("webhook received", { kind: body.kind, instanceId: body.id });
+        addLogContext({ kind: body.kind, extensionInstanceId: body.id });
+        log.info("webhook received");
         if (body.kind !== "InstanceRemovedFromContext" || !body.id) {
             return next(content);
         }
@@ -46,7 +52,6 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
 
         if (!instance?.secret || rows.length === 0) {
             log.debug("no runner cleanup needed", {
-                instanceId: extensionInstanceId,
                 runners: rows.length,
                 hasSecret: Boolean(instance?.secret),
             });
@@ -66,7 +71,6 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
                     );
                 if (auth.status !== 201) {
                     log.error("instance authentication for cleanup failed", {
-                        instanceId: extensionInstanceId,
                         status: auth.status,
                     });
                     return;
@@ -74,14 +78,10 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
                 const client = createMittwaldClient(auth.data.publicToken);
                 await deleteAllRunnersOfInstance(client, rows);
                 log.info("runner stacks of removed instance deleted", {
-                    instanceId: extensionInstanceId,
                     runners: rows.length,
                 });
             } catch (error) {
-                log.error("instance cleanup failed", {
-                    instanceId: extensionInstanceId,
-                    error,
-                });
+                log.error("instance cleanup failed", { error });
             }
         })();
     },
@@ -102,7 +102,9 @@ export const Route = createFileRoute("/api/webhooks/mittwald")({
                     .build();
 
                 const httpHandler = new HttpWebhookHandler(combinedHandler);
-                return httpHandler.handleWebhook(request);
+                return withLogContext({ requestId: newRequestId() }, () =>
+                    httpHandler.handleWebhook(request),
+                );
             },
         },
     },

@@ -3,46 +3,76 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import type { ZodIssue } from "zod/v3";
 import { type ErrorBody, PublicError } from "@/global-errors";
 import { resolveLocale, translate } from "@/i18n/index.ts";
-import { createLogger } from "@/logger.ts";
+import { createLogger, newRequestId, withLogContext } from "@/logger.ts";
 import { localeHeader } from "./locale.ts";
 
 const log = createLogger("server-function");
 
+/**
+ * In development the function id is base64 JSON with the export name; production
+ * builds use an opaque hash, of which a prefix is enough to group lines.
+ */
+function functionName(functionId: string): string {
+    try {
+        const decoded = JSON.parse(
+            Buffer.from(functionId, "base64").toString("utf8"),
+        );
+        if (typeof decoded.export === "string") {
+            return decoded.export.replace(/_createServerFn_handler$/, "");
+        }
+    } catch {}
+    return functionId.slice(0, 12);
+}
+
 export const handleServerErrors = createMiddleware({
     type: "function",
-}).server(async ({ next }) => {
-    try {
-        return await next();
-    } catch (error) {
-        const locale = resolveLocale(
-            getRequestHeader(localeHeader) ??
-                getRequestHeader("accept-language"),
-        );
+}).server(({ next, functionId, method }) =>
+    withLogContext(
+        { requestId: newRequestId(), fn: functionName(functionId) },
+        async () => {
+            const started = Date.now();
+            log.debug("request started", { method });
+            try {
+                const result = await next();
+                log.debug("request completed", {
+                    durationMs: Date.now() - started,
+                });
+                return result;
+            } catch (error) {
+                throw toErrorResponse(error);
+            }
+        },
+    ),
+);
 
-        const validationIssues = parseZodValidationError(error);
-        if (validationIssues) {
-            log.warn("request rejected by validation", {
-                issues: validationIssues.map(
-                    (issue) => `${issue.path.join(".")}: ${issue.message}`,
-                ),
-            });
-            throw buildValidationError(validationIssues);
-        }
+function toErrorResponse(error: unknown): Response {
+    const locale = resolveLocale(
+        getRequestHeader(localeHeader) ?? getRequestHeader("accept-language"),
+    );
 
-        if (error instanceof PublicError) {
-            log.warn("request failed", {
-                type: error.name,
-                messageKey: error.messageKey,
-                params: error.params,
-                status: error.statusCode,
-            });
-            throw buildPublicError(error, locale);
-        }
-
-        log.error("unexpected error in server function", { error });
-        throw buildUnknownError(locale);
+    const validationIssues = parseZodValidationError(error);
+    if (validationIssues) {
+        log.warn("request rejected by validation", {
+            issues: validationIssues.map(
+                (issue) => `${issue.path.join(".")}: ${issue.message}`,
+            ),
+        });
+        return buildValidationError(validationIssues);
     }
-});
+
+    if (error instanceof PublicError) {
+        log.warn("request failed", {
+            type: error.name,
+            messageKey: error.messageKey,
+            params: error.params,
+            status: error.statusCode,
+        });
+        return buildPublicError(error, locale);
+    }
+
+    log.error("unexpected error in server function", { error });
+    return buildUnknownError(locale);
+}
 
 function parseZodValidationError(error: unknown): ZodIssue[] | null {
     if (!(error instanceof Error)) {

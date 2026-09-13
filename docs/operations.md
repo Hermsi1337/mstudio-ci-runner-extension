@@ -115,6 +115,12 @@ key-value fields.
 | `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error` |
 | `LOG_FORMAT` | `json` (default with `NODE_ENV=production`), `text` |
 
+Every server function call and webhook gets a `requestId`; lines written while the
+request runs, including detached cleanup work, carry it together with `fn` (the
+server function name in development, a hash prefix in production builds), `userId`,
+`contextId` and `extensionInstanceId` once known. Filter
+by `requestId` to follow one request across scopes.
+
 Scopes: `startup` (configuration summary, migrations), `db`, `auth` (verified session
 tokens, local mode), `server-function` (rejected and failed requests with the message
 key), `runner` (stack lifecycle), `github` and `gitlab` (provider calls), `webhook`

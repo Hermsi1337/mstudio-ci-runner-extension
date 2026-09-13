@@ -75,6 +75,24 @@ describe("logger", () => {
         expect(entry).not.toHaveProperty("skipped");
     });
 
+    it("adds request context fields to every line inside the scope", async () => {
+        const { createLogger, withLogContext, addLogContext } =
+            await loadLogger({ LOG_LEVEL: "debug", LOG_FORMAT: "json" });
+        const log = createLogger("x");
+        await withLogContext({ requestId: "abc" }, async () => {
+            addLogContext({ userId: "u1" });
+            await Promise.resolve();
+            log.info("inside");
+        });
+        log.info("outside");
+        expect(JSON.parse(stdout[0])).toMatchObject({
+            requestId: "abc",
+            userId: "u1",
+            message: "inside",
+        });
+        expect(JSON.parse(stdout[1])).not.toHaveProperty("requestId");
+    });
+
     it("quotes text values containing whitespace", async () => {
         const { createLogger } = await loadLogger({
             LOG_LEVEL: "debug",

@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import { randomUUID } from "node:crypto";
 import { getEnvironmentVariables } from "./env";
 
 export const logLevels = ["debug", "info", "warn", "error"] as const;
@@ -13,6 +15,29 @@ interface LoggerSettings {
 }
 
 let settings: LoggerSettings | undefined;
+const requestContext = new AsyncLocalStorage<Fields>();
+
+/**
+ * Fields set here appear on every log line written while `fn` runs, including
+ * detached work started inside it. Used per request for requestId and identity.
+ */
+export function withLogContext<T>(
+    fields: Fields,
+    fn: () => Promise<T>,
+): Promise<T> {
+    return requestContext.run({ ...requestContext.getStore(), ...fields }, fn);
+}
+
+export function addLogContext(fields: Fields) {
+    const store = requestContext.getStore();
+    if (store) {
+        Object.assign(store, fields);
+    }
+}
+
+export function newRequestId(): string {
+    return randomUUID().slice(0, 8);
+}
 
 function getSettings(): LoggerSettings {
     if (!settings) {
@@ -77,7 +102,10 @@ function write(
         return;
     }
     const time = new Date().toISOString();
-    const normalized = normalizeFields(fields);
+    const normalized = normalizeFields({
+        ...requestContext.getStore(),
+        ...fields,
+    });
     const line =
         format === "json"
             ? JSON.stringify({ time, level, scope, message, ...normalized })
