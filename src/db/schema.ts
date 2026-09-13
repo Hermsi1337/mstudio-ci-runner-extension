@@ -1,0 +1,41 @@
+import {
+    buildEncryptedTextColumn,
+    buildEncryptionKey,
+} from "@weissaufschwarz/mitthooks-drizzle/encryption";
+import { buildExtensionInstanceTable } from "@weissaufschwarz/mitthooks-drizzle/schema";
+import { boolean, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable } from "drizzle-orm/pg-core/table";
+import { getEnvironmentVariables } from "../env";
+
+const env = getEnvironmentVariables();
+
+export { context } from "@weissaufschwarz/mitthooks-drizzle/schema";
+
+const encryptedText = buildEncryptedTextColumn(
+    buildEncryptionKey(env.ENCRYPTION_MASTER_PASSWORD, env.ENCRYPTION_SALT),
+);
+
+export const extensionInstances = buildExtensionInstanceTable(encryptedText);
+
+export const runners = pgTable("runners", {
+    id: varchar({ length: 36 }).primaryKey(),
+    extensionInstanceId: varchar({ length: 36 })
+        .notNull()
+        .references(() => extensionInstances.id, { onDelete: "cascade" }),
+    projectId: varchar({ length: 36 }).notNull(),
+    stackId: varchar({ length: 36 }).notNull(),
+    serviceId: varchar({ length: 64 }),
+    provider: varchar({ length: 32 }).notNull(),
+    name: varchar({ length: 64 }).notNull(),
+    target: text().notNull(),
+    targetUrl: text().notNull(),
+    credentials: encryptedText().notNull(),
+    labels: text().notNull(),
+    ephemeral: boolean().notNull().default(false),
+    size: varchar({ length: 16 }).notNull().default("medium"),
+    createdBy: varchar({ length: 36 }).notNull(),
+    createdAt: timestamp().defaultNow().notNull(),
+});
+
+export type RunnerRow = typeof runners.$inferSelect;
+export type NewRunnerRow = typeof runners.$inferInsert;

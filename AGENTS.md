@@ -1,0 +1,125 @@
+# AGENTS.md
+
+Working rules for this repository. They apply to humans and AI agents alike.
+`CLAUDE.md` is a symlink to this file.
+
+## What this is
+
+A mittwald mStudio extension that provisions CI runners (GitHub Actions, GitLab CI,
+more providers later) as container stacks on mittwald Container Hosting. Overview in
+the [README](README.md), details in [docs/](docs/README.md).
+
+## Ground rules
+
+1. **English only.** Code, comments, UI strings, error messages, docs and commit
+   messages are written in English.
+2. **Spec first, as little hand-written code as possible.** Contracts live in specs,
+   code is generated from them ([docs/codegen.md](docs/codegen.md)). New fields or
+   endpoints start in `openapi/extension-api.yaml`, followed by `pnpm run codegen`.
+   Never edit files under `src/generated/`, `openapi/upstream/` or `src/routeTree.gen.ts`.
+3. **Validation only through generated schemas.** Server functions use the zod
+   schemas from `src/generated/extension-api/zod.gen.ts`. No hand-written zod objects
+   for request or response data.
+4. **Upstream clients instead of raw HTTP.** mittwald via `@mittwald/api-client`,
+   GitHub via `@octokit/rest`, GitLab via the hey-api client in `src/generated/gitlab/`.
+   All of them are generated from the respective OpenAPI documents.
+5. **Providers stay behind the interface.** Provider specifics live in
+   `src/domain/providers/<name>.ts`, never in `runner.ts` or the UI table
+   ([docs/providers.md](docs/providers.md)).
+6. **Integration tests with Testcontainers.** Tests start their dependencies
+   (PostgreSQL, Prism mocks, runner images) through Docker themselves. No Docker
+   Compose, neither in tests nor for development ([docs/testing.md](docs/testing.md)).
+7. **Code reads like a book.** No comments except those that add context the code
+   cannot express: why a workaround exists, which external constraint applies, which
+   flow a module implements. Never describe what a line does.
+8. **Documentation is part of the commit.** Every commit that changes behavior,
+   configuration, scripts, environment variables, scopes, flows or structure updates
+   the affected docs in the same commit. Stale docs are bugs. See below.
+9. **Conventional Commits.** `feat:`, `fix:`, `docs:`, `ci:`, `chore:`, `refactor:`, `test:`.
+10. **Images are built from tags only.** Never from pushes to `main`
+    ([docs/operations.md](docs/operations.md)).
+
+## Maintaining the documentation
+
+Documentation is split by topic. Not everything goes into the README, not everything
+into this file. Every file has exactly one topic and links to the others.
+
+| File | Topic |
+|---|---|
+| `README.md` | Entry point: what, for whom, limitations, links. Keep it short. |
+| `AGENTS.md` | Working rules, conventions, documentation duty. No feature docs. |
+| `docs/README.md` | Index of the documentation |
+| `docs/architecture.md` | Building blocks, data flow, data model, webhooks, security |
+| `docs/providers.md` | Provider interface, existing providers, how to add one |
+| `docs/mstudio-setup.md` | Contributor status, extension registration, scopes, anchors, tokens |
+| `docs/development.md` | Local development, environment variables, migrations, scripts |
+| `docs/codegen.md` | Every generator, its sources and outputs, workflow for changes |
+| `docs/testing.md` | Test setup, Testcontainers, mock servers, how tests run |
+| `docs/runner-image.md` | Runner images per provider: env vars, entrypoint, building, workflow examples |
+| `docs/operations.md` | Releases, images, GHCR, CI workflows |
+
+Checklist before every commit:
+
+- New or changed environment variable: `src/env.ts`, `.env.example`, `docs/development.md`
+  or `docs/operations.md`; for runner variables `docs/runner-image.md`.
+- New script in `package.json`: `docs/development.md`.
+- New or changed scope, anchor, webhook, token requirement: `docs/mstudio-setup.md`.
+- New provider or changed provider behavior: `docs/providers.md`, `docs/runner-image.md`.
+- Change to specs or generators: `docs/codegen.md`.
+- New test or new container in tests: `docs/testing.md`.
+- New directory or moved module: `docs/architecture.md` and the structure below.
+- Change to workflows, images or the release flow: `docs/operations.md`.
+- Moved config file: script in `package.json`, structure below, `docs/development.md`.
+
+If a topic fits no existing file: add a file under `docs/`, list it in `docs/README.md`
+and in the table above.
+
+## Project structure
+
+```
+config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts); scripts pass them via --config
+docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
+docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image
+docs/                        documentation, one topic per file
+openapi/extension-api.yaml   extension API contract (source for codegen)
+openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
+scripts/slim-openapi.ts      produces openapi/upstream
+scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
+src/generated/               generated types, zod schemas, GitLab client (do not edit)
+src/domain/runner.ts         provider-neutral domain logic (stack lifecycle)
+src/domain/providers/        one module per CI provider, registry in index.ts
+src/serverFunctions/         TanStack server functions: validation and delegation only
+src/components/              Flow remote React components (UI inside mStudio)
+src/routes/                  TanStack Router routes, webhook endpoint
+src/middleware/              session token verification, access token, error handling
+src/mittwald/client.ts       factory for the mittwald API client (configurable base URL)
+src/db/                      Drizzle schema, pool, migration runner, generated migrations
+tests/integration/           Testcontainers tests
+tests/helpers/               container starters (PostgreSQL, Prism)
+.github/workflows/           CI on push/PR, image builds on tags only
+```
+
+The repository root stays lean: only files that tools require there
+(`package.json`, `tsconfig.json`, `biome.json`, `.editorconfig`, `.env.example`).
+Everything else lives in a subdirectory.
+
+## Conventions
+
+- TypeScript strict, Biome for lint and format (`pnpm run check`). Generated files are
+  excluded in `biome.json`.
+- Domain code in `src/domain/` receives the `MittwaldAPIV2Client` as a parameter and
+  never creates it, so it stays testable against mock servers.
+- Errors reach the client only through subclasses of `PublicError`
+  (`src/global-errors.ts`). Unknown errors are mapped to a generic 500 by the middleware.
+- Domain code must not end up in the client bundle. Client code imports types from
+  `src/generated/`, never from `src/domain/` or `src/db/`.
+
+## Run before committing
+
+```bash
+pnpm run codegen && git diff --exit-code -- src/generated   # generated code up to date?
+pnpm run check && pnpm run typecheck && pnpm run build
+pnpm run test:integration                                    # requires Docker
+```
+
+CI runs the same steps (`.github/workflows/ci.yml`).

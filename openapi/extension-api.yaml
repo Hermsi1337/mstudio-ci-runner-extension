@@ -1,0 +1,169 @@
+openapi: 3.1.0
+info:
+  title: mStudio CI Runner Extension API
+  version: 2.0.0
+  description: |
+    Internal API contract of the extension. Server functions validate their input
+    against schemas generated from this document; the UI uses the generated types.
+    New providers are added here first (see docs/providers.md).
+paths: {}
+components:
+  schemas:
+    Provider:
+      type: string
+      enum: [github, gitlab]
+      description: CI system the runner registers with.
+    RunnerSize:
+      type: string
+      enum: [small, medium, large]
+      description: Resource preset for the runner container.
+    RunnerStatus:
+      type: string
+      enum: [running, stopped, error, creating, starting, stopping, unknown, missing]
+      description: Container status as reported by mittwald, plus `unknown` (status unavailable) and `missing` (stack deleted outside the extension).
+    RunnerBase:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 64
+        labels:
+          type: string
+          maxLength: 500
+          default: mittwald
+          description: Comma separated runner labels (GitHub) or tags (GitLab).
+        ephemeral:
+          type: boolean
+          default: false
+          description: One job per registration. GitHub only; ignored by other providers.
+        size:
+          $ref: '#/components/schemas/RunnerSize'
+    GitHubTarget:
+      type: string
+      minLength: 1
+      maxLength: 200
+      pattern: '^(https://github\.com/)?[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)?/?$'
+      description: GitHub organisation (`owner`) or repository (`owner/repo`), optionally as full URL.
+    GitHubRunnerRequest:
+      allOf:
+        - $ref: '#/components/schemas/RunnerBase'
+        - type: object
+          required: [provider, target, token]
+          properties:
+            provider:
+              type: string
+              enum: [github]
+            target:
+              $ref: '#/components/schemas/GitHubTarget'
+            token:
+              type: string
+              minLength: 10
+              maxLength: 500
+              description: Fine-grained PAT allowed to manage self-hosted runners for the target.
+            runnerGroup:
+              type: string
+              maxLength: 128
+    GitLabRunnerType:
+      type: string
+      enum: [project_type, group_type, instance_type]
+    GitLabRunnerRequest:
+      allOf:
+        - $ref: '#/components/schemas/RunnerBase'
+        - type: object
+          required: [provider, instanceUrl, runnerType, token]
+          properties:
+            provider:
+              type: string
+              enum: [gitlab]
+            instanceUrl:
+              type: string
+              format: uri
+              default: https://gitlab.com
+              description: Base URL of the GitLab instance.
+            runnerType:
+              $ref: '#/components/schemas/GitLabRunnerType'
+            target:
+              type: string
+              maxLength: 300
+              description: Project path (`group/project`) or group path for project/group runners. Empty for instance runners.
+            token:
+              type: string
+              minLength: 10
+              maxLength: 500
+              description: Personal access token with `create_runner` scope (plus `api` for path lookups).
+            runUntagged:
+              type: boolean
+              default: true
+    CreateRunnerRequest:
+      oneOf:
+        - $ref: '#/components/schemas/GitHubRunnerRequest'
+        - $ref: '#/components/schemas/GitLabRunnerRequest'
+      discriminator:
+        propertyName: provider
+        mapping:
+          github: '#/components/schemas/GitHubRunnerRequest'
+          gitlab: '#/components/schemas/GitLabRunnerRequest'
+    RunnerIdRequest:
+      type: object
+      required: [runnerId]
+      properties:
+        runnerId:
+          type: string
+          format: uuid
+    RunnerLogsRequest:
+      type: object
+      required: [runnerId]
+      properties:
+        runnerId:
+          type: string
+          format: uuid
+        tail:
+          type: integer
+          minimum: 10
+          maximum: 2000
+          default: 200
+    Runner:
+      type: object
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, stackId, serviceId, status, statusMessage, image, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        provider:
+          $ref: '#/components/schemas/Provider'
+        name:
+          type: string
+        target:
+          type: string
+          description: Human readable registration target, e.g. `acme/app` or `gitlab.com group/project`.
+        targetUrl:
+          type: string
+          format: uri
+        labels:
+          type: array
+          items:
+            type: string
+        ephemeral:
+          type: boolean
+        size:
+          $ref: '#/components/schemas/RunnerSize'
+        stackId:
+          type: string
+          format: uuid
+        serviceId:
+          type: [string, 'null']
+        status:
+          $ref: '#/components/schemas/RunnerStatus'
+        statusMessage:
+          type: [string, 'null']
+        image:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+    RunnerList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Runner'
