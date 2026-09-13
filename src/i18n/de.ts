@@ -6,6 +6,10 @@ export const de: Messages = {
     "app.dockerNotice.text":
         "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon. GitHub-Workflows mit container:, services: oder docker build und GitLab-Jobs, die auf image: angewiesen sind, schlagen fehl. Normale Jobs (Node, PHP, Composer, Python, rsync, SSH-Deploys) laufen problemlos.",
 
+    "local.heading": "Lokaler Modus",
+    "local.text":
+        "Diese Seite läuft außerhalb von mStudio. Anfragen nutzen LOCAL_API_TOKEN gegen das Projekt LOCAL_PROJECT_ID. In Produktion nicht verfügbar.",
+
     "runners.heading": "Runner",
     "runners.intro":
         "Jeder Runner ist ein eigener Container-Stack in diesem Projekt und registriert sich beim Start selbst bei GitHub oder GitLab. Beim Löschen wird die Registrierung entfernt.",

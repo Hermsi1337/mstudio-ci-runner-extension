@@ -21,6 +21,32 @@ pnpm run dev:expose             # zrok tunnel (ZROK_RESERVED_TOKEN in .env)
 Chromium-based browsers block the mStudio WebSocket connection to `localhost`.
 Firefox works.
 
+## Local mode without mStudio
+
+`http://localhost:3000/local` shows the same UI outside mStudio and authenticates with
+a personal API token instead of a session token. Set in `.env`:
+
+```bash
+LOCAL_API_TOKEN=...     # mStudio, User → API tokens, with access to the project
+LOCAL_PROJECT_ID=...    # the project that receives the runner stacks
+```
+
+`EXTENSION_ID` and `EXTENSION_SECRET` may keep placeholder values in this mode. Local
+mode is refused when `NODE_ENV=production` and when either variable is missing.
+
+How it works: the `/local` route (`src/routes/local.tsx`) enables a flag in
+`src/local-mode.ts`, the client middleware then sends `x-local-mode: 1` instead of
+`x-session-token`, and the server middleware (`src/middleware/local-mode.ts`) builds
+the request context from the two variables. The extension instance row uses the
+project id as its id. The UI components are written against the remote Flow
+components, which only render inside mStudio; the Vite plugin in
+`config/local-host-plugin.ts` serves a second copy of `src/components/` and
+`src/hooks/` under the `local:` import prefix with the DOM-rendering
+`@mittwald/flow-react-components` swapped in.
+
+Not covered by local mode: session token handling, lifecycle webhooks, mStudio
+anchors. Real stacks are created in the project, delete them via the UI afterwards.
+
 ## Environment variables
 
 Defined and validated in `src/env.ts`, template in `.env.example`.
@@ -38,6 +64,7 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `GITHUB_API_URL` | Default `https://api.github.com`; the Prism mock in tests; also passed to the runner container as `GITHUB_API` |
 | `GITLAB_API_URL` | No default; overrides the GitLab instance URL for API calls (tests only) |
 | `ZROK_RESERVED_TOKEN` | Only for `pnpm run dev:expose` |
+| `LOCAL_API_TOKEN`, `LOCAL_PROJECT_ID` | Local mode on `/local`, development only (see above) |
 
 The build (`pnpm run build`) needs none of these. They are read at runtime only.
 

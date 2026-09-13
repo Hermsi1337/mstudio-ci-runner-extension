@@ -24,4 +24,6 @@ export const getEnvironmentVariables = () =>
         MITTWALD_API_URL: url({ default: "https://api.mittwald.de/" }),
         GITHUB_API_URL: url({ default: "https://api.github.com" }),
         GITLAB_API_URL: url({ default: undefined }),
+        LOCAL_API_TOKEN: str({ default: undefined }),
+        LOCAL_PROJECT_ID: str({ default: undefined }),
     });

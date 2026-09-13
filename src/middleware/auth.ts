@@ -3,8 +3,10 @@ import { getAccessToken, verify } from "@mittwald/ext-bridge/node";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { detectBrowserLocale } from "@/i18n/react.tsx";
+import { isLocalModeEnabled, localModeHeader } from "@/local-mode.ts";
 import { createMittwaldClient } from "@/mittwald/client.ts";
 import { getEnvironmentVariables } from "../env";
+import { localModeContext } from "./local-mode.ts";
 import { localeHeader } from "./locale.ts";
 
 type VerifiedSessionToken = Awaited<ReturnType<typeof verify>>;
@@ -12,13 +14,19 @@ type VerifiedSessionToken = Awaited<ReturnType<typeof verify>>;
 const sessionTokenHeader = "x-session-token";
 
 async function requestHeaders() {
-    const token = await getSessionToken();
-    return {
-        headers: {
-            [sessionTokenHeader]: token,
-            [localeHeader]: detectBrowserLocale(),
-        },
+    const headers: Record<string, string> = {
+        [localeHeader]: detectBrowserLocale(),
     };
+    if (isLocalModeEnabled()) {
+        headers[localModeHeader] = "1";
+    } else {
+        headers[sessionTokenHeader] = await getSessionToken();
+    }
+    return { headers };
+}
+
+function isLocalModeRequest() {
+    return getRequestHeader(localModeHeader) === "1";
 }
 
 async function getVerifiedSessionToken(): Promise<
@@ -37,6 +45,13 @@ export const authenticationMiddlewareWithSessionVerification = createMiddleware(
 )
     .client(async ({ next }) => next(await requestHeaders()))
     .server(async ({ next }) => {
+        if (isLocalModeRequest()) {
+            const { contextId, extensionInstanceId, userId } =
+                await localModeContext();
+            return next({
+                context: { contextId, extensionInstanceId, userId },
+            });
+        }
         const [verifiedSessionToken] = await getVerifiedSessionToken();
         return next({
             context: {
@@ -52,6 +67,10 @@ export const authenticationMiddlewareWithAccessToken = createMiddleware({
 })
     .client(async ({ next }) => next(await requestHeaders()))
     .server(async ({ next }) => {
+        if (isLocalModeRequest()) {
+            return next({ context: await localModeContext() });
+        }
+
         const [verifiedSessionToken, sessionToken] =
             await getVerifiedSessionToken();
 

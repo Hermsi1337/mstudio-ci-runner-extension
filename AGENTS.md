@@ -101,6 +101,7 @@ and in the table above.
 
 ```
 config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts); scripts pass them via --config
+config/local-host-plugin.ts  Vite plugin serving the UI with DOM-rendering Flow components under the local: prefix
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
@@ -114,8 +115,9 @@ src/domain/runner.ts         provider-neutral domain logic (stack lifecycle)
 src/domain/providers/        one module per CI provider, registry in index.ts
 src/serverFunctions/         TanStack server functions: validation and delegation only
 src/components/              Flow remote React components (UI inside mStudio)
-src/routes/                  TanStack Router routes, webhook endpoint
-src/middleware/              session token verification, access token, error handling
+src/routes/                  TanStack Router routes (/ inside mStudio, /local without), webhook endpoint
+src/middleware/              session token verification, access token, local mode, error handling
+src/local-mode.ts            client-side flag that switches the middleware to local mode
 src/mittwald/client.ts       factory for the mittwald API client (configurable base URL)
 src/db/                      Drizzle schema, pool, migration runner, generated migrations
 src/i18n/                    message catalogs (en, de), locale resolution, React hooks

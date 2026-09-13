@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LocalRouteImport } from './routes/local'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiWebhooksMittwaldRouteImport } from './routes/api/webhooks.mittwald'
 
+const LocalRoute = LocalRouteImport.update({
+  id: '/local',
+  path: '/local',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -25,32 +31,43 @@ const ApiWebhooksMittwaldRoute = ApiWebhooksMittwaldRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/local': typeof LocalRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/local': typeof LocalRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/local': typeof LocalRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/webhooks/mittwald'
+  fullPaths: '/' | '/local' | '/api/webhooks/mittwald'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/webhooks/mittwald'
-  id: '__root__' | '/' | '/api/webhooks/mittwald'
+  to: '/' | '/local' | '/api/webhooks/mittwald'
+  id: '__root__' | '/' | '/local' | '/api/webhooks/mittwald'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LocalRoute: typeof LocalRoute
   ApiWebhooksMittwaldRoute: typeof ApiWebhooksMittwaldRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/local': {
+      id: '/local'
+      path: '/local'
+      fullPath: '/local'
+      preLoaderRoute: typeof LocalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LocalRoute: LocalRoute,
   ApiWebhooksMittwaldRoute: ApiWebhooksMittwaldRoute,
 }
 export const routeTree = rootRouteImport

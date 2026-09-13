@@ -4,6 +4,10 @@ export const en = {
     "app.dockerNotice.text":
         "Runners run on mittwald Container Hosting without a Docker daemon. GitHub workflows using container:, services: or docker build and GitLab jobs relying on image: will fail. Plain jobs (Node, PHP, Composer, Python, rsync, SSH deploys) work fine.",
 
+    "local.heading": "Local mode",
+    "local.text":
+        "This page runs outside mStudio. Requests use LOCAL_API_TOKEN against the project LOCAL_PROJECT_ID. Not available in production.",
+
     "runners.heading": "Runners",
     "runners.intro":
         "Each runner is its own container stack in this project and registers itself with GitHub or GitLab on start. Deleting a runner removes its registration.",
