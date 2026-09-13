@@ -36,8 +36,7 @@ Index of all pages: [docs/README.md](docs/README.md).
 ```bash
 corepack enable && pnpm install
 cp .env.example .env && pnpm run init:encryption
-pnpm run db:start
-pnpm run dev
+pnpm run dev:all
 ```
 
 Continue with [docs/development.md](docs/development.md).
