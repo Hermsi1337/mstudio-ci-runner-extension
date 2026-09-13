@@ -10,6 +10,7 @@
 | CI providers | `@octokit/rest`, generated GitLab client | `src/domain/providers/` ([providers.md](providers.md)) |
 | Persistence | PostgreSQL, Drizzle ORM | `src/db/` |
 | Lifecycle webhooks | `@weissaufschwarz/mitthooks` | `src/routes/api/webhooks.mittwald.ts` |
+| Languages | Message catalogs, locale from browser or `x-locale` header | `src/i18n/` ([i18n.md](i18n.md)) |
 | Runner containers | Ubuntu 24.04 + `actions/runner` or `gitlab-runner` | `docker/runner/<provider>/` |
 
 Stack and structure follow the [mittwald reference extension](https://github.com/mittwald/reference-extension).
@@ -69,7 +70,8 @@ answer within 6 seconds.
 - GitLab: the PAT is used once to create the runner and is not stored. The container
   only receives the runner token (`CI_SERVER_TOKEN`).
 - Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
-- Errors reach the client only through `PublicError` subclasses (`src/global-errors.ts`).
+- Errors reach the client only through `PublicError` subclasses (`src/global-errors.ts`);
+  they carry message keys that the middleware renders in the request language.
 - Runners run as the unprivileged user `runner` without a Docker socket.
 
 ## Bundle boundary

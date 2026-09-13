@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
+import { LocaleProvider } from "@/i18n/react.tsx";
 
 interface RouterContext {
     queryClient: QueryClient;
@@ -43,22 +44,24 @@ function RootComponent() {
             </head>
             <body>
                 <QueryClientProvider client={queryClient}>
-                    <RemoteRoot>
-                        <ErrorBoundary
-                            fallbackRender={(props) => (
-                                <LayoutCard>
-                                    <ErrorFallback
-                                        error={props.error}
-                                        resetErrorBoundary={
-                                            props.resetErrorBoundary
-                                        }
-                                    />
-                                </LayoutCard>
-                            )}
-                        >
-                            <Outlet />
-                        </ErrorBoundary>
-                    </RemoteRoot>
+                    <LocaleProvider>
+                        <RemoteRoot>
+                            <ErrorBoundary
+                                fallbackRender={(props) => (
+                                    <LayoutCard>
+                                        <ErrorFallback
+                                            error={props.error}
+                                            resetErrorBoundary={
+                                                props.resetErrorBoundary
+                                            }
+                                        />
+                                    </LayoutCard>
+                                )}
+                            >
+                                <Outlet />
+                            </ErrorBoundary>
+                        </RemoteRoot>
+                    </LocaleProvider>
                 </QueryClientProvider>
                 <Scripts />
             </body>

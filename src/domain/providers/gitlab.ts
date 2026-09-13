@@ -7,6 +7,7 @@ import {
 } from "@/generated/gitlab";
 import { createClient } from "@/generated/gitlab/client";
 import { ProviderError } from "@/global-errors.ts";
+import type { MessageKey } from "@/i18n/index.ts";
 import type {
     PreparedRunner,
     ProviderRequest,
@@ -14,6 +15,18 @@ import type {
 } from "./types.ts";
 
 type GitLabRequest = ProviderRequest<"gitlab">;
+type Subject = "project" | "group" | "runner";
+
+const accessDenied: Record<Subject, MessageKey> = {
+    project: "error.gitlab.noAccessProject",
+    group: "error.gitlab.noAccessGroup",
+    runner: "error.gitlab.noAccessRunner",
+};
+
+const notFound: Partial<Record<Subject, MessageKey>> = {
+    project: "error.gitlab.projectNotFound",
+    group: "error.gitlab.groupNotFound",
+};
 
 function gitlabClient(instanceUrl: string, token?: string) {
     return createClient({
@@ -32,21 +45,20 @@ function normalizePath(path: string | undefined): string {
 
 function describeError(
     status: number | undefined,
-    what: string,
+    subject: Subject,
+    path = "",
 ): ProviderError {
     if (status === 401) {
-        return new ProviderError("The GitLab token is invalid.", "token");
+        return new ProviderError("error.gitlab.tokenInvalid", {}, "token");
     }
     if (status === 403) {
-        return new ProviderError(
-            `The token cannot manage ${what}. Required scopes: create_runner and api (owner or maintainer).`,
-            "token",
-        );
+        return new ProviderError(accessDenied[subject], { path }, "token");
     }
-    if (status === 404) {
-        return new ProviderError(`${what} was not found.`, "target");
+    const notFoundKey = notFound[subject];
+    if (status === 404 && notFoundKey) {
+        return new ProviderError(notFoundKey, { path }, "target");
     }
-    return new ProviderError(`GitLab responded with status ${status ?? "?"}.`);
+    return new ProviderError("error.gitlab.status", { status: status ?? "?" });
 }
 
 /**
@@ -75,7 +87,8 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
         if (input.runnerType === "project_type") {
             if (!path) {
                 throw new ProviderError(
-                    "Project path is required (e.g. group/project).",
+                    "error.gitlab.projectPathRequired",
+                    {},
                     "target",
                 );
             }
@@ -84,24 +97,25 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
                 path: { id: path },
             });
             if (!project.data) {
-                throw describeError(
-                    project.response?.status,
-                    `project ${path}`,
-                );
+                throw describeError(project.response?.status, "project", path);
             }
             projectId = project.data.id;
             target = `${target} ${project.data.path_with_namespace ?? path}`;
             targetUrl = project.data.web_url ?? `${instanceUrl}/${path}`;
         } else if (input.runnerType === "group_type") {
             if (!path) {
-                throw new ProviderError("Group path is required.", "target");
+                throw new ProviderError(
+                    "error.gitlab.groupPathRequired",
+                    {},
+                    "target",
+                );
             }
             const group = await getApiV4GroupsId({
                 client,
                 path: { id: path },
             });
             if (!group.data) {
-                throw describeError(group.response?.status, `group ${path}`);
+                throw describeError(group.response?.status, "group", path);
             }
             groupId = group.data.id;
             target = `${target} ${group.data.full_path ?? path}`;
@@ -120,7 +134,7 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
             },
         });
         if (!created.data) {
-            throw describeError(created.response?.status, "the runner");
+            throw describeError(created.response?.status, "runner");
         }
 
         return {
@@ -152,9 +166,7 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
         });
         const status = result.response?.status ?? 0;
         if (status >= 500) {
-            throw new ProviderError(
-                `The GitLab runner could not be removed (status ${status}).`,
-            );
+            throw new ProviderError("error.gitlab.removeFailed", { status });
         }
     },
 };

@@ -2,16 +2,23 @@ import { getSessionToken } from "@mittwald/ext-bridge/browser";
 import { getAccessToken, verify } from "@mittwald/ext-bridge/node";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
+import { detectBrowserLocale } from "@/i18n/react.tsx";
 import { createMittwaldClient } from "@/mittwald/client.ts";
 import { getEnvironmentVariables } from "../env";
+import { localeHeader } from "./locale.ts";
 
 type VerifiedSessionToken = Awaited<ReturnType<typeof verify>>;
 
 const sessionTokenHeader = "x-session-token";
 
-async function sessionTokenHeaders() {
+async function requestHeaders() {
     const token = await getSessionToken();
-    return { headers: { [sessionTokenHeader]: token } };
+    return {
+        headers: {
+            [sessionTokenHeader]: token,
+            [localeHeader]: detectBrowserLocale(),
+        },
+    };
 }
 
 async function getVerifiedSessionToken(): Promise<
@@ -28,7 +35,7 @@ async function getVerifiedSessionToken(): Promise<
 export const authenticationMiddlewareWithSessionVerification = createMiddleware(
     { type: "function" },
 )
-    .client(async ({ next }) => next(await sessionTokenHeaders()))
+    .client(async ({ next }) => next(await requestHeaders()))
     .server(async ({ next }) => {
         const [verifiedSessionToken] = await getVerifiedSessionToken();
         return next({
@@ -43,7 +50,7 @@ export const authenticationMiddlewareWithSessionVerification = createMiddleware(
 export const authenticationMiddlewareWithAccessToken = createMiddleware({
     type: "function",
 })
-    .client(async ({ next }) => next(await sessionTokenHeaders()))
+    .client(async ({ next }) => next(await requestHeaders()))
     .server(async ({ next }) => {
         const [verifiedSessionToken, sessionToken] =
             await getVerifiedSessionToken();

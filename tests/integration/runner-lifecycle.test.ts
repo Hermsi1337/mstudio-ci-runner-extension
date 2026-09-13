@@ -173,7 +173,7 @@ describe.each(cases)("runner lifecycle: $title", ({
                 "99999999-9999-9999-9999-999999999999",
                 runnerId,
             ),
-        ).rejects.toThrow("was not found");
+        ).rejects.toMatchObject({ messageKey: "error.notFound.runner" });
     });
 
     it("deletes the runner, its registration and its database row", async () => {
@@ -199,6 +199,8 @@ describe("input validation", () => {
                     token: "glpat-0123456789abcdef",
                 },
             ),
-        ).rejects.toThrow("Project path is required");
+        ).rejects.toMatchObject({
+            messageKey: "error.gitlab.projectPathRequired",
+        });
     });
 });

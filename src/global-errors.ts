@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import type { MessageKey, MessageParams } from "@/i18n/index.ts";
 
 const errorDetailsSchema = z
     .object({
@@ -16,30 +17,38 @@ export const errorBodySchema = z.object({
     details: errorDetailsSchema,
 });
 
+export type ErrorBody = z.infer<typeof errorBodySchema>;
+
+/**
+ * Carries a message key instead of a text so the error middleware can render
+ * it in the language of the request.
+ */
 export abstract class PublicError extends Error {
+    public readonly messageKey: MessageKey;
+    public readonly params: MessageParams;
     public readonly isRetryable: boolean;
     public readonly statusCode: number;
-    public readonly cause?: Error;
     public readonly details?: PublicErrorDetails;
 
     protected constructor(
-        message: string,
-        isRetryable: boolean = false,
-        statusCode: number = 500,
-        cause?: Error,
-        details?: PublicErrorDetails,
+        messageKey: MessageKey,
+        params: MessageParams = {},
+        options: {
+            isRetryable?: boolean;
+            statusCode?: number;
+            details?: PublicErrorDetails;
+        } = {},
     ) {
-        super(message);
+        super(messageKey);
         this.name = this.constructor.name;
-        this.isRetryable = isRetryable;
-        this.statusCode = statusCode;
-        this.cause = cause;
-        this.details = details;
+        this.messageKey = messageKey;
+        this.params = params;
+        this.isRetryable = options.isRetryable ?? false;
+        this.statusCode = options.statusCode ?? 500;
+        this.details = options.details;
         Error.captureStackTrace(this, this.constructor);
     }
 }
-
-export type ErrorBody = z.infer<typeof errorBodySchema>;
 
 export function parsePublicError(err: unknown): ErrorBody | undefined {
     const parsedError = errorBodySchema.safeParse(err);
@@ -65,29 +74,40 @@ export function parsePublicError(err: unknown): ErrorBody | undefined {
 export class PermissionsInsufficientError extends PublicError {
     public constructor(extensionInstanceId: string) {
         super(
-            "Insufficient permissions. Either you cannot manage containers in this project or the extension lacks a scope (stack:read, stack:write, stack:delete).",
-            false,
-            403,
-            undefined,
-            { extensionInstanceId },
+            "error.permissions",
+            {},
+            { statusCode: 403, details: { extensionInstanceId } },
         );
     }
 }
 
 export class NotFoundError extends PublicError {
-    public constructor(what: string) {
-        super(`${what} was not found.`, false, 404);
+    public constructor(what: "runner" | "runnerContainer") {
+        super(
+            what === "runner"
+                ? "error.notFound.runner"
+                : "error.notFound.runnerContainer",
+            {},
+            { statusCode: 404 },
+        );
     }
 }
 
 export class ProviderError extends PublicError {
-    public constructor(message: string, affectedField?: string) {
-        super(message, false, 400, undefined, { affectedField });
+    public constructor(
+        messageKey: MessageKey,
+        params: MessageParams = {},
+        affectedField?: string,
+    ) {
+        super(messageKey, params, {
+            statusCode: 400,
+            details: { affectedField },
+        });
     }
 }
 
 export class UpstreamError extends PublicError {
-    public constructor(message: string, cause?: Error) {
-        super(message, true, 502, cause);
+    public constructor(messageKey: MessageKey, params: MessageParams = {}) {
+        super(messageKey, params, { statusCode: 502, isRetryable: true });
     }
 }

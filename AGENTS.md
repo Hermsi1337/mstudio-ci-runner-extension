@@ -11,8 +11,10 @@ the [README](README.md), details in [docs/](docs/README.md).
 
 ## Ground rules
 
-1. **English only.** Code, comments, UI strings, error messages, docs and commit
-   messages are written in English.
+1. **English in the repository, two languages for users.** Code, comments, docs and
+   commit messages are English. Text shown to users (UI, error messages) lives in the
+   catalogs under `src/i18n/` in English and German and is never hard-coded
+   ([docs/i18n.md](docs/i18n.md)).
 2. **Spec first, as little hand-written code as possible.** Contracts live in specs,
    code is generated from them ([docs/codegen.md](docs/codegen.md)). New fields or
    endpoints start in `openapi/extension-api.yaml`, followed by `pnpm run codegen`.
@@ -38,6 +40,23 @@ the [README](README.md), details in [docs/](docs/README.md).
 9. **Conventional Commits.** `feat:`, `fix:`, `docs:`, `ci:`, `chore:`, `refactor:`, `test:`.
 10. **Images are built from tags only.** Never from pushes to `main`
     ([docs/operations.md](docs/operations.md)).
+11. **Writing style.** All text, in every language, follows the rules below.
+
+## Writing style
+
+Applies to docs, UI texts, error messages, comments and commit messages, in English and
+German alike. The goal is text that reads like a person wrote it for a colleague.
+
+- Short sentences, one idea each. Active voice. Say what happens, not what "may" happen.
+- No em dashes or en dashes as punctuation. Use a comma, a period or parentheses.
+- No filler: "simply", "just", "seamlessly", "robust", "powerful", "leverage",
+  "streamline", "note that", "it's worth noting", "in order to".
+- No rhetorical triads or lists of adjectives for effect. No exclamation marks, no emoji.
+- No summaries that repeat what was just said. No introductions that announce content.
+- Name concrete things: the file, the variable, the command, the status code.
+- UI labels are short noun phrases in sentence case. Buttons use verbs ("Create runner").
+- German texts use "du", never "Sie", and native phrasing, not translated English.
+- Error messages state what failed and what the user can do, in one or two sentences.
 
 ## Maintaining the documentation
 
@@ -57,6 +76,7 @@ into this file. Every file has exactly one topic and links to the others.
 | `docs/testing.md` | Test setup, Testcontainers, mock servers, how tests run |
 | `docs/runner-image.md` | Runner images per provider: env vars, entrypoint, building, workflow examples |
 | `docs/operations.md` | Releases, images, GHCR, CI workflows |
+| `docs/i18n.md` | Languages: how the locale is chosen, catalogs, adding texts |
 
 Checklist before every commit:
 
@@ -65,6 +85,8 @@ Checklist before every commit:
 - New script in `package.json`: `docs/development.md`.
 - New or changed scope, anchor, webhook, token requirement: `docs/mstudio-setup.md`.
 - New provider or changed provider behavior: `docs/providers.md`, `docs/runner-image.md`.
+- New or changed user-facing text: both catalogs in `src/i18n/`, `docs/i18n.md` if the
+  mechanism changes.
 - Change to specs or generators: `docs/codegen.md`.
 - New test or new container in tests: `docs/testing.md`.
 - New directory or moved module: `docs/architecture.md` and the structure below.
@@ -94,6 +116,7 @@ src/routes/                  TanStack Router routes, webhook endpoint
 src/middleware/              session token verification, access token, error handling
 src/mittwald/client.ts       factory for the mittwald API client (configurable base URL)
 src/db/                      Drizzle schema, pool, migration runner, generated migrations
+src/i18n/                    message catalogs (en, de), locale resolution, React hooks
 tests/integration/           Testcontainers tests
 tests/helpers/               container starters (PostgreSQL, Prism)
 .github/workflows/           CI on push/PR, image builds on tags only
@@ -119,6 +142,7 @@ Everything else lives in a subdirectory.
 ```bash
 pnpm run codegen && git diff --exit-code -- src/generated   # generated code up to date?
 pnpm run check && pnpm run typecheck && pnpm run build
+pnpm run test                                                # unit tests, catalog consistency
 pnpm run test:integration                                    # requires Docker
 ```
 

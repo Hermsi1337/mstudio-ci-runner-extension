@@ -1,6 +1,9 @@
 import { createMiddleware } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import type { ZodIssue } from "zod/v3";
 import { type ErrorBody, PublicError } from "@/global-errors";
+import { resolveLocale, translate } from "@/i18n/index.ts";
+import { localeHeader } from "./locale.ts";
 
 export const handleServerErrors = createMiddleware({
     type: "function",
@@ -8,7 +11,12 @@ export const handleServerErrors = createMiddleware({
     try {
         return await next();
     } catch (error) {
-        console.error("Server function error occured:", error);
+        console.error("Server function error occurred:", error);
+
+        const locale = resolveLocale(
+            getRequestHeader(localeHeader) ??
+                getRequestHeader("accept-language"),
+        );
 
         const validationIssues = parseZodValidationError(error);
         if (validationIssues) {
@@ -16,10 +24,10 @@ export const handleServerErrors = createMiddleware({
         }
 
         if (error instanceof PublicError) {
-            throw buildPublicError(error);
+            throw buildPublicError(error, locale);
         }
 
-        throw buildUnknownError();
+        throw buildUnknownError(locale);
     }
 });
 
@@ -28,10 +36,8 @@ function parseZodValidationError(error: unknown): ZodIssue[] | null {
         return null;
     }
 
-    const trimmed = error.message.trim();
-
     try {
-        const parsed = JSON.parse(trimmed);
+        const parsed = JSON.parse(error.message.trim());
         const isValid =
             Array.isArray(parsed) &&
             parsed.length > 0 &&
@@ -51,7 +57,6 @@ function parseZodValidationError(error: unknown): ZodIssue[] | null {
 }
 
 function buildValidationError(validationIssues: ZodIssue[]): Response {
-    console.log(`error is a validation error`);
     const firstIssue = validationIssues[0];
 
     return Response.json(
@@ -60,38 +65,36 @@ function buildValidationError(validationIssues: ZodIssue[]): Response {
             message: firstIssue.message,
             isRetryable: false,
             details: {
-                affectedField: firstIssue.path[0],
+                affectedField: String(firstIssue.path[0]),
             },
-        },
-        {
-            status: 400,
-        },
+        } satisfies ErrorBody,
+        { status: 400 },
     );
 }
 
-function buildPublicError(error: PublicError): Response {
-    console.log(`error is known, responding with ${error.statusCode}`);
+function buildPublicError(
+    error: PublicError,
+    locale: ReturnType<typeof resolveLocale>,
+): Response {
     return Response.json(
         {
             type: error.name,
-            message: error.message,
+            message: translate(locale, error.messageKey, error.params),
             isRetryable: error.isRetryable,
-            details: error.details,
-        } as ErrorBody,
-        {
-            status: error.statusCode,
-        },
+            details: error.details ?? {},
+        } satisfies ErrorBody,
+        { status: error.statusCode },
     );
 }
 
-function buildUnknownError(): Response {
-    console.log("error is unknown, responding with status 500");
+function buildUnknownError(locale: ReturnType<typeof resolveLocale>): Response {
     return Response.json(
         {
             type: "UnknownError",
-            message: "An unexpected error occurred",
+            message: translate(locale, "error.unexpected"),
             isRetryable: false,
-        },
+            details: {},
+        } satisfies ErrorBody,
         { status: 500 },
     );
 }

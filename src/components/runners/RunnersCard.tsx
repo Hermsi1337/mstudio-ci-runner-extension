@@ -9,26 +9,26 @@ import {
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
+import { useTranslation } from "@/i18n/react.tsx";
 import { CreateRunnerModal } from "./CreateRunnerModal.tsx";
 import { RunnerTable } from "./RunnerTable.tsx";
 
-export const RunnersCard = () => (
-    <LayoutCard>
-        <Section>
-            <Header>
-                <Heading>Runners</Heading>
-                <CreateRunnerModal />
-            </Header>
-            <Text>
-                Each runner is its own container stack in this project and
-                registers itself with GitHub or GitLab on start. Deleting a
-                runner removes its registration.
-            </Text>
-            <ErrorBoundary FallbackComponent={ErrorFallback}>
-                <Suspense fallback={<SkeletonText />}>
-                    <RunnerTable />
-                </Suspense>
-            </ErrorBoundary>
-        </Section>
-    </LayoutCard>
-);
+export const RunnersCard = () => {
+    const t = useTranslation();
+    return (
+        <LayoutCard>
+            <Section>
+                <Header>
+                    <Heading>{t("runners.heading")}</Heading>
+                    <CreateRunnerModal />
+                </Header>
+                <Text>{t("runners.intro")}</Text>
+                <ErrorBoundary FallbackComponent={ErrorFallback}>
+                    <Suspense fallback={<SkeletonText />}>
+                        <RunnerTable />
+                    </Suspense>
+                </ErrorBoundary>
+            </Section>
+        </LayoutCard>
+    );
+};

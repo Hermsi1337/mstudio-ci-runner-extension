@@ -14,19 +14,15 @@ import {
     Text,
 } from "@mittwald/flow-remote-react-components";
 import { useEffect, useState } from "react";
-import type { Provider } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
+import { useTranslation } from "@/i18n/react.tsx";
 import { RunnerLogsModal } from "./RunnerLogsModal.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
 const REFRESH_INTERVAL_MS = 15_000;
 
-const providerLabels: Record<Provider, string> = {
-    github: "GitHub Actions",
-    gitlab: "GitLab CI",
-};
-
 export const RunnerTable = () => {
+    const t = useTranslation();
     const { value: runners, invalidate } =
         RunnerClientGhost.listRunners().useGhost();
     const [busy, setBusy] = useState<string | null>(null);
@@ -50,41 +46,44 @@ export const RunnerTable = () => {
         return (
             <IllustratedMessage>
                 <IconSearch />
-                <Heading>No runners yet</Heading>
-                <Text>
-                    Use "Create runner" to add the first CI runner to this
-                    project.
-                </Text>
+                <Heading>{t("runners.empty.heading")}</Heading>
+                <Text>{t("runners.empty.text")}</Text>
             </IllustratedMessage>
         );
     }
 
     return (
-        <Table aria-label="CI runners">
+        <Table aria-label={t("runners.heading")}>
             <TableHeader>
-                <TableColumn isRowHeader>Name</TableColumn>
-                <TableColumn>CI system</TableColumn>
-                <TableColumn>Target</TableColumn>
-                <TableColumn>Labels</TableColumn>
-                <TableColumn>Size</TableColumn>
-                <TableColumn>Status</TableColumn>
-                <TableColumn>Actions</TableColumn>
+                <TableColumn isRowHeader>
+                    {t("runners.column.name")}
+                </TableColumn>
+                <TableColumn>{t("runners.column.provider")}</TableColumn>
+                <TableColumn>{t("runners.column.target")}</TableColumn>
+                <TableColumn>{t("runners.column.labels")}</TableColumn>
+                <TableColumn>{t("runners.column.size")}</TableColumn>
+                <TableColumn>{t("runners.column.status")}</TableColumn>
+                <TableColumn>{t("runners.column.actions")}</TableColumn>
             </TableHeader>
             <TableBody>
                 {runners.map((runner) => (
                     <TableRow key={runner.id}>
                         <TableCell>
                             {runner.name}
-                            {runner.ephemeral ? " (ephemeral)" : ""}
+                            {runner.ephemeral
+                                ? ` ${t("runners.ephemeralSuffix")}`
+                                : ""}
                         </TableCell>
-                        <TableCell>{providerLabels[runner.provider]}</TableCell>
+                        <TableCell>
+                            {t(`provider.${runner.provider}`)}
+                        </TableCell>
                         <TableCell>
                             <Link href={runner.targetUrl} target="_blank">
                                 {runner.target}
                             </Link>
                         </TableCell>
                         <TableCell>{runner.labels.join(", ")}</TableCell>
-                        <TableCell>{runner.size}</TableCell>
+                        <TableCell>{t(`form.size.${runner.size}`)}</TableCell>
                         <TableCell>
                             <StatusBadge status={runner.status} />
                         </TableCell>
@@ -107,7 +106,7 @@ export const RunnerTable = () => {
                                         )
                                     }
                                 >
-                                    Restart
+                                    {t("runners.action.restart")}
                                 </Button>
                                 <Button
                                     color="danger"
@@ -122,7 +121,7 @@ export const RunnerTable = () => {
                                         )
                                     }
                                 >
-                                    Delete
+                                    {t("runners.action.delete")}
                                 </Button>
                             </ActionGroup>
                         </TableCell>

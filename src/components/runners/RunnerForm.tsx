@@ -25,6 +25,7 @@ import type {
 } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
+import { useTranslation } from "@/i18n/react.tsx";
 
 interface FormValues {
     provider: Provider;
@@ -69,6 +70,7 @@ function toRequest(values: FormValues): CreateRunnerRequest {
 }
 
 export const RunnerForm = () => {
+    const t = useTranslation();
     const queryClient = useQueryClient();
     const modal = useOverlayController("Modal");
 
@@ -105,17 +107,20 @@ export const RunnerForm = () => {
             <Section>
                 <Field name="provider">
                     <Select>
-                        <Label>CI system</Label>
-                        <Option value="github">GitHub Actions</Option>
-                        <Option value="gitlab">GitLab CI</Option>
+                        <Label>{t("form.provider.label")}</Label>
+                        <Option value="github">{t("provider.github")}</Option>
+                        <Option value="gitlab">{t("provider.gitlab")}</Option>
                     </Select>
                 </Field>
 
-                <Field name="name" rules={{ required: "Name is required" }}>
+                <Field
+                    name="name"
+                    rules={{ required: t("form.name.required") }}
+                >
                     <TextField>
-                        <Label>Name</Label>
+                        <Label>{t("form.name.label")}</Label>
                         <FieldDescription>
-                            Used as the runner name in the CI system.
+                            {t("form.name.description")}
                         </FieldDescription>
                     </TextField>
                 </Field>
@@ -125,43 +130,42 @@ export const RunnerForm = () => {
                         <Field
                             name="target"
                             rules={{
-                                required:
-                                    "Organization or repository is required",
+                                required: t("form.github.target.required"),
                             }}
                         >
-                            <TextField placeholder="owner or owner/repo">
-                                <Label>GitHub organization or repository</Label>
+                            <TextField
+                                placeholder={t(
+                                    "form.github.target.placeholder",
+                                )}
+                            >
+                                <Label>{t("form.github.target.label")}</Label>
                                 <FieldDescription>
-                                    Organization (e.g. <strong>my-org</strong>)
-                                    or repository (e.g.{" "}
-                                    <strong>my-org/my-repo</strong>).
+                                    {t("form.github.target.description")}
                                 </FieldDescription>
                             </TextField>
                         </Field>
                         <Field
                             name="token"
-                            rules={{ required: "GitHub token is required" }}
+                            rules={{
+                                required: t("form.github.token.required"),
+                            }}
                         >
                             <TextField type="password">
-                                <Label>GitHub token (PAT)</Label>
+                                <Label>{t("form.github.token.label")}</Label>
                                 <FieldDescription>
-                                    Fine-grained PAT with "Administration: Read
-                                    and write" (repository) or "Self-hosted
-                                    runners: Read and write" (organization).
-                                    Stored encrypted and passed to the container
-                                    as an environment variable.
+                                    {t("form.github.token.description")}
                                 </FieldDescription>
                             </TextField>
                         </Field>
                         <Field name="runnerGroup">
                             <TextField>
-                                <Label>Runner group (optional)</Label>
+                                <Label>
+                                    {t("form.github.runnerGroup.label")}
+                                </Label>
                             </TextField>
                         </Field>
                         <Field name="ephemeral">
-                            <Switch>
-                                Ephemeral (fresh registration per job)
-                            </Switch>
+                            <Switch>{t("form.github.ephemeral.label")}</Switch>
                         </Field>
                     </>
                 )}
@@ -170,57 +174,74 @@ export const RunnerForm = () => {
                     <>
                         <Field
                             name="instanceUrl"
-                            rules={{ required: "GitLab URL is required" }}
+                            rules={{
+                                required: t("form.gitlab.instanceUrl.required"),
+                            }}
                         >
                             <TextField>
-                                <Label>GitLab instance</Label>
+                                <Label>
+                                    {t("form.gitlab.instanceUrl.label")}
+                                </Label>
                                 <FieldDescription>
-                                    https://gitlab.com or the URL of your own
-                                    instance.
+                                    {t("form.gitlab.instanceUrl.description")}
                                 </FieldDescription>
                             </TextField>
                         </Field>
                         <Field name="runnerType">
                             <Select>
-                                <Label>Runner type</Label>
-                                <Option value="project_type">Project</Option>
-                                <Option value="group_type">Group</Option>
+                                <Label>
+                                    {t("form.gitlab.runnerType.label")}
+                                </Label>
+                                <Option value="project_type">
+                                    {t("form.gitlab.runnerType.project")}
+                                </Option>
+                                <Option value="group_type">
+                                    {t("form.gitlab.runnerType.group")}
+                                </Option>
                                 <Option value="instance_type">
-                                    Instance (admin)
+                                    {t("form.gitlab.runnerType.instance")}
                                 </Option>
                             </Select>
                         </Field>
                         {runnerType !== "instance_type" && (
                             <Field
                                 name="target"
-                                rules={{ required: "Path is required" }}
+                                rules={{
+                                    required: t("form.gitlab.path.required"),
+                                }}
                             >
-                                <TextField placeholder="group/project">
+                                <TextField
+                                    placeholder={t(
+                                        "form.gitlab.path.placeholder",
+                                    )}
+                                >
                                     <Label>
                                         {runnerType === "group_type"
-                                            ? "Group path"
-                                            : "Project path"}
+                                            ? t("form.gitlab.groupPath.label")
+                                            : t(
+                                                  "form.gitlab.projectPath.label",
+                                              )}
                                     </Label>
                                 </TextField>
                             </Field>
                         )}
                         <Field
                             name="token"
-                            rules={{ required: "GitLab token is required" }}
+                            rules={{
+                                required: t("form.gitlab.token.required"),
+                            }}
                         >
                             <TextField type="password">
-                                <Label>GitLab token (PAT)</Label>
+                                <Label>{t("form.gitlab.token.label")}</Label>
                                 <FieldDescription>
-                                    Personal access token with the scopes{" "}
-                                    <strong>create_runner</strong> and{" "}
-                                    <strong>api</strong>. Only used to create
-                                    the runner; the container receives the
-                                    runner token only.
+                                    {t("form.gitlab.token.description")}
                                 </FieldDescription>
                             </TextField>
                         </Field>
                         <Field name="runUntagged">
-                            <Switch>Also run jobs without tags</Switch>
+                            <Switch>
+                                {t("form.gitlab.runUntagged.label")}
+                            </Switch>
                         </Field>
                     </>
                 )}
@@ -228,22 +249,22 @@ export const RunnerForm = () => {
                 <Field name="labels">
                     <TextField>
                         <Label>
-                            {provider === "gitlab" ? "Tags" : "Labels"}
+                            {provider === "gitlab"
+                                ? t("form.tags.label")
+                                : t("form.labels.label")}
                         </Label>
                         <FieldDescription>
-                            Comma separated. GitHub:{" "}
-                            <strong>runs-on: [self-hosted, mittwald]</strong>,
-                            GitLab: <strong>tags: [mittwald]</strong>.
+                            {t("form.labels.description")}
                         </FieldDescription>
                     </TextField>
                 </Field>
 
                 <Field name="size">
                     <Select>
-                        <Label>Size</Label>
-                        <Option value="small">Small (0.5 CPU, 1 GB RAM)</Option>
-                        <Option value="medium">Medium (1 CPU, 2 GB RAM)</Option>
-                        <Option value="large">Large (2 CPU, 4 GB RAM)</Option>
+                        <Label>{t("form.size.label")}</Label>
+                        <Option value="small">{t("form.size.small")}</Option>
+                        <Option value="medium">{t("form.size.medium")}</Option>
+                        <Option value="large">{t("form.size.large")}</Option>
                     </Select>
                 </Field>
 
@@ -252,11 +273,11 @@ export const RunnerForm = () => {
                 <ActionGroup>
                     <Action closeOverlay="Modal">
                         <Button color="secondary" variant="soft">
-                            Cancel
+                            {t("form.cancel")}
                         </Button>
                     </Action>
                     <Button type="submit" color="primary">
-                        Create runner
+                        {t("form.create.button")}
                     </Button>
                 </ActionGroup>
             </Section>

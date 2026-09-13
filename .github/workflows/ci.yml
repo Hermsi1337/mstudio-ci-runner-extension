@@ -20,6 +20,7 @@ jobs:
         run: pnpm run codegen && git diff --exit-code -- src/generated
       - run: pnpm run check
       - run: pnpm run typecheck
+      - run: pnpm run test
       - run: pnpm run build
 
   integration:

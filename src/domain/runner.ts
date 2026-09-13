@@ -76,7 +76,7 @@ async function findRunner(
         .from(runners)
         .where(eq(runners.id, runnerId));
     if (!row || row.extensionInstanceId !== extensionInstanceId) {
-        throw new NotFoundError("The runner");
+        throw new NotFoundError("runner");
     }
     return row;
 }
@@ -142,9 +142,9 @@ export async function createRunner(
     }
     if (created.status !== 201) {
         await provider.release(prepared.credentials).catch(() => undefined);
-        throw new UpstreamError(
-            `The stack could not be created (status ${created.status}).`,
-        );
+        throw new UpstreamError("error.upstream.stackCreate", {
+            status: created.status,
+        });
     }
     const stackId = created.data.id;
 
@@ -177,9 +177,9 @@ export async function createRunner(
         if (declared.status === 403) {
             throw new PermissionsInsufficientError(extensionInstanceId);
         }
-        throw new UpstreamError(
-            `The runner container could not be declared (status ${declared.status}).`,
-        );
+        throw new UpstreamError("error.upstream.stackDeclare", {
+            status: declared.status,
+        });
     }
     const service =
         declared.data.services?.find((s) => s.serviceName === SERVICE_KEY) ??
@@ -217,7 +217,7 @@ export async function getRunnerLogs(
     const row = await findRunner(extensionInstanceId, runnerId);
     const serviceId = row.serviceId ?? (await fetchService(client, row))?.id;
     if (!serviceId) {
-        throw new NotFoundError("The runner container");
+        throw new NotFoundError("runnerContainer");
     }
     const response = await client.container.getServiceLogs({
         stackId: row.stackId,
@@ -228,12 +228,12 @@ export async function getRunnerLogs(
         throw new PermissionsInsufficientError(extensionInstanceId);
     }
     if (response.status === 404) {
-        throw new NotFoundError("The runner container");
+        throw new NotFoundError("runnerContainer");
     }
     if (response.status !== 200 && response.status !== 206) {
-        throw new UpstreamError(
-            `Logs could not be loaded (status ${response.status}).`,
-        );
+        throw new UpstreamError("error.upstream.logs", {
+            status: response.status,
+        });
     }
     return typeof response.data === "string"
         ? response.data
@@ -248,7 +248,7 @@ export async function restartRunner(
     const row = await findRunner(extensionInstanceId, runnerId);
     const serviceId = row.serviceId ?? (await fetchService(client, row))?.id;
     if (!serviceId) {
-        throw new NotFoundError("The runner container");
+        throw new NotFoundError("runnerContainer");
     }
     const response = await client.container.restartService({
         stackId: row.stackId,
@@ -258,7 +258,7 @@ export async function restartRunner(
         throw new PermissionsInsufficientError(extensionInstanceId);
     }
     if (response.status === 404) {
-        throw new NotFoundError("The runner container");
+        throw new NotFoundError("runnerContainer");
     }
     assertStatus(response, 204);
 }
@@ -276,9 +276,9 @@ export async function deleteRunner(
         throw new PermissionsInsufficientError(extensionInstanceId);
     }
     if (response.status !== 204 && response.status !== 404) {
-        throw new UpstreamError(
-            `The stack could not be deleted (status ${response.status}).`,
-        );
+        throw new UpstreamError("error.upstream.stackDelete", {
+            status: response.status,
+        });
     }
     await releaseProviderRegistration(row);
     await getDatabase().delete(runners).where(eq(runners.id, row.id));

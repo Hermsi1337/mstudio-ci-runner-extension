@@ -55,26 +55,29 @@ export async function assertGitHubRunnerAccess(
         }
     } catch (error) {
         if (!(error instanceof RequestError)) {
-            throw new ProviderError(
-                `GitHub is unreachable: ${(error as Error).message}`,
-            );
+            throw new ProviderError("error.github.unreachable", {
+                reason: (error as Error).message,
+            });
         }
         if (error.status === 401) {
-            throw new ProviderError("The GitHub token is invalid.", "token");
+            throw new ProviderError("error.github.tokenInvalid", {}, "token");
         }
         if (error.status === 403 || error.status === 404) {
-            const where =
-                target.scope === "repo"
-                    ? `repository ${target.owner}/${target.repo}`
-                    : `organization ${target.org}`;
-            throw new ProviderError(
-                `The token cannot manage runners for ${where} (or the target does not exist). Fine-grained PAT: repository "Administration: Read and write" or organization "Self-hosted runners: Read and write".`,
-                "token",
-            );
+            throw target.scope === "repo"
+                ? new ProviderError(
+                      "error.github.noAccessRepo",
+                      { owner: target.owner, repo: target.repo },
+                      "token",
+                  )
+                : new ProviderError(
+                      "error.github.noAccessOrg",
+                      { org: target.org },
+                      "token",
+                  );
         }
-        throw new ProviderError(
-            `GitHub responded with status ${error.status}.`,
-        );
+        throw new ProviderError("error.github.status", {
+            status: error.status,
+        });
     }
 }
 

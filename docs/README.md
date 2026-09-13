@@ -10,5 +10,6 @@
 | [testing.md](testing.md) | Test setup with Testcontainers and Prism mocks |
 | [runner-image.md](runner-image.md) | Runner images per provider: env vars, entrypoint, building, workflow examples |
 | [operations.md](operations.md) | Releases, images, GHCR, CI workflows |
+| [i18n.md](i18n.md) | Languages: locale detection, catalogs, adding texts |
 
 Rules for maintaining these pages: [AGENTS.md](../AGENTS.md).
