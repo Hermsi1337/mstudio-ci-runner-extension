@@ -104,6 +104,26 @@ pnpm run db:start
 docker run --rm --env-file .env -e POSTGRES_HOST=host.docker.internal -p 3000:3000 mstudio-ci-runner-extension:local
 ```
 
+## Logging
+
+The application logs to stdout (`debug`, `info`) and stderr (`warn`, `error`) through
+`src/logger.ts`. Every line carries a timestamp, level, scope and message plus
+key-value fields.
+
+| Variable | Values |
+|---|---|
+| `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error` |
+| `LOG_FORMAT` | `json` (default with `NODE_ENV=production`), `text` |
+
+Scopes: `startup` (configuration summary, migrations), `db`, `auth` (verified session
+tokens, local mode), `server-function` (rejected and failed requests with the message
+key), `runner` (stack lifecycle), `github` and `gitlab` (provider calls), `webhook`
+(received events, instance cleanup). Tokens and environment values of runner
+containers are never logged, only the variable names. The hosted stack runs with
+`LOG_LEVEL=info` and `LOG_FORMAT=json` (`deploy/mstudio/stack.yaml`); raise to `debug`
+there for troubleshooting and lower it again afterwards. Logs are visible in mStudio
+under the container `extension`.
+
 ## Bumping the runner version
 
 1. Raise `RUNNER_VERSION` in `docker/runner/<provider>/Dockerfile`, in the matrix of

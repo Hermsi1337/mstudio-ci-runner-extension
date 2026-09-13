@@ -2,7 +2,10 @@ import { RequestError } from "@octokit/request-error";
 import { Octokit } from "@octokit/rest";
 import { getEnvironmentVariables } from "@/env.ts";
 import { ProviderError } from "@/global-errors.ts";
+import { createLogger } from "@/logger.ts";
 import type { ProviderRequest, RunnerProvider } from "./types.ts";
+
+const log = createLogger("github");
 
 type GitHubTarget =
     | { scope: "repo"; owner: string; repo: string; url: string }
@@ -53,7 +56,13 @@ export async function assertGitHubRunnerAccess(
                 headers,
             });
         }
+        log.debug("runner access confirmed", { target: target.url });
     } catch (error) {
+        log.debug("runner access check failed", {
+            target: target.url,
+            status: error instanceof RequestError ? error.status : undefined,
+            error,
+        });
         if (!(error instanceof RequestError)) {
             throw new ProviderError("error.github.unreachable", {
                 reason: (error as Error).message,

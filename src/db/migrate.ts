@@ -2,6 +2,9 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { getEnvironmentVariables } from "../env";
+import { createLogger } from "../logger";
+
+const log = createLogger("db");
 
 export interface MigrationResult {
     success: boolean;
@@ -27,14 +30,17 @@ export async function runMigrations(): Promise<MigrationResult> {
 
         const db = drizzle(pool);
 
-        console.log("[migrations] Running database migrations...");
+        log.info("running migrations", {
+            host: env.POSTGRES_HOST,
+            database: env.POSTGRES_DB,
+        });
         await migrate(db, { migrationsFolder: "./src/db/migrations" });
-        console.log("[migrations] Database migrations completed successfully");
+        log.info("migrations complete");
 
         return { success: true };
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        console.error("[migrations] Database migration failed:", err.message);
+        log.error("migrations failed", { error: err });
         return { success: false, error: err };
     } finally {
         await pool.end();

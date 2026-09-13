@@ -110,6 +110,7 @@ openapi/extension-api.yaml   extension API contract (source for codegen)
 openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
 scripts/slim-openapi.ts      produces openapi/upstream
 scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
+scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
 src/domain/runner.ts         provider-neutral domain logic (stack lifecycle)
 src/domain/providers/        one module per CI provider, registry in index.ts
@@ -118,6 +119,7 @@ src/components/              Flow remote React components (UI inside mStudio)
 src/routes/                  TanStack Router routes (/ inside mStudio, /local without), webhook endpoint
 src/middleware/              session token verification, access token, local mode, error handling
 src/local-mode.ts            client-side flag that switches the middleware to local mode
+src/logger.ts                logger with scopes, LOG_LEVEL and LOG_FORMAT
 src/mittwald/client.ts       factory for the mittwald API client (configurable base URL)
 src/db/                      Drizzle schema, pool, migration runner, generated migrations
 src/i18n/                    message catalogs (en, de), locale resolution, React hooks
@@ -138,6 +140,10 @@ Everything else lives in a subdirectory.
   never creates it, so it stays testable against mock servers.
 - Errors reach the client only through subclasses of `PublicError`
   (`src/global-errors.ts`). Unknown errors are mapped to a generic 500 by the middleware.
+- Logging only through `createLogger(scope)` from `src/logger.ts`, never `console`.
+  Server code logs state changes at `info`, lookups and request details at `debug`,
+  handled failures at `warn`, unexpected ones at `error`. Never log tokens, secrets or
+  the environment of runner containers.
 - Domain code must not end up in the client bundle. Client code imports types from
   `src/generated/`, never from `src/domain/` or `src/db/`.
 

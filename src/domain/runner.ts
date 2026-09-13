@@ -18,7 +18,10 @@ import {
     PermissionsInsufficientError,
     UpstreamError,
 } from "@/global-errors.ts";
+import { createLogger } from "@/logger.ts";
 import { getProvider, getProviderById } from "./providers/index.ts";
+
+const log = createLogger("runner");
 
 type ServiceResponse =
     MittwaldAPIV2.Components.Schemas.ContainerServiceResponse;
@@ -130,7 +133,22 @@ export async function createRunner(
         .join(",");
     const runnerName = slugify(input.name) || `runner-${uuid.v4().slice(0, 8)}`;
 
+    log.info("creating runner", {
+        provider: provider.id,
+        name: input.name,
+        runnerName,
+        size,
+        projectId,
+        userId,
+    });
     const prepared = await provider.prepare({ ...input, labels }, runnerName);
+    log.debug("provider prepared runner", {
+        provider: provider.id,
+        target: prepared.target,
+        image: prepared.image,
+        environmentKeys: Object.keys(prepared.environment),
+        volumes: prepared.volumes,
+    });
 
     const created = await client.container.createStack({
         projectId,
@@ -147,6 +165,7 @@ export async function createRunner(
         });
     }
     const stackId = created.data.id;
+    log.debug("stack created", { stackId, projectId });
 
     const volumes = Object.fromEntries(
         prepared.volumes.map((mount) => {
@@ -205,6 +224,13 @@ export async function createRunner(
         .insert(runners)
         .values(row)
         .returning();
+    log.info("runner created", {
+        runnerId: inserted.id,
+        provider: provider.id,
+        target: prepared.target,
+        stackId,
+        serviceId: row.serviceId,
+    });
     return toView(inserted, service);
 }
 
@@ -235,6 +261,7 @@ export async function getRunnerLogs(
             status: response.status,
         });
     }
+    log.debug("logs fetched", { runnerId, stackId: row.stackId, tail });
     return typeof response.data === "string"
         ? response.data
         : JSON.stringify(response.data);
@@ -261,6 +288,7 @@ export async function restartRunner(
         throw new NotFoundError("runnerContainer");
     }
     assertStatus(response, 204);
+    log.info("runner restarted", { runnerId, stackId: row.stackId, serviceId });
 }
 
 export async function deleteRunner(
@@ -282,6 +310,12 @@ export async function deleteRunner(
     }
     await releaseProviderRegistration(row);
     await getDatabase().delete(runners).where(eq(runners.id, row.id));
+    log.info("runner deleted", {
+        runnerId,
+        provider: row.provider,
+        stackId: row.stackId,
+        stackStatus: response.status,
+    });
 }
 
 async function releaseProviderRegistration(row: RunnerRow): Promise<void> {
@@ -292,10 +326,11 @@ async function releaseProviderRegistration(row: RunnerRow): Promise<void> {
     try {
         await provider.release(parseCredentials(row));
     } catch (error) {
-        console.error(
-            `[runner] provider cleanup failed for ${row.provider} runner ${row.id}:`,
+        log.warn("provider registration cleanup failed", {
+            runnerId: row.id,
+            provider: row.provider,
             error,
-        );
+        });
     }
 }
 
@@ -307,10 +342,11 @@ export async function deleteAllRunnersOfInstance(
         try {
             await client.container.deleteStack({ stackId: row.stackId });
         } catch (error) {
-            console.error(
-                `[cleanup] failed to delete stack ${row.stackId} (${row.name}):`,
+            log.error("stack deletion failed during instance cleanup", {
+                runnerId: row.id,
+                stackId: row.stackId,
                 error,
-            );
+            });
         }
         await releaseProviderRegistration(row);
     }

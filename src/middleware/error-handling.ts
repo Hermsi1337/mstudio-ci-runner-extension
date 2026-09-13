@@ -3,7 +3,10 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import type { ZodIssue } from "zod/v3";
 import { type ErrorBody, PublicError } from "@/global-errors";
 import { resolveLocale, translate } from "@/i18n/index.ts";
+import { createLogger } from "@/logger.ts";
 import { localeHeader } from "./locale.ts";
+
+const log = createLogger("server-function");
 
 export const handleServerErrors = createMiddleware({
     type: "function",
@@ -11,8 +14,6 @@ export const handleServerErrors = createMiddleware({
     try {
         return await next();
     } catch (error) {
-        console.error("Server function error occurred:", error);
-
         const locale = resolveLocale(
             getRequestHeader(localeHeader) ??
                 getRequestHeader("accept-language"),
@@ -20,13 +21,25 @@ export const handleServerErrors = createMiddleware({
 
         const validationIssues = parseZodValidationError(error);
         if (validationIssues) {
+            log.warn("request rejected by validation", {
+                issues: validationIssues.map(
+                    (issue) => `${issue.path.join(".")}: ${issue.message}`,
+                ),
+            });
             throw buildValidationError(validationIssues);
         }
 
         if (error instanceof PublicError) {
+            log.warn("request failed", {
+                type: error.name,
+                messageKey: error.messageKey,
+                params: error.params,
+                status: error.statusCode,
+            });
             throw buildPublicError(error, locale);
         }
 
+        log.error("unexpected error in server function", { error });
         throw buildUnknownError(locale);
     }
 });

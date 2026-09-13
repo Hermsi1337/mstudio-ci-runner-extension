@@ -14,6 +14,8 @@ services:
       POSTGRES_DB: extension
       POSTGRES_USE_SSL: "false"
       RUN_MIGRATIONS_ON_STARTUP: "true"
+      LOG_LEVEL: info
+      LOG_FORMAT: json
       EXTENSION_ID: "{{ .Env.EXTENSION_ID }}"
       EXTENSION_SECRET: "{{ .Env.EXTENSION_SECRET }}"
       ENCRYPTION_MASTER_PASSWORD: "{{ .Env.ENCRYPTION_MASTER_PASSWORD }}"

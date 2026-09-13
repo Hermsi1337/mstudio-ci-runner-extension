@@ -1,9 +1,11 @@
 import { getDatabase } from "@/db";
 import { extensionInstances } from "@/db/schema.ts";
+import { createLogger } from "@/logger.ts";
 import { createMittwaldClient } from "@/mittwald/client.ts";
 import { getEnvironmentVariables } from "../env";
 
 const localUserId = "local";
+const log = createLogger("auth");
 
 export async function localModeContext() {
     const env = getEnvironmentVariables();
@@ -29,6 +31,10 @@ export async function localModeContext() {
             secret: localUserId,
         })
         .onConflictDoNothing();
+
+    log.debug("request authenticated in local mode", {
+        projectId: env.LOCAL_PROJECT_ID,
+    });
 
     return {
         contextId: env.LOCAL_PROJECT_ID,

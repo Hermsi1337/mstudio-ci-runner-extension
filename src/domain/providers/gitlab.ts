@@ -8,6 +8,7 @@ import {
 import { createClient } from "@/generated/gitlab/client";
 import { ProviderError } from "@/global-errors.ts";
 import type { MessageKey } from "@/i18n/index.ts";
+import { createLogger } from "@/logger.ts";
 import type {
     PreparedRunner,
     ProviderRequest,
@@ -15,6 +16,7 @@ import type {
 } from "./types.ts";
 
 type GitLabRequest = ProviderRequest<"gitlab">;
+const log = createLogger("gitlab");
 type Subject = "project" | "group" | "runner";
 
 const accessDenied: Record<Subject, MessageKey> = {
@@ -100,6 +102,7 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
                 throw describeError(project.response?.status, "project", path);
             }
             projectId = project.data.id;
+            log.debug("project resolved", { instanceUrl, path, projectId });
             target = `${target} ${project.data.path_with_namespace ?? path}`;
             targetUrl = project.data.web_url ?? `${instanceUrl}/${path}`;
         } else if (input.runnerType === "group_type") {
@@ -118,6 +121,7 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
                 throw describeError(group.response?.status, "group", path);
             }
             groupId = group.data.id;
+            log.debug("group resolved", { instanceUrl, path, groupId });
             target = `${target} ${group.data.full_path ?? path}`;
             targetUrl = group.data.web_url ?? `${instanceUrl}/groups/${path}`;
         }
@@ -134,8 +138,19 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
             },
         });
         if (!created.data) {
+            log.debug("runner registration failed", {
+                instanceUrl,
+                runnerType: input.runnerType,
+                status: created.response?.status,
+            });
             throw describeError(created.response?.status, "runner");
         }
+        log.info("runner registered", {
+            instanceUrl,
+            runnerType: input.runnerType,
+            runnerId: created.data.id,
+            tags,
+        });
 
         return {
             target,
@@ -165,6 +180,11 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
             query: { token: credentials.runnerToken },
         });
         const status = result.response?.status ?? 0;
+        log.info("runner registration removed", {
+            instanceUrl: credentials.instanceUrl,
+            runnerId: credentials.runnerId,
+            status,
+        });
         if (status >= 500) {
             throw new ProviderError("error.gitlab.removeFailed", { status });
         }

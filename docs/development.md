@@ -13,10 +13,16 @@ corepack enable
 pnpm install
 cp .env.example .env            # fill in values
 pnpm run init:encryption        # fills ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
-pnpm run db:start               # PostgreSQL on port 5433 (docker run, scripts/dev-db.sh)
-pnpm run dev                    # extension on http://localhost:3000
-pnpm run dev:expose             # zrok tunnel (ZROK_RESERVED_TOKEN in .env)
+pnpm run dev:all                # PostgreSQL plus dev server, Ctrl+C stops both
+pnpm run dev:expose             # zrok tunnel (ZROK_RESERVED_TOKEN in .env), separate terminal
 ```
+
+Separately: `pnpm run db:start` (PostgreSQL on port 5433, `scripts/dev-db.sh`) and
+`pnpm run dev` (extension on http://localhost:3000).
+
+Both print the application log to the terminal. `LOG_LEVEL=debug` in `.env` shows
+every authenticated request, provider lookups and stack calls
+([operations.md](operations.md#logging)).
 
 Chromium-based browsers block the mStudio WebSocket connection to `localhost`.
 Firefox works.
@@ -58,6 +64,8 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `EXTENSION_ID`, `EXTENSION_SECRET` | From mStudio ([mstudio-setup.md](mstudio-setup.md)) |
 | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | Key for encrypted columns |
 | `RUN_MIGRATIONS_ON_STARTUP` | Default `true` |
+| `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error` ([operations.md](operations.md#logging)) |
+| `LOG_FORMAT` | `text` (default) or `json` (default when `NODE_ENV=production`) |
 | `RUNNER_IMAGE_GITHUB` | Image for GitHub runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-github:latest` |
 | `RUNNER_IMAGE_GITLAB` | Image for GitLab runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:latest` |
 | `MITTWALD_API_URL` | Default `https://api.mittwald.de/`; the Prism mock in tests |
@@ -83,6 +91,7 @@ pnpm run db:studio                # Drizzle Studio on port 8081
 | Script | Purpose |
 |---|---|
 | `dev`, `build`, `serve` | Vite dev server, production build, preview |
+| `dev:all` | `scripts/dev.sh`: PostgreSQL and dev server together, both stop on exit |
 | `check`, `check:fix`, `lint`, `format` | Biome |
 | `typecheck` | `tsc --noEmit` |
 | `codegen` | Types, zod schemas and the GitLab client from the specs ([codegen.md](codegen.md)) |

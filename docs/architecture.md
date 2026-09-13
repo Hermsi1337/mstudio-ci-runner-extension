@@ -12,6 +12,7 @@
 | Lifecycle webhooks | `@weissaufschwarz/mitthooks` | `src/routes/api/webhooks.mittwald.ts` |
 | Languages | Message catalogs, locale from browser or `x-locale` header | `src/i18n/` ([i18n.md](i18n.md)) |
 | Runner containers | Ubuntu 24.04 + `actions/runner` or `gitlab-runner` | `docker/runner/<provider>/` |
+| Logging | Own logger, level and format from the environment | `src/logger.ts` ([operations.md](operations.md#logging)) |
 
 Stack and structure follow the [mittwald reference extension](https://github.com/mittwald/reference-extension).
 

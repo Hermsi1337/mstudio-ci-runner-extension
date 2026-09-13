@@ -8,9 +8,11 @@ import { getDatabase } from "@/db";
 import { extensionInstances, runners } from "@/db/schema.ts";
 import { deleteAllRunnersOfInstance } from "@/domain/runner.ts";
 import { getEnvironmentVariables } from "@/env.ts";
+import { createLogger } from "@/logger.ts";
 import { createMittwaldClient } from "@/mittwald/client.ts";
 
 const db = getDatabase();
+const log = createLogger("webhook");
 
 /**
  * Runs before the default handler chain so the instance secret is still
@@ -25,6 +27,7 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
             body = {};
         }
 
+        log.info("webhook received", { kind: body.kind, instanceId: body.id });
         if (body.kind !== "InstanceRemovedFromContext" || !body.id) {
             return next(content);
         }
@@ -42,6 +45,11 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
         await next(content);
 
         if (!instance?.secret || rows.length === 0) {
+            log.debug("no runner cleanup needed", {
+                instanceId: extensionInstanceId,
+                runners: rows.length,
+                hasSecret: Boolean(instance?.secret),
+            });
             return;
         }
         const instanceSecret = instance.secret;
@@ -57,18 +65,23 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
                         },
                     );
                 if (auth.status !== 201) {
-                    console.error(
-                        `[cleanup] could not authenticate instance ${extensionInstanceId}: ${auth.status}`,
-                    );
+                    log.error("instance authentication for cleanup failed", {
+                        instanceId: extensionInstanceId,
+                        status: auth.status,
+                    });
                     return;
                 }
                 const client = createMittwaldClient(auth.data.publicToken);
                 await deleteAllRunnersOfInstance(client, rows);
-                console.log(
-                    `[cleanup] removed ${rows.length} runner stack(s) of instance ${extensionInstanceId}`,
-                );
+                log.info("runner stacks of removed instance deleted", {
+                    instanceId: extensionInstanceId,
+                    runners: rows.length,
+                });
             } catch (error) {
-                console.error("[cleanup] failed:", error);
+                log.error("instance cleanup failed", {
+                    instanceId: extensionInstanceId,
+                    error,
+                });
             }
         })();
     },
