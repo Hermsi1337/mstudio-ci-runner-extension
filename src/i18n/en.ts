@@ -84,6 +84,38 @@ export const en = {
     "form.size.medium": "Medium (1 CPU, 2 GB RAM)",
     "form.size.large": "Large (2 CPU, 4 GB RAM)",
 
+    "help.open": "Help for {subject}",
+    "form.provider.help":
+        "Choose where the runner registers. GitHub Actions runners appear under Settings, Actions, Runners of the repository or organization. GitLab CI runners appear under Settings, CI/CD, Runners of the project or group.",
+    "form.name.help":
+        "Shown as the runner name in GitHub or GitLab and in this list. Letters, digits and hyphens are kept, every other character becomes a hyphen.",
+    "form.github.target.help":
+        "For an organization enter its name, for example my-org. For a single repository enter owner/repo, for example my-org/my-repo. An organization runner serves every repository its runner group allows.",
+    "form.github.token.help":
+        "The runner registers with a personal access token. Create a fine-grained token on GitHub under Settings, Developer settings, Personal access tokens. Repository: permission Administration, read and write. Organization: permission Self-hosted runners, read and write.\nThe token is stored encrypted and handed to the runner container, which fetches a registration token with it on every start. Members with access to the container can read it, so keep its scope small.",
+    "form.github.token.link": "Create a fine-grained token on GitHub",
+    "form.github.runnerGroup.help":
+        "Only for organizations. Runner groups control which repositories may use the runner. Leave empty for the group Default.",
+    "form.github.ephemeral.help":
+        "An ephemeral runner takes exactly one job, deregisters and registers again with a clean work directory. Safer for untrusted code, slower per job because every job starts on a fresh registration.",
+    "form.gitlab.instanceUrl.help":
+        "https://gitlab.com for the hosted service, or the base URL of your self-managed instance, for example https://gitlab.example.com.",
+    "form.gitlab.runnerType.help":
+        "Project: serves one project, you need the maintainer role. Group: serves every project of a group, you need the owner role. Instance: serves the whole instance, you need to be an administrator.",
+    "form.gitlab.path.help":
+        "The path as shown in the URL of the project or group, for example my-group/my-project or my-group/sub-group.",
+    "form.gitlab.token.help":
+        "Create a personal access token under User settings, Access tokens with the scopes create_runner and api. The token is used once to register the runner and is not stored. The container only receives the runner token.",
+    "form.gitlab.token.link": "Create a token on GitLab",
+    "form.gitlab.runUntagged.help":
+        "Enabled: the runner also picks up jobs that specify no tags. Disabled: only jobs that list one of the runner's tags run here.",
+    "form.labels.help":
+        "Comma separated labels the runner registers with. Reference them in the workflow with runs-on: [self-hosted, mittwald]. Jobs whose labels do not match never reach this runner.",
+    "form.tags.help":
+        "Comma separated tags the runner registers with. Reference them in the pipeline with tags: [mittwald]. Jobs whose tags do not match never reach this runner unless untagged jobs are allowed.",
+    "form.size.help":
+        "CPU and memory limits of the runner container, counted against the container hosting resources of this project. Small fits scripts and deployments, medium builds with npm or composer, large parallel test suites.",
+
     "error.generic": "Something went wrong",
     "error.fallback.heading": "Oops.",
     "error.fallback.text": "Something went wrong here.",

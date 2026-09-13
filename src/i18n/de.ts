@@ -86,6 +86,38 @@ export const de: Messages = {
     "form.size.medium": "Mittel (1 CPU, 2 GB RAM)",
     "form.size.large": "Groß (2 CPU, 4 GB RAM)",
 
+    "help.open": "Hilfe zu {subject}",
+    "form.provider.help":
+        "Wähle, wo sich der Runner registriert. GitHub-Actions-Runner erscheinen unter Settings, Actions, Runners des Repositorys oder der Organisation. GitLab-CI-Runner erscheinen unter Settings, CI/CD, Runners des Projekts oder der Gruppe.",
+    "form.name.help":
+        "Wird als Runner-Name in GitHub oder GitLab und in dieser Liste angezeigt. Buchstaben, Ziffern und Bindestriche bleiben erhalten, alle anderen Zeichen werden zu Bindestrichen.",
+    "form.github.target.help":
+        "Für eine Organisation gibst du ihren Namen an, zum Beispiel meine-org. Für ein einzelnes Repository owner/repo, zum Beispiel meine-org/mein-repo. Ein Organisations-Runner bedient alle Repositorys, die seine Runner-Gruppe erlaubt.",
+    "form.github.token.help":
+        "Der Runner registriert sich mit einem Personal Access Token. Lege auf GitHub unter Settings, Developer settings, Personal access tokens ein Fine-grained Token an. Repository: Berechtigung Administration, read and write. Organisation: Berechtigung Self-hosted runners, read and write.\nDas Token wird verschlüsselt gespeichert und an den Runner-Container übergeben, der damit bei jedem Start ein Registrierungs-Token holt. Mitglieder mit Zugriff auf den Container können es lesen, halte den Umfang daher klein.",
+    "form.github.token.link": "Fine-grained Token auf GitHub anlegen",
+    "form.github.runnerGroup.help":
+        "Nur für Organisationen. Runner-Gruppen steuern, welche Repositorys den Runner nutzen dürfen. Leer lassen für die Gruppe Default.",
+    "form.github.ephemeral.help":
+        "Ein ephemeraler Runner nimmt genau einen Job an, meldet sich ab und registriert sich neu mit leerem Arbeitsverzeichnis. Sicherer bei fremdem Code, pro Job langsamer, weil jeder Job mit einer frischen Registrierung startet.",
+    "form.gitlab.instanceUrl.help":
+        "https://gitlab.com für den gehosteten Dienst oder die Basis-URL deiner eigenen Instanz, zum Beispiel https://gitlab.example.com.",
+    "form.gitlab.runnerType.help":
+        "Projekt: bedient ein Projekt, du brauchst die Rolle Maintainer. Gruppe: bedient alle Projekte einer Gruppe, du brauchst die Rolle Owner. Instanz: bedient die ganze Instanz, du musst Administrator sein.",
+    "form.gitlab.path.help":
+        "Der Pfad wie in der URL des Projekts oder der Gruppe, zum Beispiel meine-gruppe/mein-projekt oder meine-gruppe/untergruppe.",
+    "form.gitlab.token.help":
+        "Lege unter User settings, Access tokens ein Personal Access Token mit den Scopes create_runner und api an. Das Token wird einmal zum Registrieren des Runners genutzt und nicht gespeichert. Der Container erhält nur das Runner-Token.",
+    "form.gitlab.token.link": "Token auf GitLab anlegen",
+    "form.gitlab.runUntagged.help":
+        "Aktiv: der Runner nimmt auch Jobs ohne Tags an. Inaktiv: nur Jobs, die eines der Runner-Tags nennen, laufen hier.",
+    "form.labels.help":
+        "Kommagetrennte Labels, mit denen sich der Runner registriert. Im Workflow referenzierst du sie mit runs-on: [self-hosted, mittwald]. Jobs mit anderen Labels erreichen diesen Runner nicht.",
+    "form.tags.help":
+        "Kommagetrennte Tags, mit denen sich der Runner registriert. In der Pipeline referenzierst du sie mit tags: [mittwald]. Jobs mit anderen Tags erreichen diesen Runner nicht, außer Jobs ohne Tags sind erlaubt.",
+    "form.size.help":
+        "CPU- und Speicherlimit des Runner-Containers, zählt zu den Container-Hosting-Ressourcen dieses Projekts. Klein reicht für Skripte und Deployments, Mittel für Builds mit npm oder Composer, Groß für parallele Testsuiten.",
+
     "error.generic": "Da ist etwas schiefgelaufen",
     "error.fallback.heading": "Ups.",
     "error.fallback.text": "Hier ist etwas schiefgelaufen.",
