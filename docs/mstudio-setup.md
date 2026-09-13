@@ -23,8 +23,9 @@ After creation:
 
 1. Generate the extension secret → `EXTENSION_SECRET`.
 2. Extension id → `EXTENSION_ID`.
-3. Put both into the environment of the running extension ([operations.md](operations.md))
-   or locally into `.env` ([development.md](development.md)).
+3. Put both into the GitHub environment `mstudio` for the hosted extension
+   ([operations.md](operations.md#deployment-to-mittwald-container-hosting)) or locally
+   into `.env` ([development.md](development.md)).
 
 ## Tokens
 

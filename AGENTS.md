@@ -75,7 +75,7 @@ into this file. Every file has exactly one topic and links to the others.
 | `docs/codegen.md` | Every generator, its sources and outputs, workflow for changes |
 | `docs/testing.md` | Test setup, Testcontainers, mock servers, how tests run |
 | `docs/runner-image.md` | Runner images per provider: env vars, entrypoint, building, workflow examples |
-| `docs/operations.md` | Releases, images, GHCR, CI workflows |
+| `docs/operations.md` | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | `docs/i18n.md` | Languages: how the locale is chosen, catalogs, adding texts |
 
 Checklist before every commit:
@@ -90,7 +90,8 @@ Checklist before every commit:
 - Change to specs or generators: `docs/codegen.md`.
 - New test or new container in tests: `docs/testing.md`.
 - New directory or moved module: `docs/architecture.md` and the structure below.
-- Change to workflows, images or the release flow: `docs/operations.md`.
+- Change to workflows, images, the release flow or `deploy/mstudio/stack.yaml`:
+  `docs/operations.md`.
 - Moved config file: script in `package.json`, structure below, `docs/development.md`.
 
 If a topic fits no existing file: add a file under `docs/`, list it in `docs/README.md`
@@ -102,6 +103,7 @@ and in the table above.
 config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts); scripts pass them via --config
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image
+deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
 docs/                        documentation, one topic per file
 openapi/extension-api.yaml   extension API contract (source for codegen)
 openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
@@ -119,7 +121,7 @@ src/db/                      Drizzle schema, pool, migration runner, generated m
 src/i18n/                    message catalogs (en, de), locale resolution, React hooks
 tests/integration/           Testcontainers tests
 tests/helpers/               container starters (PostgreSQL, Prism)
-.github/workflows/           CI on push/PR, image builds on tags only
+.github/workflows/           CI on push/PR, image builds on tags only, deployment after image builds
 ```
 
 The repository root stays lean: only files that tools require there

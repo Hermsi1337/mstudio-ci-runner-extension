@@ -41,15 +41,62 @@ Package visibility is independent of the repository and can only be changed on t
 | `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
 | `extension-image.yml` | Tags `v*`, manual | Extension image |
 | `runner-image.yml` | Tags `v*`, manual | Matrix over all providers, multi-arch |
+| `deploy.yml` | After `extension-image.yml` on a tag, manual | Stack update on mittwald Container Hosting |
 
-## Running the extension
+## Deployment to mittwald Container Hosting
 
-Requires PostgreSQL and the environment variables from [development.md](development.md).
-The extension can run on mittwald Container Hosting itself: a stack with the services
-extension (port 3000) and PostgreSQL, HTTPS via an ingress to the extension. With a
-private extension image, create a registry with a GHCR token in the project first.
+The extension runs on Container Hosting itself. The stack is declared in
+`deploy/mstudio/stack.yaml` and applied by `deploy.yml` through
+[mittwald/deploy-container-action](https://github.com/mittwald/deploy-container-action).
+The action replaces the whole stack with the file, so every manual change in mStudio
+that is not in the file gets lost on the next deployment.
 
-Locally as an image:
+Target:
+
+| | Value |
+|---|---|
+| Project | `c5d48ee8-73ed-45cc-8328-de9fd2257b29` |
+| Stack | `7b83d0d4-9a5a-4613-a8f5-36e5eaa6844c` (`STACK_ID` in `deploy.yml`) |
+| Services | `extension` (port 3000), `postgres` (`postgres:17-alpine`, volume `ci-runner-extension-postgres`) |
+
+### Trigger
+
+- Automatically after `extension-image.yml` succeeded for a `v*` tag. The job waits
+  until `runner-image.yml` for the same tag has succeeded, then deploys that version.
+- Manually via *Actions → Deploy → Run workflow* with a version such as `0.1.0`.
+
+The version is written into the image tags of the extension and both runner images, so
+a deployment pins all three to the same release. `postgres` is excluded from the
+restart (`skip_recreation`); the extension runs its migrations on start.
+
+### One-time setup
+
+1. GitHub environment `mstudio` (exists) with these secrets:
+
+   | Secret | Source |
+   |---|---|
+   | `MITTWALD_API_TOKEN` | mStudio, *User → API tokens*, needs access to the project |
+   | `EXTENSION_ID`, `EXTENSION_SECRET` | Extension registration ([mstudio-setup.md](mstudio-setup.md)) |
+   | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | Set. Changing them makes stored credentials unreadable. |
+   | `POSTGRES_PASSWORD` | Set. Used by both services. |
+
+2. Image access. The extension image is private. Either set the package
+   `mstudio-ci-runner-extension` to public, or create a registry in the project
+   (*Container → Registries*, host `ghcr.io`, GitHub user plus a PAT with `read:packages`)
+   before the first deployment. The runner images must be public in any case.
+3. First deployment: run *Deploy* manually with the version to install.
+4. Ingress: in mStudio create a domain or a mittwald subdomain for the project and route
+   it to the container `extension`, port 3000. mittwald terminates TLS.
+5. Enter that URL in the extension registration: webhooks
+   `https://<domain>/api/webhooks/mittwald`, frontend fragment `https://<domain>/`.
+
+### Manual stack changes
+
+Environment variables, images and volumes belong in `deploy/mstudio/stack.yaml`, secrets
+in the GitHub environment. After a change to the file, run *Deploy* with the current
+version.
+
+### Running locally as an image
 
 ```bash
 pnpm run image:build

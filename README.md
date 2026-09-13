@@ -25,7 +25,7 @@ Rust, Bash, deploys via SSH/rsync) work. GitHub `container:`, `services:`,
 | Generated code and specs | [docs/codegen.md](docs/codegen.md) |
 | Tests | [docs/testing.md](docs/testing.md) |
 | Runner images | [docs/runner-image.md](docs/runner-image.md) |
-| Releases, images, CI | [docs/operations.md](docs/operations.md) |
+| Releases, images, CI, deployment | [docs/operations.md](docs/operations.md) |
 | Languages (English, German) | [docs/i18n.md](docs/i18n.md) |
 | Working rules for humans and agents | [AGENTS.md](AGENTS.md) |
 

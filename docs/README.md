@@ -9,7 +9,7 @@
 | [codegen.md](codegen.md) | Every generator, its sources and outputs, workflow for changes |
 | [testing.md](testing.md) | Test setup with Testcontainers and Prism mocks |
 | [runner-image.md](runner-image.md) | Runner images per provider: env vars, entrypoint, building, workflow examples |
-| [operations.md](operations.md) | Releases, images, GHCR, CI workflows |
+| [operations.md](operations.md) | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | [i18n.md](i18n.md) | Languages: locale detection, catalogs, adding texts |
 
 Rules for maintaining these pages: [AGENTS.md](../AGENTS.md).
