@@ -4,7 +4,7 @@ import {
     FieldDescription,
     Flex,
     Label,
-    NumberField,
+    Markdown,
     Option,
     Section,
     Select,
@@ -28,6 +28,7 @@ import type {
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
+import { CacheFields } from "./CacheFields.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 
@@ -115,7 +116,9 @@ export const RunnerForm = () => {
     const Field = typedField(form);
     const provider = form.watch("provider");
     const tokenType = form.watch("tokenType");
+    const name = form.watch("name");
     const cache = form.watch("cache");
+    const cacheSizeGb = form.watch("cacheSizeGb");
     const runnerType = form.watch("runnerType");
     const instanceUrl = form.watch("instanceUrl").replace(/\/+$/, "");
 
@@ -462,44 +465,27 @@ export const RunnerForm = () => {
                     </Select>
                 </Field>
 
-                <Flex align="center" gap="xs">
-                    <Field name="cache">
-                        <Switch>{t("form.cache.label")}</Switch>
-                    </Field>
-                    <FieldHelp
-                        subject={t("form.cache.label")}
-                        text={t("form.cache.help")}
-                    />
-                </Flex>
-                {cache && (
-                    <Field
-                        name="cacheSizeGb"
-                        rules={{
-                            required: t("form.cacheSize.required"),
-                            min: {
-                                value: 1,
-                                message: t("form.cacheSize.range"),
-                            },
-                            max: {
-                                value: 500,
-                                message: t("form.cacheSize.range"),
-                            },
-                        }}
-                    >
-                        <NumberField minValue={1} maxValue={500} step={1}>
-                            <Label>
-                                {t("form.cacheSize.label")}
-                                <FieldHelp
-                                    subject={t("form.cacheSize.label")}
-                                    text={t("form.cacheSize.help")}
-                                />
-                            </Label>
-                            <FieldDescription>
-                                {t("form.cacheSize.description")}
-                            </FieldDescription>
-                        </NumberField>
-                    </Field>
-                )}
+                <CacheFields form={form} />
+
+                <Markdown>
+                    {[
+                        t("form.summary.heading"),
+                        "",
+                        t("form.summary.stack", {
+                            provider,
+                            name: name || "...",
+                        }),
+                        t(`form.summary.dataVolume.${provider}`),
+                        ...(cache
+                            ? [
+                                  t("form.summary.cacheVolume"),
+                                  t("form.summary.cronjob", {
+                                      size: cacheSizeGb,
+                                  }),
+                              ]
+                            : []),
+                    ].join("\n")}
+                </Markdown>
 
                 <RootError />
 

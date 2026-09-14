@@ -10,11 +10,11 @@ import { ProviderError } from "@/global-errors.ts";
 import type { MessageKey } from "@/i18n/index.ts";
 import { createLogger } from "@/logger.ts";
 import runnerVersions from "../../../docker/runner/versions.json";
-import { cacheEnvironment, cacheTrimCronjob, cacheVolume } from "./cache.ts";
-import type {
-    PreparedRunner,
-    ProviderRequest,
-    RunnerProvider,
+import {
+    DATA_VOLUME_MOUNT,
+    type PreparedRunner,
+    type ProviderRequest,
+    type RunnerProvider,
 } from "./types.ts";
 
 type GitLabRequest = ProviderRequest<"gitlab">;
@@ -165,21 +165,13 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
                 CI_SERVER_URL: instanceUrl,
                 CI_SERVER_TOKEN: created.data.token,
                 RUNNER_NAME: runnerName,
-                ...(input.cache ? cacheEnvironment : {}),
             },
             credentials: {
                 instanceUrl,
                 runnerId: created.data.id,
                 runnerToken: created.data.token,
             },
-            volumes: [
-                "builds:/home/runner/builds",
-                "cache:/home/runner/cache",
-                ...(input.cache ? [cacheVolume] : []),
-            ],
-            cronjobs: input.cache
-                ? [cacheTrimCronjob(input.cacheSizeGb ?? 10)]
-                : [],
+            volumes: [DATA_VOLUME_MOUNT],
             ephemeral: false,
         };
     },

@@ -22,6 +22,13 @@
       "when": 1789393460773,
       "tag": "0002_runner_cronjobs",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789394793981,
+      "tag": "0003_runner_cache_settings",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ interface ImageCase {
     waitFor: RegExp;
     expectLog: string;
     versionCommand: string[];
+    dataDirectories: string[];
 }
 
 const images: ImageCase[] = [
@@ -28,6 +29,7 @@ const images: ImageCase[] = [
         expectLog:
             "registering integration-test at https://github.com/acme/app (labels: mittwald,test, ephemeral: false)",
         versionCommand: ["cat", "/home/runner/bin/Runner.Listener.deps.json"],
+        dataDirectories: ["config", "work"],
     },
     {
         provider: "gitlab",
@@ -41,6 +43,7 @@ const images: ImageCase[] = [
         expectLog:
             "registering integration-test at https://gitlab.invalid (executor: shell)",
         versionCommand: ["gitlab-runner", "--version"],
+        dataDirectories: ["builds", "cache"],
     },
 ];
 
@@ -86,6 +89,10 @@ describe.each(images)("runner image: $provider", (image) => {
             expect(whoami.output.trim()).toBe("runner");
             const version = await container.exec(image.versionCommand);
             expect(version.exitCode).toBe(0);
+            const data = await container.exec(["ls", "/home/runner/data"]);
+            expect(data.output.trim().split(/\s+/)).toEqual(
+                image.dataDirectories,
+            );
             const trim = await container.exec([
                 "bash",
                 "-c",

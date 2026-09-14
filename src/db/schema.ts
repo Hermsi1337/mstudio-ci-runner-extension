@@ -3,7 +3,13 @@ import {
     buildEncryptionKey,
 } from "@weissaufschwarz/mitthooks-drizzle/encryption";
 import { buildExtensionInstanceTable } from "@weissaufschwarz/mitthooks-drizzle/schema";
-import { boolean, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+    boolean,
+    integer,
+    text,
+    timestamp,
+    varchar,
+} from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core/table";
 import { getEnvironmentVariables } from "../env";
 
@@ -35,6 +41,8 @@ export const runners = pgTable("runners", {
     size: varchar({ length: 16 }).notNull().default("medium"),
     image: text(),
     runnerVersion: varchar({ length: 32 }),
+    cache: boolean().notNull().default(false),
+    cacheSizeGb: integer().notNull().default(10),
     cronjobIds: text().notNull().default("[]"),
     createdBy: varchar({ length: 36 }).notNull(),
     createdAt: timestamp().defaultNow().notNull(),

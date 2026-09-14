@@ -115,6 +115,7 @@ scripts/dev-db.sh            local PostgreSQL for development (docker run, no co
 scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
 src/domain/runner.ts         provider-neutral domain logic (stack lifecycle)
+src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
 src/domain/providers/        one module per CI provider, registry in index.ts
 src/serverFunctions/         TanStack server functions: validation and delegation only
 src/components/              Flow remote React components (UI inside mStudio)

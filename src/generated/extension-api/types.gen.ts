@@ -57,16 +57,20 @@ export type RunnerBase = {
      * One job per registration. GitHub only and only with tokenType pat; ignored by other providers.
      */
     ephemeral?: boolean;
-    /**
-     * Adds a persistent volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
-     */
-    cache?: boolean;
-    /**
-     * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
-     */
-    cacheSizeGb?: number;
+    cache?: CacheEnabled;
+    cacheSizeGb?: CacheSizeGb;
     size?: RunnerSize;
 };
+
+/**
+ * Adds the volume tool-cache for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+ */
+export type CacheEnabled = boolean;
+
+/**
+ * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
+ */
+export type CacheSizeGb = number;
 
 /**
  * GitHub organisation (`owner`) or repository (`owner/repo`), optionally as full URL.
@@ -126,6 +130,15 @@ export type RunnerIdRequest = {
     runnerId: string;
 };
 
+/**
+ * Settings that can change after creation. The stack is redeclared, mittwald recreates the container.
+ */
+export type ConfigureRunnerRequest = {
+    runnerId: string;
+    cache: CacheEnabled;
+    cacheSizeGb?: CacheSizeGb;
+};
+
 export type RunnerLogsRequest = {
     runnerId: string;
     tail?: number;
@@ -143,6 +156,11 @@ export type Runner = {
     labels: Array<string>;
     ephemeral: boolean;
     size: RunnerSize;
+    cache: boolean;
+    /**
+     * Cache limit in GB. Carries the last configured value even while cache is false.
+     */
+    cacheSizeGb: number;
     stackId: string;
     serviceId: string | null;
     status: RunnerStatus;

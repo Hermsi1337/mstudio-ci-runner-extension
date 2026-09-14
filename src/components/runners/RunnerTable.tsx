@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from "react";
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
+import { ConfigureRunnerModal } from "./ConfigureRunnerModal.tsx";
 import { RunnerLogsModal } from "./RunnerLogsModal.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
@@ -63,6 +64,7 @@ export const RunnerTable = () => {
                 <TableColumn>{t("runners.column.target")}</TableColumn>
                 <TableColumn>{t("runners.column.labels")}</TableColumn>
                 <TableColumn>{t("runners.column.size")}</TableColumn>
+                <TableColumn>{t("runners.column.cache")}</TableColumn>
                 <TableColumn>{t("runners.column.version")}</TableColumn>
                 <TableColumn>{t("runners.column.status")}</TableColumn>
                 <TableColumn>{t("runners.column.actions")}</TableColumn>
@@ -87,6 +89,13 @@ export const RunnerTable = () => {
                         <TableCell>{runner.labels.join(", ")}</TableCell>
                         <TableCell>{t(`form.size.${runner.size}`)}</TableCell>
                         <TableCell>
+                            {runner.cache
+                                ? t("runners.cache.limit", {
+                                      size: runner.cacheSizeGb,
+                                  })
+                                : t("runners.cache.off")}
+                        </TableCell>
+                        <TableCell>
                             {runner.runnerVersion ??
                                 t("runners.version.unknown")}
                             {runner.updateAvailable && (
@@ -109,6 +118,7 @@ export const RunnerTable = () => {
                                     runnerId={runner.id}
                                     name={runner.name}
                                 />
+                                <ConfigureRunnerModal runner={runner} />
                                 <Button
                                     color="secondary"
                                     variant="soft"

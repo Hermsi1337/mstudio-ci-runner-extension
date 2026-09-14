@@ -36,7 +36,7 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && rm runner.tar.gz \
     && ./bin/installdependencies.sh \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p ${RUNNER_HOME}/_work ${RUNNER_HOME}/_config \
+    && mkdir -p ${RUNNER_HOME}/data/work ${RUNNER_HOME}/data/config \
     && chown -R runner:runner ${RUNNER_HOME}
 
 COPY --chown=runner:runner github/entrypoint.sh /entrypoint.sh
@@ -45,6 +45,6 @@ RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh
 
 USER runner
 
-VOLUME ["/home/runner/_work", "/home/runner/_config"]
+VOLUME ["/home/runner/data"]
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -29,7 +29,7 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && curl -fsSL -o /usr/local/bin/gitlab-runner \
         "https://gitlab-runner-downloads.s3.amazonaws.com/v${RUNNER_VERSION}/binaries/gitlab-runner-linux-${ARCH}" \
     && chmod +x /usr/local/bin/gitlab-runner \
-    && mkdir -p ${RUNNER_HOME}/.gitlab-runner ${RUNNER_HOME}/builds ${RUNNER_HOME}/cache \
+    && mkdir -p ${RUNNER_HOME}/.gitlab-runner ${RUNNER_HOME}/data/builds ${RUNNER_HOME}/data/cache \
     && chown -R runner:runner ${RUNNER_HOME}
 
 COPY --chown=runner:runner gitlab/entrypoint.sh /entrypoint.sh
@@ -39,6 +39,6 @@ RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh
 USER runner
 WORKDIR ${RUNNER_HOME}
 
-VOLUME ["/home/runner/builds", "/home/runner/cache"]
+VOLUME ["/home/runner/data"]
 
 ENTRYPOINT ["/entrypoint.sh"]

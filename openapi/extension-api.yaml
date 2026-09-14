@@ -39,17 +39,21 @@ components:
           default: false
           description: One job per registration. GitHub only and only with tokenType pat; ignored by other providers.
         cache:
-          type: boolean
-          default: false
-          description: Adds a persistent volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+          $ref: '#/components/schemas/CacheEnabled'
         cacheSizeGb:
-          type: integer
-          minimum: 1
-          maximum: 500
-          default: 10
-          description: Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
+          $ref: '#/components/schemas/CacheSizeGb'
         size:
           $ref: '#/components/schemas/RunnerSize'
+    CacheEnabled:
+      type: boolean
+      default: false
+      description: Adds the volume tool-cache for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+    CacheSizeGb:
+      type: integer
+      minimum: 1
+      maximum: 500
+      default: 10
+      description: Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
     GitHubTarget:
       type: string
       minLength: 1
@@ -130,6 +134,18 @@ components:
         runnerId:
           type: string
           format: uuid
+    ConfigureRunnerRequest:
+      type: object
+      required: [runnerId, cache]
+      description: Settings that can change after creation. The stack is redeclared, mittwald recreates the container.
+      properties:
+        runnerId:
+          type: string
+          format: uuid
+        cache:
+          $ref: '#/components/schemas/CacheEnabled'
+        cacheSizeGb:
+          $ref: '#/components/schemas/CacheSizeGb'
     RunnerLogsRequest:
       type: object
       required: [runnerId]
@@ -144,7 +160,7 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, stackId, serviceId, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, cache, cacheSizeGb, stackId, serviceId, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
       properties:
         id:
           type: string
@@ -167,6 +183,11 @@ components:
           type: boolean
         size:
           $ref: '#/components/schemas/RunnerSize'
+        cache:
+          type: boolean
+        cacheSizeGb:
+          type: integer
+          description: Cache limit in GB. Carries the last configured value even while cache is false.
         stackId:
           type: string
           format: uuid

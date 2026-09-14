@@ -12,22 +12,35 @@ deletion) is shared.
 |---|---|
 | `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` |
 | `currentImage()` | Image this extension release creates runners with (`RUNNER_IMAGE_<PROVIDER>`) |
-| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes, cronjobs and the credentials to store |
+| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes and the credentials to store |
 | `release(credentials)` | Remove the provider-side registration; must tolerate runners that are already gone |
 
-`cache: true` on any request adds the volume and environment from
-`src/domain/providers/cache.ts` (`tool-cache:/home/runner/.cache`, `XDG_CACHE_HOME` and
-the variables of npm, pnpm, yarn, pip, Composer and Go). It is provider-neutral: the
-runner process inherits the variables into every job, so no provider cache feature is
-involved. Providers add it to their own volumes and environment in `prepare`, plus the
-cronjob from `cacheTrimCronjob(sizeGb)`: `runner.ts` creates every cronjob a provider
-returns as a mittwald service cronjob (stack, service, command) after the stack is
-declared, stores the ids in `runners.cronjobIds` and deletes them with the runner. The
-cache one runs `/usr/local/bin/trim-cache.sh` hourly inside the container.
+Every provider returns `DATA_VOLUME_MOUNT` (`runner-data:/home/runner/data`) as its
+only volume; the images keep all persistent state below that directory
+([runner-image.md](runner-image.md#volumes)).
 
 `updateRunner` in `src/domain/runner.ts` redeclares the stack with `currentImage()` and
 the service state mittwald reports, so providers need no update hook. GitHub runners
-keep their registration in the `config` volume, GitLab runners keep their runner token.
+keep their registration in the `runner-data` volume, GitLab runners keep their runner token.
+
+## Package manager cache
+
+The cache is provider-neutral and lives in `src/domain/cache.ts`, providers never touch
+it. `cache: true` adds the volume `tool-cache:/home/runner/.cache` and the environment
+`XDG_CACHE_HOME` plus the variables of npm, pnpm, yarn, pip, Composer and Go. The runner
+process inherits the variables into every job, so no provider cache feature is
+involved. `runner.ts` then creates a mittwald service cronjob (stack, service, command)
+from `cacheTrimCronjob(sizeGb)` that runs `/usr/local/bin/trim-cache.sh` hourly inside
+the container, stores its id in `runners.cronjobIds` and deletes it with the runner.
+
+`configureRunner` changes the cache after creation (`ConfigureRunnerRequest`: `cache`,
+`cacheSizeGb`). `withCache` and `withoutCache` add or strip the cache mount and
+variables from the service state mittwald reports, the stack is redeclared and mittwald
+recreates the container. Turning the cache on creates the cronjob, changing the limit
+patches its command, turning it off deletes the cronjob and the volume
+(`container.listStackVolumes`, `container.deleteVolume`). A volume that is still in use
+(412) stays orphaned in the stack and can be removed in mStudio. `runners.cache` and
+`runners.cacheSizeGb` record the current setting.
 
 Registry in `src/domain/providers/index.ts`. `src/domain/runner.ts` picks the provider
 from `input.provider` and knows no provider details beyond that.

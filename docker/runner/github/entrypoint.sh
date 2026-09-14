@@ -10,8 +10,9 @@
 #   RUNNER_LABELS     comma separated labels (default: mittwald)
 #   RUNNER_GROUP      runner group (default: Default)
 #   RUNNER_EPHEMERAL  "true" => one job per registration, re-registers afterwards; needs GITHUB_TOKEN (default: false)
-#   RUNNER_WORKDIR    working directory (default: /home/runner/_work)
-#   RUNNER_CONFIG_DIR directory that keeps the runner credentials across restarts (default: /home/runner/_config)
+#   RUNNER_DATA_DIR   persistent state, the runner-data volume (default: /home/runner/data)
+#   RUNNER_WORKDIR    working directory: checkouts, tool cache, actions (default: RUNNER_DATA_DIR/work)
+#   RUNNER_CONFIG_DIR directory that keeps the runner credentials across restarts (default: RUNNER_DATA_DIR/config)
 #   DISABLE_AUTO_UPDATE  "true" => --disableupdate
 #
 # Flow: a persisted registration from RUNNER_CONFIG_DIR is restored and reused.
@@ -25,10 +26,13 @@ RUNNER_NAME="${RUNNER_NAME:-$(hostname)}"
 RUNNER_LABELS="${RUNNER_LABELS:-mittwald}"
 RUNNER_GROUP="${RUNNER_GROUP:-Default}"
 RUNNER_EPHEMERAL="${RUNNER_EPHEMERAL:-false}"
-RUNNER_WORKDIR="${RUNNER_WORKDIR:-/home/runner/_work}"
-RUNNER_CONFIG_DIR="${RUNNER_CONFIG_DIR:-/home/runner/_config}"
+RUNNER_DATA_DIR="${RUNNER_DATA_DIR:-/home/runner/data}"
+RUNNER_WORKDIR="${RUNNER_WORKDIR:-${RUNNER_DATA_DIR}/work}"
+RUNNER_CONFIG_DIR="${RUNNER_CONFIG_DIR:-${RUNNER_DATA_DIR}/config}"
 DISABLE_AUTO_UPDATE="${DISABLE_AUTO_UPDATE:-false}"
 GITHUB_API="${GITHUB_API:-https://api.github.com}"
+
+mkdir -p "${RUNNER_WORKDIR}" "${RUNNER_CONFIG_DIR}"
 
 if [[ -z "${RUNNER_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" ]]; then
     echo "either RUNNER_TOKEN or GITHUB_TOKEN is required" >&2
@@ -76,7 +80,6 @@ config_files=(.runner .credentials .credentials_rsaparams)
 
 persist_config() {
     [[ "${RUNNER_EPHEMERAL}" == "true" ]] && return 0
-    mkdir -p "${RUNNER_CONFIG_DIR}" || return 0
     for file in "${config_files[@]}"; do
         [[ -f "${file}" ]] && cp "${file}" "${RUNNER_CONFIG_DIR}/${file}"
     done

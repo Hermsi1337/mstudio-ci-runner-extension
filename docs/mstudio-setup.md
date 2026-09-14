@@ -17,8 +17,10 @@ Details: [mittwald developer portal, contributor](https://developer.mittwald.de/
 | Frontend fragment | Anchor *project menu* (or the anchor of your choice), URL `https://<extension-host>/` |
 
 There are no `container:*` scopes. The container endpoints are named `container-*`,
-the scope is called `stack`. The cronjob scopes cover the cache cleanup cronjob the
-extension creates per runner with a cache limit ([providers.md](providers.md)).
+the scope is called `stack`; `stack:delete` also covers deleting the cache volume when
+the cache is turned off. The cronjob scopes cover the cache cleanup cronjob the
+extension creates, updates and deletes per runner with a cache limit
+([providers.md](providers.md#package-manager-cache)).
 Adding scopes to an existing extension requires every installed instance to consent
 again.
 
@@ -38,7 +40,7 @@ Default: the setup command from GitHub. Open *Settings → Actions → Runners �
 self-hosted runner* for the repository or organization and paste the
 `./config.sh --url ... --token ...` line into the form; it reads target and registration
 token from it. The token expires after one hour and is used once; the container keeps
-the registration in a volume. Ephemeral runners are not possible with it.
+the registration in the `runner-data` volume. Ephemeral runners are not possible with it.
 
 Alternative for ephemeral runners: a fine-grained personal access token:
 

@@ -4,8 +4,11 @@ import { getEnvironmentVariables } from "@/env.ts";
 import { ProviderError } from "@/global-errors.ts";
 import { createLogger } from "@/logger.ts";
 import runnerVersions from "../../../docker/runner/versions.json";
-import { cacheEnvironment, cacheTrimCronjob, cacheVolume } from "./cache.ts";
-import type { ProviderRequest, RunnerProvider } from "./types.ts";
+import {
+    DATA_VOLUME_MOUNT,
+    type ProviderRequest,
+    type RunnerProvider,
+} from "./types.ts";
 
 const log = createLogger("github");
 
@@ -94,7 +97,7 @@ export async function assertGitHubRunnerAccess(
 
 /**
  * With a registration token the container registers once and keeps its runner
- * credentials in the config volume, so restarts do not need a new token. With a
+ * credentials in the runner-data volume, so restarts do not need a new token. With a
  * PAT the container fetches registration and removal tokens itself. Neither
  * mode needs provider-side cleanup.
  */
@@ -134,10 +137,6 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
         if (input.runnerGroup) {
             environment.RUNNER_GROUP = input.runnerGroup;
         }
-        if (input.cache) {
-            Object.assign(environment, cacheEnvironment);
-        }
-
         const credentials: Record<string, string> =
             tokenType === "pat" ? { token: input.token } : {};
 
@@ -148,14 +147,7 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
             runnerVersion: runnerVersions.github,
             environment,
             credentials,
-            volumes: [
-                "work:/home/runner/_work",
-                "config:/home/runner/_config",
-                ...(input.cache ? [cacheVolume] : []),
-            ],
-            cronjobs: input.cache
-                ? [cacheTrimCronjob(input.cacheSizeGb ?? 10)]
-                : [],
+            volumes: [DATA_VOLUME_MOUNT],
             ephemeral,
         };
     },

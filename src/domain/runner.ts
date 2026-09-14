@@ -8,6 +8,7 @@ import * as uuid from "uuid";
 import { getDatabase } from "@/db";
 import { type NewRunnerRow, type RunnerRow, runners } from "@/db/schema.ts";
 import type {
+    ConfigureRunnerRequest,
     CreateRunnerRequest,
     Provider,
     Runner,
@@ -19,12 +20,20 @@ import {
     UpstreamError,
 } from "@/global-errors.ts";
 import { addLogContext, createLogger } from "@/logger.ts";
+import {
+    cacheTrimCronjob,
+    deleteCacheVolume,
+    withCache,
+    withoutCache,
+} from "./cache.ts";
 import { getProvider, getProviderById } from "./providers/index.ts";
 
 const log = createLogger("runner");
 
 type ServiceResponse =
     MittwaldAPIV2.Components.Schemas.ContainerServiceResponse;
+type ServiceDeclaration =
+    MittwaldAPIV2.Components.Schemas.ContainerServiceDeclareRequest;
 
 export const runnerSizes: Record<RunnerSize, { cpus: string; memory: string }> =
     {
@@ -48,6 +57,8 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         labels: row.labels.split(",").filter(Boolean),
         ephemeral: row.ephemeral,
         size: (row.size as RunnerSize) ?? "medium",
+        cache: row.cache,
+        cacheSizeGb: row.cacheSizeGb,
         stackId: row.stackId,
         serviceId: row.serviceId,
         status: service === null ? "missing" : (service?.status ?? "unknown"),
@@ -101,6 +112,107 @@ function parseCredentials(row: RunnerRow): Record<string, string> {
     } catch {
         return {};
     }
+}
+
+/**
+ * Named mounts become stack volumes, bind mounts (leading slash) do not.
+ */
+function volumeDeclarations(mounts: string[]) {
+    return Object.fromEntries(
+        mounts
+            .map((mount) => mount.split(":")[0])
+            .filter((name) => !name.startsWith("/"))
+            .map((name) => [name, { name }]),
+    );
+}
+
+async function declareService(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    stackId: string,
+    serviceName: string,
+    service: ServiceDeclaration,
+): Promise<ServiceResponse | undefined> {
+    const declared = await client.container.declareStack({
+        stackId,
+        data: {
+            services: { [serviceName]: service },
+            volumes: volumeDeclarations(service.volumes ?? []),
+        },
+    });
+    if (declared.status === 403) {
+        throw new PermissionsInsufficientError(extensionInstanceId);
+    }
+    if (declared.status !== 200) {
+        throw new UpstreamError("error.upstream.stackDeclare", {
+            status: declared.status,
+        });
+    }
+    return (
+        declared.data.services?.find((s) => s.serviceName === serviceName) ??
+        declared.data.services?.[0]
+    );
+}
+
+async function createTrimCronjob(
+    client: MittwaldAPIV2Client,
+    row: Pick<NewRunnerRow, "projectId" | "stackId" | "name">,
+    serviceId: string,
+    sizeGb: number,
+): Promise<string> {
+    const cronjob = cacheTrimCronjob(sizeGb);
+    const created = await client.cronjob.createCronjob({
+        projectId: row.projectId,
+        data: {
+            description: `${cronjob.description} (${row.name})`,
+            interval: cronjob.interval,
+            active: true,
+            timeout: cronjob.timeoutSeconds,
+            concurrencyPolicy: "forbid",
+            target: {
+                stackId: row.stackId,
+                serviceIdentifier: serviceId,
+                command: cronjob.command,
+            },
+        },
+    });
+    if (created.status !== 201) {
+        throw new UpstreamError("error.upstream.cronjobCreate", {
+            status: created.status,
+        });
+    }
+    log.debug("cronjob created", {
+        cronjobId: created.data.id,
+        interval: cronjob.interval,
+    });
+    return created.data.id;
+}
+
+async function updateTrimCronjob(
+    client: MittwaldAPIV2Client,
+    row: Pick<RunnerRow, "stackId" | "name">,
+    serviceId: string,
+    cronjobId: string,
+    sizeGb: number,
+): Promise<void> {
+    const cronjob = cacheTrimCronjob(sizeGb);
+    const updated = await client.cronjob.updateCronjob({
+        cronjobId,
+        data: {
+            description: `${cronjob.description} (${row.name})`,
+            target: {
+                stackId: row.stackId,
+                serviceIdentifier: serviceId,
+                command: cronjob.command,
+            },
+        },
+    });
+    if (updated.status !== 204) {
+        throw new UpstreamError("error.upstream.cronjobUpdate", {
+            status: updated.status,
+        });
+    }
+    log.debug("cronjob updated", { cronjobId, sizeGb });
 }
 
 async function findRunner(
@@ -169,11 +281,16 @@ export async function createRunner(
     addLogContext({ provider: provider.id, projectId });
     log.info("creating runner", { name: input.name, runnerName, size });
     const prepared = await provider.prepare({ ...input, labels }, runnerName);
+    const cache = input.cache ?? false;
+    const cacheSizeGb = input.cacheSizeGb ?? 10;
+    const { environment, mounts } = cache
+        ? withCache(prepared.environment, prepared.volumes)
+        : withoutCache(prepared.environment, prepared.volumes);
     log.debug("provider prepared runner", {
         target: prepared.target,
         image: prepared.image,
-        environmentKeys: Object.keys(prepared.environment),
-        volumes: prepared.volumes,
+        environmentKeys: Object.keys(environment),
+        volumes: mounts,
     });
 
     const created = await client.container.createStack({
@@ -194,79 +311,42 @@ export async function createRunner(
     addLogContext({ stackId });
     log.debug("stack created");
 
-    const volumes = Object.fromEntries(
-        prepared.volumes.map((mount) => {
-            const name = mount.split(":")[0];
-            return [name, { name }];
-        }),
-    );
-
-    const declared = await client.container.declareStack({
-        stackId,
-        data: {
-            services: {
-                [SERVICE_KEY]: {
-                    description: `${provider.id} runner ${input.name}`,
-                    image: prepared.image,
-                    environment: prepared.environment,
-                    restartPolicy: "always",
-                    deploy: { resources: { limits: runnerSizes[size] } },
-                    volumes: prepared.volumes,
-                },
-            },
-            volumes,
-        },
-    });
-    if (declared.status !== 200) {
-        await client.container.deleteStack({ stackId }).catch(() => undefined);
-        await provider.release(prepared.credentials).catch(() => undefined);
-        if (declared.status === 403) {
-            throw new PermissionsInsufficientError(extensionInstanceId);
-        }
-        throw new UpstreamError("error.upstream.stackDeclare", {
-            status: declared.status,
-        });
-    }
-    const service =
-        declared.data.services?.find((s) => s.serviceName === SERVICE_KEY) ??
-        declared.data.services?.[0];
-
     const cronjobIds: string[] = [];
     const rollback = async () => {
         await deleteCronjobs(client, cronjobIds);
         await client.container.deleteStack({ stackId }).catch(() => undefined);
         await provider.release(prepared.credentials).catch(() => undefined);
     };
-    for (const cronjob of prepared.cronjobs) {
-        if (!service) {
-            break;
-        }
-        const created = await client.cronjob.createCronjob({
-            projectId,
-            data: {
-                description: `${cronjob.description} (${input.name})`,
-                interval: cronjob.interval,
-                active: true,
-                timeout: cronjob.timeoutSeconds,
-                concurrencyPolicy: "forbid",
-                target: {
-                    stackId,
-                    serviceIdentifier: service.id,
-                    command: cronjob.command,
-                },
+
+    let service: ServiceResponse | undefined;
+    try {
+        service = await declareService(
+            client,
+            extensionInstanceId,
+            stackId,
+            SERVICE_KEY,
+            {
+                description: `${provider.id} runner ${input.name}`,
+                image: prepared.image,
+                environment,
+                restartPolicy: "always",
+                deploy: { resources: { limits: runnerSizes[size] } },
+                volumes: mounts,
             },
-        });
-        if (created.status !== 201) {
-            await rollback();
-            throw new UpstreamError("error.upstream.cronjobCreate", {
-                status: created.status,
-            });
+        );
+        if (cache && service) {
+            cronjobIds.push(
+                await createTrimCronjob(
+                    client,
+                    { projectId, stackId, name: input.name },
+                    service.id,
+                    cacheSizeGb,
+                ),
+            );
         }
-        cronjobIds.push(created.data.id);
-        log.debug("cronjob created", {
-            cronjobId: created.data.id,
-            interval: cronjob.interval,
-        });
+    } catch (error) {
+        await rollback();
+        throw error;
     }
 
     const row: NewRunnerRow = {
@@ -285,6 +365,8 @@ export async function createRunner(
         size,
         image: prepared.image,
         runnerVersion: prepared.runnerVersion,
+        cache,
+        cacheSizeGb,
         cronjobIds: JSON.stringify(cronjobIds),
         createdBy: userId,
     };
@@ -370,7 +452,7 @@ export async function restartRunner(
  * Redeclares the stack with the image of this extension release and the
  * service state mittwald reports, so environment and volumes stay untouched.
  * mittwald recreates the container; GitHub runners keep their registration in
- * the config volume, GitLab runners keep their runner token.
+ * the runner-data volume, GitLab runners keep their runner token.
  */
 export async function updateRunner(
     client: MittwaldAPIV2Client,
@@ -385,41 +467,23 @@ export async function updateRunner(
     }
     const state = service.pendingState ?? service.deployedState;
     const image = provider.currentImage();
-    const mounts = state.volumes ?? [];
-    const volumes = Object.fromEntries(
-        mounts
-            .map((mount) => mount.split(":")[0])
-            .filter((name) => !name.startsWith("/"))
-            .map((name) => [name, { name }]),
-    );
-
-    const declared = await client.container.declareStack({
-        stackId: row.stackId,
-        data: {
-            services: {
-                [service.serviceName]: {
-                    description: service.description,
-                    image,
-                    environment: state.envs,
-                    restartPolicy: service.restartPolicy,
-                    deploy: service.deploy,
-                    volumes: mounts,
-                    ports: state.ports,
-                    command: state.command,
-                    entrypoint: state.entrypoint,
-                },
-            },
-            volumes,
+    const updatedService = await declareService(
+        client,
+        extensionInstanceId,
+        row.stackId,
+        service.serviceName,
+        {
+            description: service.description,
+            image,
+            environment: state.envs,
+            restartPolicy: service.restartPolicy,
+            deploy: service.deploy,
+            volumes: state.volumes,
+            ports: state.ports,
+            command: state.command,
+            entrypoint: state.entrypoint,
         },
-    });
-    if (declared.status === 403) {
-        throw new PermissionsInsufficientError(extensionInstanceId);
-    }
-    if (declared.status !== 200) {
-        throw new UpstreamError("error.upstream.stackDeclare", {
-            status: declared.status,
-        });
-    }
+    );
     const [updated] = await getDatabase()
         .update(runners)
         .set({ image, runnerVersion: provider.runnerVersion })
@@ -431,10 +495,99 @@ export async function updateRunner(
         from: row.image,
         to: image,
     });
-    const updatedService =
-        declared.data.services?.find(
-            (s) => s.serviceName === service.serviceName,
-        ) ?? service;
+    return toView(updated, updatedService ?? service);
+}
+
+/**
+ * Turns the package manager cache on or off after creation or changes its
+ * limit. Switching adds or removes the cache volume and environment on the
+ * service state mittwald reports; mittwald recreates the container. Turning
+ * the cache off deletes its cronjob and volume.
+ */
+export async function configureRunner(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    input: ConfigureRunnerRequest,
+): Promise<Runner> {
+    const row = await findRunner(extensionInstanceId, input.runnerId);
+    const service = await fetchService(client, row);
+    if (!service) {
+        throw new NotFoundError("runnerContainer");
+    }
+    const cache = input.cache;
+    const cacheSizeGb = input.cacheSizeGb ?? row.cacheSizeGb;
+    addLogContext({ runnerId: row.id, stackId: row.stackId });
+
+    let updatedService = service;
+    if (cache !== row.cache) {
+        const state = service.pendingState ?? service.deployedState;
+        const { environment, mounts } = cache
+            ? withCache(state.envs ?? {}, state.volumes ?? [])
+            : withoutCache(state.envs ?? {}, state.volumes ?? []);
+        updatedService =
+            (await declareService(
+                client,
+                extensionInstanceId,
+                row.stackId,
+                service.serviceName,
+                {
+                    description: service.description,
+                    image: state.image,
+                    environment,
+                    restartPolicy: service.restartPolicy,
+                    deploy: service.deploy,
+                    volumes: mounts,
+                    ports: state.ports,
+                    command: state.command,
+                    entrypoint: state.entrypoint,
+                },
+            )) ?? service;
+    }
+
+    let cronjobIds = parseCronjobIds(row);
+    if (cache) {
+        if (cronjobIds.length === 0) {
+            cronjobIds = [
+                await createTrimCronjob(
+                    client,
+                    row,
+                    updatedService.id,
+                    cacheSizeGb,
+                ),
+            ];
+        } else if (cacheSizeGb !== row.cacheSizeGb) {
+            for (const cronjobId of cronjobIds) {
+                await updateTrimCronjob(
+                    client,
+                    row,
+                    updatedService.id,
+                    cronjobId,
+                    cacheSizeGb,
+                );
+            }
+        }
+    } else if (row.cache) {
+        await deleteCronjobs(client, cronjobIds);
+        cronjobIds = [];
+        await deleteCacheVolume(client, row.stackId);
+    }
+
+    const [updated] = await getDatabase()
+        .update(runners)
+        .set({
+            cache,
+            cacheSizeGb,
+            serviceId: updatedService.id,
+            cronjobIds: JSON.stringify(cronjobIds),
+        })
+        .where(eq(runners.id, row.id))
+        .returning();
+    log.info("runner configured", {
+        cache,
+        cacheSizeGb,
+        previousCache: row.cache,
+        previousCacheSizeGb: row.cacheSizeGb,
+    });
     return toView(updated, updatedService);
 }
 

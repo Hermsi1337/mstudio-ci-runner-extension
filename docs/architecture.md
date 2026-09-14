@@ -24,16 +24,19 @@ Stack and structure follow the [mittwald reference extension](https://github.com
 2. Input is validated with `zCreateRunnerRequest` (generated, see [codegen.md](codegen.md)),
    a discriminated union over `provider`.
 3. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
-   registration in the CI system where needed and returns image, environment, volumes
-   and the credentials to store ([providers.md](providers.md)).
-4. `src/domain/runner.ts` creates a stack `CI Runner (<provider>): <name>` via
-   `container.createStack` and declares the service `runner` via `container.declareStack`
-   with `restartPolicy: always` and resource limits by size.
+   registration in the CI system where needed and returns image, environment, the
+   `runner-data` volume and the credentials to store ([providers.md](providers.md)).
+4. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
+   requested ([providers.md](providers.md#package-manager-cache)), creates a stack
+   `CI Runner (<provider>): <name>` via `container.createStack` and declares the service
+   `runner` via `container.declareStack` with `restartPolicy: always` and resource limits
+   by size.
 5. A row in `runners` links extension instance, provider, stack and service.
 6. The container registers itself on start ([runner-image.md](runner-image.md)).
 
 Other operations: list with live status (`container.getStack`), logs
-(`container.getServiceLogs`), restart (`container.restartService`), delete
+(`container.getServiceLogs`), restart (`container.restartService`), update to the
+current image and cache settings (both `container.declareStack`), delete
 (`container.deleteStack`, then `provider.release`). All stack operations run with the
 access token of the signed-in user, so only with their permissions and the scopes of
 the extension.
@@ -50,7 +53,8 @@ Tables in `src/db/schema.ts`:
   `ENCRYPTION_SALT`) holding provider-specific JSON, e.g. the GitLab runner token.
   `image` and `runnerVersion` record what the stack was declared with; `updateAvailable`
   in the API compares `image` with the image of the running extension release.
-  `cronjobIds` lists the mittwald cronjobs created for the runner (cache cleanup).
+  `cache` and `cacheSizeGb` hold the cache setting, `cronjobIds` lists the mittwald
+  cronjobs created for the runner (cache cleanup).
 
 One stack per runner, no shared stack. Deleting is a single `deleteStack` without
 touching other runners.
@@ -70,7 +74,7 @@ answer within 6 seconds.
 - Session tokens are verified server side; access tokens never reach the client.
 - GitHub with a registration token (default): the token reaches the container as
   `RUNNER_TOKEN`, is worthless after one hour and is not stored in the database. The
-  runner credentials live in the `config` volume of the stack.
+  runner credentials live in the `runner-data` volume of the stack.
 - GitHub with a PAT: the PAT is stored encrypted and passed to the runner container as
   `GITHUB_TOKEN`. Project members with container access can read it there. Use
   fine-grained PATs with minimal scope.

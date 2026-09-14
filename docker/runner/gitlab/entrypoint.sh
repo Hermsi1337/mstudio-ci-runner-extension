@@ -5,8 +5,9 @@
 #   CI_SERVER_URL      GitLab base URL, e.g. https://gitlab.com                          [required]
 #   CI_SERVER_TOKEN    runner authentication token (glrt-...) created via UI or API      [required]
 #   RUNNER_NAME        runner description/name (default: hostname)
-#   RUNNER_BUILDS_DIR  builds directory (default: /home/runner/builds)
-#   RUNNER_CACHE_DIR   cache directory (default: /home/runner/cache)
+#   RUNNER_DATA_DIR    persistent state, the runner-data volume (default: /home/runner/data)
+#   RUNNER_BUILDS_DIR  builds directory (default: RUNNER_DATA_DIR/builds)
+#   RUNNER_CACHE_DIR   directory for the cache: keyword of GitLab CI (default: RUNNER_DATA_DIR/cache)
 #   RUNNER_CONCURRENT  concurrent jobs (default: 1)
 #   RUNNER_UNREGISTER_ON_EXIT  "true" => remove the runner from GitLab on SIGTERM (default: false,
 #                      the extension deletes the runner via API itself)
@@ -15,11 +16,14 @@ set -euo pipefail
 : "${CI_SERVER_URL:?CI_SERVER_URL is required}"
 : "${CI_SERVER_TOKEN:?CI_SERVER_TOKEN is required}"
 RUNNER_NAME="${RUNNER_NAME:-$(hostname)}"
-RUNNER_BUILDS_DIR="${RUNNER_BUILDS_DIR:-/home/runner/builds}"
-RUNNER_CACHE_DIR="${RUNNER_CACHE_DIR:-/home/runner/cache}"
+RUNNER_DATA_DIR="${RUNNER_DATA_DIR:-/home/runner/data}"
+RUNNER_BUILDS_DIR="${RUNNER_BUILDS_DIR:-${RUNNER_DATA_DIR}/builds}"
+RUNNER_CACHE_DIR="${RUNNER_CACHE_DIR:-${RUNNER_DATA_DIR}/cache}"
 RUNNER_CONCURRENT="${RUNNER_CONCURRENT:-1}"
 RUNNER_UNREGISTER_ON_EXIT="${RUNNER_UNREGISTER_ON_EXIT:-false}"
 CONFIG="${HOME}/.gitlab-runner/config.toml"
+
+mkdir -p "${RUNNER_BUILDS_DIR}" "${RUNNER_CACHE_DIR}"
 
 echo "[entrypoint] registering ${RUNNER_NAME} at ${CI_SERVER_URL} (executor: shell)"
 rm -f "${CONFIG}"

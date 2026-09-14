@@ -673,6 +673,246 @@
         ]
       }
     },
+    "/v2/stacks/{stackId}/volumes": {
+      "get": {
+        "operationId": "container-list-stack-volumes",
+        "parameters": [
+          {
+            "description": "ID of the Stack to list Volumes for.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search term to list Volumes for. The field name is searchable.",
+            "in": "query",
+            "name": "searchTerm",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sorts the list with given order.",
+            "in": "query",
+            "name": "sortOrder",
+            "schema": {
+              "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeSortOrder"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The max count of resources to return in the list response.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 0
+            },
+            "required": false
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of items to skip. Should be multiple of `limit`.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "required": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page to display. `skip` and `page` end up doing the same. If both `page` and `skip` are set, skip is used.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-Pagination-Limit": {
+                "description": "The limit used to select the resources for the response",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Skip": {
+                "description": "The number of skipped items",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Page": {
+                "description": "The calculate page of the list response. Refer to parameters to learn more.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Pagination-TotalCount": {
+                "description": "The total amount of items available in the remote ressource. Use this value in combination with the limit to calculate the available pages.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "List Volumes belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
+    "/v2/stacks/{stackId}/volumes/{volumeId}": {
+      "delete": {
+        "operationId": "container-delete-volume",
+        "parameters": [
+          {
+            "description": "ID of the Stack the Volume belongs too. ID of the default Stack equals the ID of the Project.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Volume to be deleted.",
+            "in": "path",
+            "name": "volumeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Delete a Volume belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      },
+      "get": {
+        "operationId": "container-get-volume",
+        "parameters": [
+          {
+            "description": "ID of the Stack the Volume belongs too. ID of the default Stack equals the ID of the Project.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Volume to be retrieved.",
+            "in": "path",
+            "name": "volumeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get a Volume belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
     "/v2/projects/{projectId}/cronjobs": {
       "post": {
         "operationId": "cronjob-create-cronjob",
@@ -1641,6 +1881,58 @@
         ],
         "type": "object"
       },
+      "de.mittwald.v1.container.VolumeSortOrder": {
+        "enum": [
+          "nameAsc",
+          "nameDesc",
+          "storageAsc",
+          "storageDesc"
+        ],
+        "type": "string"
+      },
+      "de.mittwald.v1.container.VolumeResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "linkedServices": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orphaned": {
+            "description": "Whether the Volume is attached to a Stack.",
+            "type": "boolean"
+          },
+          "stackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "storageUsageInBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "storageUsageInBytesSetAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stackId",
+          "name",
+          "orphaned",
+          "storageUsageInBytes",
+          "storageUsageInBytesSetAt"
+        ],
+        "type": "object"
+      },
       "de.mittwald.v1.cronjob.CronjobRequest": {
         "properties": {
           "active": {
@@ -1932,49 +2224,6 @@
           "serial",
           "algorithm",
           "key"
-        ],
-        "type": "object"
-      },
-      "de.mittwald.v1.container.VolumeResponse": {
-        "properties": {
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "linkedServices": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "name": {
-            "type": "string"
-          },
-          "orphaned": {
-            "description": "Whether the Volume is attached to a Stack.",
-            "type": "boolean"
-          },
-          "stackId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "storageUsageInBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "storageUsageInBytesSetAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "stackId",
-          "name",
-          "orphaned",
-          "storageUsageInBytes",
-          "storageUsageInBytesSetAt"
         ],
         "type": "object"
       },

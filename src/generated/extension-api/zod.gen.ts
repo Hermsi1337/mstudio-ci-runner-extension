@@ -30,12 +30,22 @@ export const zRunnerStatus = z.enum([
     'missing'
 ]);
 
+/**
+ * Adds the volume tool-cache for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+ */
+export const zCacheEnabled = z.boolean().default(false);
+
+/**
+ * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
+ */
+export const zCacheSizeGb = z.int().gte(1).lte(500).default(10);
+
 export const zRunnerBase = z.object({
     name: z.string().min(2).max(64),
     labels: z.string().max(500).optional().default('mittwald'),
     ephemeral: z.boolean().optional().default(false),
-    cache: z.boolean().optional().default(false),
-    cacheSizeGb: z.int().gte(1).lte(500).optional().default(10),
+    cache: zCacheEnabled.optional(),
+    cacheSizeGb: zCacheSizeGb.optional(),
     size: zRunnerSize.optional()
 });
 
@@ -80,6 +90,15 @@ export const zRunnerIdRequest = z.object({
     runnerId: z.uuid()
 });
 
+/**
+ * Settings that can change after creation. The stack is redeclared, mittwald recreates the container.
+ */
+export const zConfigureRunnerRequest = z.object({
+    runnerId: z.uuid(),
+    cache: zCacheEnabled,
+    cacheSizeGb: zCacheSizeGb.optional()
+});
+
 export const zRunnerLogsRequest = z.object({
     runnerId: z.uuid(),
     tail: z.int().gte(10).lte(2000).optional().default(200)
@@ -94,6 +113,8 @@ export const zRunner = z.object({
     labels: z.array(z.string()),
     ephemeral: z.boolean(),
     size: zRunnerSize,
+    cache: z.boolean(),
+    cacheSizeGb: z.int(),
     stackId: z.uuid(),
     serviceId: z.string().nullable(),
     status: zRunnerStatus,

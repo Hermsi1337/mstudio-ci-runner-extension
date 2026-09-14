@@ -95,6 +95,8 @@ const cases: {
             labels: ["mittwald"],
             ephemeral: false,
             size: "small",
+            cache: true,
+            cacheSizeGb: 20,
         },
     },
     {
@@ -135,6 +137,8 @@ const cases: {
             labels: ["mittwald"],
             ephemeral: false,
             size: "medium",
+            cache: false,
+            cacheSizeGb: 10,
         },
     },
     {
@@ -224,6 +228,30 @@ describe.each(cases)("runner lifecycle: $title", ({
         expect(zRunner.parse(updated)).toEqual(updated);
         expect(updated.updateAvailable).toBe(false);
         expect(updated.runnerVersion).toBe(updated.latestRunnerVersion);
+    });
+
+    it("turns the cache on, changes its limit and turns it off", async () => {
+        const enabled = await runner.configureRunner(
+            client,
+            extensionInstanceId,
+            { runnerId, cache: true, cacheSizeGb: 5 },
+        );
+        expect(zRunner.parse(enabled)).toEqual(enabled);
+        expect(enabled).toMatchObject({ cache: true, cacheSizeGb: 5 });
+
+        const resized = await runner.configureRunner(
+            client,
+            extensionInstanceId,
+            { runnerId, cache: true, cacheSizeGb: 7 },
+        );
+        expect(resized).toMatchObject({ cache: true, cacheSizeGb: 7 });
+
+        const disabled = await runner.configureRunner(
+            client,
+            extensionInstanceId,
+            { runnerId, cache: false },
+        );
+        expect(disabled).toMatchObject({ cache: false, cacheSizeGb: 7 });
     });
 
     it("refuses access from other extension instances", async () => {

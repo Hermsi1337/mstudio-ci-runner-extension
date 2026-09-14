@@ -1,4 +1,5 @@
 import { makeGhost } from "@mittwald/react-ghostmaker";
+import { configureRunnerServerFunction } from "@/serverFunctions/runners/configure-runner.ts";
 import { createRunnerServerFunction } from "@/serverFunctions/runners/create-runner.ts";
 import { deleteRunnerServerFunction } from "@/serverFunctions/runners/delete-runner.ts";
 import { getRunnerLogsServerFunction } from "@/serverFunctions/runners/get-runner-logs.ts";
@@ -12,6 +13,7 @@ const runnerClient = {
     getRunnerLogs: getRunnerLogsServerFunction,
     restartRunner: restartRunnerServerFunction,
     updateRunner: updateRunnerServerFunction,
+    configureRunner: configureRunnerServerFunction,
     deleteRunner: deleteRunnerServerFunction,
 };
 
