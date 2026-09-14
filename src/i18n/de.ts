@@ -57,17 +57,17 @@ export const de: Messages = {
     "form.configure.button": "Speichern",
     "form.configure.text":
         "Änderst du den Cache, wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Volume tool-cache und seinen Cronjob.",
-    "form.summary.heading": "**Wird in diesem Projekt angelegt**",
+    "form.summary.heading": "Wird in diesem Projekt angelegt",
     "form.summary.stack":
-        "- Container-Stack `CI Runner ({provider}): {name}` mit dem Service `runner`",
+        "Container-Stack CI Runner ({provider}): {name} mit dem Service runner",
     "form.summary.dataVolume.github":
-        "- Volume `runner-data`: Runner-Registrierung und Arbeitsverzeichnis (Checkouts, geladene Actions, Tool-Cache der setup-Actions)",
+        "Volume runner-data: Runner-Registrierung und Arbeitsverzeichnis (Checkouts, geladene Actions, Tool-Cache der setup-Actions)",
     "form.summary.dataVolume.gitlab":
-        "- Volume `runner-data`: Builds-Verzeichnis und das Verzeichnis für das `cache:`-Keyword von GitLab CI",
+        "Volume runner-data: Builds-Verzeichnis und das Verzeichnis für das cache:-Keyword von GitLab CI",
     "form.summary.cacheVolume":
-        "- Volume `tool-cache`: Paketmanager-Cache, in mStudio separat sichtbar",
+        "Volume tool-cache: Paketmanager-Cache, in mStudio separat sichtbar",
     "form.summary.cronjob":
-        "- Cronjob: kürzt das Volume tool-cache stündlich auf {size} GB",
+        "Cronjob: kürzt das Volume tool-cache stündlich auf {size} GB",
     "form.provider.label": "CI-System",
     "form.name.label": "Name",
     "form.name.description": "Wird als Runner-Name im CI-System verwendet.",

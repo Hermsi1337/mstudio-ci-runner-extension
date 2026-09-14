@@ -55,17 +55,17 @@ export const en = {
     "form.configure.button": "Save",
     "form.configure.text":
         "Changing the cache redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the tool-cache volume and its cronjob.",
-    "form.summary.heading": "**Created in this project**",
+    "form.summary.heading": "Created in this project",
     "form.summary.stack":
-        "- Container stack `CI Runner ({provider}): {name}` with the service `runner`",
+        "Container stack CI Runner ({provider}): {name} with the service runner",
     "form.summary.dataVolume.github":
-        "- Volume `runner-data`: runner registration and work directory (checkouts, downloaded actions, tool cache of setup actions)",
+        "Volume runner-data: runner registration and work directory (checkouts, downloaded actions, tool cache of setup actions)",
     "form.summary.dataVolume.gitlab":
-        "- Volume `runner-data`: builds directory and the directory for the `cache:` keyword of GitLab CI",
+        "Volume runner-data: builds directory and the directory for the cache: keyword of GitLab CI",
     "form.summary.cacheVolume":
-        "- Volume `tool-cache`: package manager cache, shown separately in mStudio",
+        "Volume tool-cache: package manager cache, shown separately in mStudio",
     "form.summary.cronjob":
-        "- Cronjob: trims the tool-cache volume to {size} GB every hour",
+        "Cronjob: trims the tool-cache volume to {size} GB every hour",
     "form.provider.label": "CI system",
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",

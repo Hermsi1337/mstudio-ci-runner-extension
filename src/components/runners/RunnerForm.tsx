@@ -3,12 +3,13 @@ import {
     Button,
     FieldDescription,
     Flex,
+    Heading,
     Label,
-    Markdown,
     Option,
     Section,
     Select,
     Switch,
+    Text,
     TextArea,
     TextField,
     useOverlayController,
@@ -467,25 +468,22 @@ export const RunnerForm = () => {
 
                 <CacheFields form={form} />
 
-                <Markdown>
-                    {[
-                        t("form.summary.heading"),
-                        "",
-                        t("form.summary.stack", {
-                            provider,
-                            name: name || "...",
-                        }),
-                        t(`form.summary.dataVolume.${provider}`),
-                        ...(cache
-                            ? [
-                                  t("form.summary.cacheVolume"),
-                                  t("form.summary.cronjob", {
-                                      size: cacheSizeGb,
-                                  }),
-                              ]
-                            : []),
-                    ].join("\n")}
-                </Markdown>
+                <Heading level={4}>{t("form.summary.heading")}</Heading>
+                {[
+                    t("form.summary.stack", {
+                        provider,
+                        name: name || "...",
+                    }),
+                    t(`form.summary.dataVolume.${provider}`),
+                    ...(cache
+                        ? [
+                              t("form.summary.cacheVolume"),
+                              t("form.summary.cronjob", { size: cacheSizeGb }),
+                          ]
+                        : []),
+                ].map((line) => (
+                    <Text key={line}>{line}</Text>
+                ))}
 
                 <RootError />
 
