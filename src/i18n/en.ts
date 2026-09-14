@@ -59,10 +59,12 @@ export const en = {
     "form.github.tokenType.label": "Authentication",
     "form.github.tokenType.registration": "Registration token from GitHub",
     "form.github.tokenType.pat": "Personal access token (PAT)",
-    "form.github.registrationToken.label": "Registration token",
-    "form.github.registrationToken.description":
-        'The token from the "New self-hosted runner" page on GitHub. Valid for one hour, used once to register the container.',
-    "form.github.registrationToken.required": "Registration token is required",
+    "form.github.configCommand.label": "Setup command from GitHub",
+    "form.github.configCommand.description":
+        "Paste the config command from the New self-hosted runner page. Repository or organization and the registration token are read from it.",
+    "form.github.configCommand.required": "Setup command is required",
+    "form.github.configCommand.invalid":
+        "Paste the full command with --url https://github.com/... and --token.",
     "form.github.token.label": "GitHub token (PAT)",
     "form.github.token.description":
         'Fine-grained PAT with "Administration: Read and write" (repository) or "Self-hosted runners: Read and write" (organization). Stored encrypted and passed to the container as an environment variable.',
@@ -104,10 +106,8 @@ export const en = {
         "For an organization enter its name, for example my-org. For a single repository enter owner/repo, for example my-org/my-repo. An organization runner serves every repository its runner group allows.",
     "form.github.tokenType.help":
         "Registration token: open the runner settings of the repository or organization on GitHub, click New self-hosted runner and copy the token from the config command. The token expires after one hour, so the runner registers once and stores the resulting credentials (a few small files) in the config volume of its stack. Restarts and updates reuse them without a new token. No PAT is stored. Ephemeral runners are not possible because every job would need a fresh registration.\nPersonal access token: the container fetches registration and removal tokens itself on every start, so it needs no stored registration. Needed for ephemeral runners. The PAT is stored encrypted and lives in the container.",
-    "form.github.registrationToken.help":
-        "On GitHub open Settings, Actions, Runners, New self-hosted runner for the repository or organization entered above. Copy the token from the config.sh command, it looks like AEBIHM56SBF3SULYYYY3BH3KU333M. The token expires after one hour, so create the runner right away. The runner keeps its registration in a volume and survives restarts. When you delete the runner, it deregisters as long as the token is still valid; otherwise GitHub removes the offline runner after 14 days.",
-    "form.github.registrationToken.link":
-        "Open the runner setup page on GitHub",
+    "form.github.configCommand.help":
+        "On GitHub open the repository or organization, then Settings, Actions, Runners, New self-hosted runner. Under Configure copy the line starting with ./config.sh (or ./config.cmd) and paste it here. Only --url and --token are used. The token expires after one hour, so create the runner right away. When you delete the runner it deregisters as long as the token is valid; otherwise GitHub removes the offline runner after 14 days.",
     "form.github.token.help":
         "The runner registers with a personal access token. Create a fine-grained token on GitHub under Settings, Developer settings, Personal access tokens. Repository: permission Administration, read and write. Organization: permission Self-hosted runners, read and write.\nThe token is stored encrypted and handed to the runner container, which fetches a registration token with it on every start. Members with access to the container can read it, so keep its scope small.",
     "form.github.token.link": "Create a fine-grained token on GitHub",

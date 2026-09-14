@@ -18,6 +18,7 @@ describe("rewriteForLocalHost", () => {
     it("prefixes imports of other UI modules and leaves the rest alone", () => {
         const code = [
             'import { RunnerForm } from "./RunnerForm.tsx";',
+            'import { parseConfigCommand } from "./parseConfigCommand.ts";',
             'import { ErrorFallback } from "@/components/ErrorFallback.tsx";',
             'import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";',
             'import { RunnerClientGhost } from "@/ghosts.ts";',
@@ -27,6 +28,7 @@ describe("rewriteForLocalHost", () => {
         expect(rewriteForLocalHost(code)).toBe(
             [
                 'import { RunnerForm } from "local:./RunnerForm.tsx";',
+                'import { parseConfigCommand } from "local:./parseConfigCommand.ts";',
                 'import { ErrorFallback } from "local:@/components/ErrorFallback.tsx";',
                 'import { useFormErrorHandling } from "local:@/hooks/useFormErrorHandling.tsx";',
                 'import { RunnerClientGhost } from "@/ghosts.ts";',

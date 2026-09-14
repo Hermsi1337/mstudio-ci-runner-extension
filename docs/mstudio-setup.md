@@ -31,9 +31,10 @@ After creation:
 
 ### GitHub
 
-Default: the registration token from GitHub. Open *Settings → Actions → Runners → New
-self-hosted runner* for the repository or organization and copy the token from the
-`config.sh` command. It expires after one hour and is used once; the container keeps
+Default: the setup command from GitHub. Open *Settings → Actions → Runners → New
+self-hosted runner* for the repository or organization and paste the
+`./config.sh --url ... --token ...` line into the form; it reads target and registration
+token from it. The token expires after one hour and is used once; the container keeps
 the registration in a volume. Ephemeral runners are not possible with it.
 
 Alternative for ephemeral runners: a fine-grained personal access token:

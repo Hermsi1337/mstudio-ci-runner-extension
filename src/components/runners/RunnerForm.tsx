@@ -8,6 +8,7 @@ import {
     Section,
     Select,
     Switch,
+    TextArea,
     TextField,
     useOverlayController,
 } from "@mittwald/flow-remote-react-components";
@@ -23,30 +24,15 @@ import type {
     Provider,
     RunnerSize,
 } from "@/generated/extension-api";
-
-type GitHubTokenType = NonNullable<
-    Extract<CreateRunnerRequest, { provider: "github" }>["tokenType"]
->;
-
-const GITHUB_HOST = "https://github.com/";
-
-function runnerSetupUrl(target: string): string {
-    const path = target
-        .trim()
-        .replace(GITHUB_HOST, "")
-        .replace(/^\/+|\/+$/g, "");
-    if (!path) {
-        return GITHUB_HOST;
-    }
-    return path.includes("/")
-        ? `${GITHUB_HOST}${path}/settings/actions/runners/new`
-        : `${GITHUB_HOST}organizations/${path}/settings/actions/runners/new`;
-}
-
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
+import { parseConfigCommand } from "./parseConfigCommand.ts";
+
+type GitHubTokenType = NonNullable<
+    Extract<CreateRunnerRequest, { provider: "github" }>["tokenType"]
+>;
 
 interface FormValues {
     provider: Provider;
@@ -56,6 +42,7 @@ interface FormValues {
     ephemeral: boolean;
     cache: boolean;
     tokenType: GitHubTokenType;
+    configCommand: string;
     token: string;
     target: string;
     runnerGroup: string;
@@ -83,12 +70,16 @@ function toRequest(values: FormValues): CreateRunnerRequest {
             ephemeral: false,
         };
     }
+    const parsed =
+        values.tokenType === "registration"
+            ? parseConfigCommand(values.configCommand)
+            : null;
     return {
         ...base,
         provider: "github",
-        target: values.target,
+        target: parsed?.target ?? values.target,
         tokenType: values.tokenType,
-        token: values.token,
+        token: parsed?.token ?? values.token,
         runnerGroup: values.runnerGroup || undefined,
         ephemeral: values.tokenType === "pat" && values.ephemeral,
     };
@@ -108,6 +99,7 @@ export const RunnerForm = () => {
             ephemeral: false,
             cache: false,
             tokenType: "registration",
+            configCommand: "",
             token: "",
             target: "",
             runnerGroup: "",
@@ -119,7 +111,6 @@ export const RunnerForm = () => {
     const Field = typedField(form);
     const provider = form.watch("provider");
     const tokenType = form.watch("tokenType");
-    const target = form.watch("target");
     const runnerType = form.watch("runnerType");
     const instanceUrl = form.watch("instanceUrl").replace(/\/+$/, "");
 
@@ -169,29 +160,6 @@ export const RunnerForm = () => {
 
                 {provider === "github" && (
                     <>
-                        <Field
-                            name="target"
-                            rules={{
-                                required: t("form.github.target.required"),
-                            }}
-                        >
-                            <TextField
-                                placeholder={t(
-                                    "form.github.target.placeholder",
-                                )}
-                            >
-                                <Label>
-                                    {t("form.github.target.label")}
-                                    <FieldHelp
-                                        subject={t("form.github.target.label")}
-                                        text={t("form.github.target.help")}
-                                    />
-                                </Label>
-                                <FieldDescription>
-                                    {t("form.github.target.description")}
-                                </FieldDescription>
-                            </TextField>
-                        </Field>
                         <Field name="tokenType" rules={{ required: true }}>
                             <Select>
                                 <Label>
@@ -212,68 +180,106 @@ export const RunnerForm = () => {
                             </Select>
                         </Field>
                         {tokenType === "pat" ? (
-                            <Field
-                                name="token"
-                                rules={{
-                                    required: t("form.github.token.required"),
-                                }}
-                            >
-                                <TextField type="password">
-                                    <Label>
-                                        {t("form.github.token.label")}
-                                        <FieldHelp
-                                            subject={t(
-                                                "form.github.token.label",
+                            <>
+                                <Field
+                                    name="target"
+                                    rules={{
+                                        required: t(
+                                            "form.github.target.required",
+                                        ),
+                                    }}
+                                >
+                                    <TextField
+                                        placeholder={t(
+                                            "form.github.target.placeholder",
+                                        )}
+                                    >
+                                        <Label>
+                                            {t("form.github.target.label")}
+                                            <FieldHelp
+                                                subject={t(
+                                                    "form.github.target.label",
+                                                )}
+                                                text={t(
+                                                    "form.github.target.help",
+                                                )}
+                                            />
+                                        </Label>
+                                        <FieldDescription>
+                                            {t(
+                                                "form.github.target.description",
                                             )}
-                                            text={t("form.github.token.help")}
-                                            link={{
-                                                href: "https://github.com/settings/personal-access-tokens/new",
-                                                label: t(
-                                                    "form.github.token.link",
-                                                ),
-                                            }}
-                                        />
-                                    </Label>
-                                    <FieldDescription>
-                                        {t("form.github.token.description")}
-                                    </FieldDescription>
-                                </TextField>
-                            </Field>
+                                        </FieldDescription>
+                                    </TextField>
+                                </Field>
+                                <Field
+                                    name="token"
+                                    rules={{
+                                        required: t(
+                                            "form.github.token.required",
+                                        ),
+                                    }}
+                                >
+                                    <TextField type="password">
+                                        <Label>
+                                            {t("form.github.token.label")}
+                                            <FieldHelp
+                                                subject={t(
+                                                    "form.github.token.label",
+                                                )}
+                                                text={t(
+                                                    "form.github.token.help",
+                                                )}
+                                                link={{
+                                                    href: "https://github.com/settings/personal-access-tokens/new",
+                                                    label: t(
+                                                        "form.github.token.link",
+                                                    ),
+                                                }}
+                                            />
+                                        </Label>
+                                        <FieldDescription>
+                                            {t("form.github.token.description")}
+                                        </FieldDescription>
+                                    </TextField>
+                                </Field>
+                            </>
                         ) : (
                             <Field
-                                name="token"
+                                name="configCommand"
                                 rules={{
                                     required: t(
-                                        "form.github.registrationToken.required",
+                                        "form.github.configCommand.required",
                                     ),
+                                    validate: (value) =>
+                                        parseConfigCommand(String(value))
+                                            ? true
+                                            : t(
+                                                  "form.github.configCommand.invalid",
+                                              ),
                                 }}
                             >
-                                <TextField type="password">
+                                <TextArea
+                                    rows={3}
+                                    placeholder="./config.sh --url https://github.com/owner/repo --token AEBIHM56SBF3SULYYYY3BH3KU333M"
+                                >
                                     <Label>
-                                        {t(
-                                            "form.github.registrationToken.label",
-                                        )}
+                                        {t("form.github.configCommand.label")}
                                         <FieldHelp
                                             subject={t(
-                                                "form.github.registrationToken.label",
+                                                "form.github.configCommand.label",
                                             )}
                                             text={t(
-                                                "form.github.registrationToken.help",
+                                                "form.github.configCommand.help",
                                             )}
-                                            link={{
-                                                href: runnerSetupUrl(target),
-                                                label: t(
-                                                    "form.github.registrationToken.link",
-                                                ),
-                                            }}
                                         />
                                     </Label>
                                     <FieldDescription>
                                         {t(
-                                            "form.github.registrationToken.description",
+                                            "form.github.configCommand.description",
                                         )}
                                     </FieldDescription>
-                                </TextField>
+                                </TextArea>
                             </Field>
                         )}
                         <Field name="runnerGroup">

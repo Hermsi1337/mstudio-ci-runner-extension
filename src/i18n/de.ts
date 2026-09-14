@@ -61,10 +61,12 @@ export const de: Messages = {
     "form.github.tokenType.label": "Authentifizierung",
     "form.github.tokenType.registration": "Registrierungs-Token von GitHub",
     "form.github.tokenType.pat": "Personal Access Token (PAT)",
-    "form.github.registrationToken.label": "Registrierungs-Token",
-    "form.github.registrationToken.description":
-        'Das Token von der Seite "New self-hosted runner" auf GitHub. Eine Stunde gültig, wird einmal zum Registrieren des Containers genutzt.',
-    "form.github.registrationToken.required": "Registrierungs-Token fehlt",
+    "form.github.configCommand.label": "Einrichtungsbefehl von GitHub",
+    "form.github.configCommand.description":
+        "Füge den config-Befehl von der Seite New self-hosted runner ein. Repository oder Organisation und das Registrierungs-Token werden daraus gelesen.",
+    "form.github.configCommand.required": "Einrichtungsbefehl fehlt",
+    "form.github.configCommand.invalid":
+        "Füge den vollständigen Befehl mit --url https://github.com/... und --token ein.",
     "form.github.token.label": "GitHub-Token (PAT)",
     "form.github.token.description":
         'Fine-grained PAT mit "Administration: Read and write" (Repository) oder "Self-hosted runners: Read and write" (Organisation). Wird verschlüsselt gespeichert und dem Container als Umgebungsvariable übergeben.',
@@ -106,10 +108,8 @@ export const de: Messages = {
         "Für eine Organisation gibst du ihren Namen an, zum Beispiel meine-org. Für ein einzelnes Repository owner/repo, zum Beispiel meine-org/mein-repo. Ein Organisations-Runner bedient alle Repositorys, die seine Runner-Gruppe erlaubt.",
     "form.github.tokenType.help":
         "Registrierungs-Token: Öffne auf GitHub die Runner-Einstellungen des Repositorys oder der Organisation, klicke New self-hosted runner und kopiere das Token aus dem config-Befehl. Das Token läuft nach einer Stunde ab, daher registriert sich der Runner einmal und legt die entstehenden Zugangsdaten (ein paar kleine Dateien) im Config-Volume seines Stacks ab. Neustarts und Updates nutzen sie ohne neues Token. Es wird kein PAT gespeichert. Ephemerale Runner gehen damit nicht, weil jeder Job eine frische Registrierung bräuchte.\nPersonal Access Token: Der Container holt sich Registrierungs- und Entfernungs-Token bei jedem Start selbst und braucht keine gespeicherte Registrierung. Nötig für ephemerale Runner. Das PAT wird verschlüsselt gespeichert und liegt im Container.",
-    "form.github.registrationToken.help":
-        "Öffne auf GitHub Settings, Actions, Runners, New self-hosted runner für das oben eingetragene Repository oder die Organisation. Kopiere das Token aus dem config.sh-Befehl, es sieht aus wie AEBIHM56SBF3SULYYYY3BH3KU333M. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Der Runner behält seine Registrierung in einem Volume und übersteht Neustarts. Beim Löschen meldet er sich ab, solange das Token noch gültig ist; sonst entfernt GitHub den Offline-Runner nach 14 Tagen.",
-    "form.github.registrationToken.link":
-        "Runner-Einrichtung auf GitHub öffnen",
+    "form.github.configCommand.help":
+        "Öffne auf GitHub das Repository oder die Organisation, dann Settings, Actions, Runners, New self-hosted runner. Kopiere unter Configure die Zeile, die mit ./config.sh (oder ./config.cmd) beginnt, und füge sie hier ein. Genutzt werden nur --url und --token. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Beim Löschen meldet sich der Runner ab, solange das Token gültig ist; sonst entfernt GitHub den Offline-Runner nach 14 Tagen.",
     "form.github.token.help":
         "Der Runner registriert sich mit einem Personal Access Token. Lege auf GitHub unter Settings, Developer settings, Personal access tokens ein Fine-grained Token an. Repository: Berechtigung Administration, read and write. Organisation: Berechtigung Self-hosted runners, read and write.\nDas Token wird verschlüsselt gespeichert und an den Runner-Container übergeben, der damit bei jedem Start ein Registrierungs-Token holt. Mitglieder mit Zugriff auf den Container können es lesen, halte den Umfang daher klein.",
     "form.github.token.link": "Fine-grained Token auf GitHub anlegen",

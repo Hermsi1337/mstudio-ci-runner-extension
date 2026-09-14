@@ -47,8 +47,8 @@ the request context from the two variables. The extension instance row uses the
 project id as its id. The UI components are written against the remote Flow
 components, which only render inside mStudio; the Vite plugin in
 `config/local-host-plugin.ts` serves a second copy of `src/components/` and
-`src/hooks/` under the `local:` import prefix with the DOM-rendering
-`@mittwald/flow-react-components` swapped in.
+`src/hooks/` (plus modules they import relatively) under the `local:` import prefix
+with the DOM-rendering `@mittwald/flow-react-components` swapped in.
 
 Not covered by local mode: session token handling, lifecycle webhooks, mStudio
 anchors. Real stacks are created in the project, delete them via the UI afterwards.

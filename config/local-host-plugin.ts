@@ -6,7 +6,7 @@ export const localModulePrefix = "local:";
 const remoteComponents = "@mittwald/flow-remote-react-components";
 const hostComponents = "@mittwald/flow-react-components";
 const sharedUiImport =
-    /from "(@\/(?:components|hooks)\/[^"]+|\.{1,2}\/[^"]+\.tsx)"/g;
+    /from "(@\/(?:components|hooks)\/[^"]+|\.{1,2}\/[^"]+\.tsx?)"/g;
 
 export function rewriteForLocalHost(code: string): string {
     return code
