@@ -6,9 +6,13 @@ Images are built from git tags only, never from pushes to `main`. `main` is veri
 by `ci.yml` (codegen drift, Biome, `tsc`, build, integration tests).
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+pnpm version minor        # or patch, major, 0.2.0: bumps package.json, commits, tags v0.2.0
+git push origin main --follow-tags
 ```
+
+The version in `package.json` must match the tag: `extension-image.yml` fails otherwise.
+It is the fallback for `EXTENSION_VERSION` and therefore decides which runner images a
+local development extension uses.
 
 The tag triggers `extension-image.yml` and `runner-image.yml`. Both use
 `docker/metadata-action` and tag:
