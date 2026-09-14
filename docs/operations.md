@@ -41,7 +41,8 @@ nothing runs on `latest`. The runner software versions come from
 
 Package visibility is independent of the repository and can only be changed on the web:
 *Packages → Package settings → Change visibility*. All images carry
-`org.opencontainers.image.source` so `GITHUB_TOKEN` may push from the workflow.
+`org.opencontainers.image.source` so `GITHUB_TOKEN` may push from the workflow, and
+`org.opencontainers.image.licenses` (`MIT`, matching [LICENSE](../LICENSE)).
 
 ## Workflows
 

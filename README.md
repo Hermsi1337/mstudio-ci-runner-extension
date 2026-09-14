@@ -45,3 +45,12 @@ Continue with [docs/development.md](docs/development.md).
 
 Structure and base stack come from the
 [mittwald reference extension](https://github.com/mittwald/reference-extension).
+
+## Contributing
+
+Issues and pull requests are welcome. The working rules in [AGENTS.md](AGENTS.md)
+apply to every change, including the checks under "Run before committing".
+
+## License
+
+MIT, see [LICENSE](LICENSE). Copyright (c) 2026 Dennis Hermsmeier.

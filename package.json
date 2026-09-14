@@ -85,5 +85,15 @@
     "yaml": "^2.9.1"
   },
   "private": true,
-  "description": "mittwald mStudio extension that provisions CI runners (GitHub Actions, GitLab CI) on container hosting"
+  "description": "mittwald mStudio extension that provisions CI runners (GitHub Actions, GitLab CI) on container hosting",
+  "author": "Dennis Hermsmeier <dennis@hermsmeier.me>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hermsi1337/mstudio-ci-runner-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hermsi1337/mstudio-ci-runner-extension/issues"
+  },
+  "homepage": "https://github.com/Hermsi1337/mstudio-ci-runner-extension#readme"
 }

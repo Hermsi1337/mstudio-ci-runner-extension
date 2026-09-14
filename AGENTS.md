@@ -132,7 +132,7 @@ tests/helpers/               container starters (PostgreSQL, Prism)
 ```
 
 The repository root stays lean: only files that tools require there
-(`package.json`, `tsconfig.json`, `biome.json`, `.editorconfig`, `.env.example`).
+(`package.json`, `tsconfig.json`, `biome.json`, `.editorconfig`, `.env.example`, `LICENSE`).
 Everything else lives in a subdirectory.
 
 ## Conventions

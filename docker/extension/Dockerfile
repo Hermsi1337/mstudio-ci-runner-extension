@@ -18,7 +18,9 @@ FROM node:20-alpine AS runner
 ARG EXTENSION_VERSION
 WORKDIR /app
 
-LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-runner-extension"
+LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-runner-extension" \
+      org.opencontainers.image.description="mittwald mStudio extension that provisions CI runners on Container Hosting" \
+      org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
 ENV PORT=3000
