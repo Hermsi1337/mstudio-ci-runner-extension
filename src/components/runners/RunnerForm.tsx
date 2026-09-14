@@ -30,6 +30,7 @@ import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { CacheFields } from "./CacheFields.tsx";
+import { ConcurrencyField } from "./ConcurrencyField.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 
@@ -45,6 +46,7 @@ interface FormValues {
     ephemeral: boolean;
     cache: boolean;
     cacheSizeGb: number;
+    concurrency: number;
     tokenType: GitHubTokenType;
     configCommand: string;
     token: string;
@@ -62,6 +64,7 @@ function toRequest(values: FormValues): CreateRunnerRequest {
         size: values.size,
         cache: values.cache,
         cacheSizeGb: values.cacheSizeGb,
+        concurrency: values.concurrency,
     };
     if (values.provider === "gitlab") {
         return {
@@ -104,6 +107,7 @@ export const RunnerForm = () => {
             ephemeral: false,
             cache: false,
             cacheSizeGb: 10,
+            concurrency: 1,
             tokenType: "registration",
             configCommand: "",
             token: "",
@@ -118,6 +122,7 @@ export const RunnerForm = () => {
     const provider = form.watch("provider");
     const tokenType = form.watch("tokenType");
     const name = form.watch("name");
+    const size = form.watch("size");
     const cache = form.watch("cache");
     const cacheSizeGb = form.watch("cacheSizeGb");
     const runnerType = form.watch("runnerType");
@@ -465,6 +470,12 @@ export const RunnerForm = () => {
                         <Option value="large">{t("form.size.large")}</Option>
                     </Select>
                 </Field>
+
+                {provider === "gitlab" ? (
+                    <ConcurrencyField form={form} size={size} />
+                ) : (
+                    <Text>{t("form.concurrency.github")}</Text>
+                )}
 
                 <CacheFields form={form} />
 

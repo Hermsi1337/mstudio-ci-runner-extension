@@ -24,6 +24,11 @@ export interface RunnerProvider<
 > {
     readonly id: Provider;
     readonly runnerVersion: string;
+    /**
+     * Environment variable that sets how many jobs the runner takes at once.
+     * Undefined for runners that take one job at a time.
+     */
+    readonly concurrencyVariable?: string;
     currentImage(): string;
     prepare(input: Request, runnerName: string): Promise<PreparedRunner>;
     release(credentials: Record<string, string>): Promise<void>;

@@ -55,7 +55,7 @@ Tables in `src/db/schema.ts`:
   `ENCRYPTION_SALT`) holding provider-specific JSON, e.g. the GitLab runner token.
   `image` and `runnerVersion` record what the stack was declared with; `updateAvailable`
   in the API compares `image` with the image of the running extension release.
-  `cache` and `cacheSizeGb` hold the cache setting, `cronjobIds` lists the mittwald
+  `cache`, `cacheSizeGb` and `concurrency` hold the settings, `cronjobIds` lists the mittwald
   cronjobs created for the runner (cache cleanup).
 
 One stack per runner, no shared stack. Deleting is a single `deleteStack` without

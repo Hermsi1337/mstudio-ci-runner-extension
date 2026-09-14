@@ -17,13 +17,23 @@ import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { CacheFields, type CacheFormValues } from "./CacheFields.tsx";
+import {
+    ConcurrencyField,
+    type ConcurrencyFormValues,
+} from "./ConcurrencyField.tsx";
+
+type FormValues = CacheFormValues & ConcurrencyFormValues;
 
 const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
     const t = useTranslation();
     const queryClient = useQueryClient();
     const modal = useOverlayController("Modal");
-    const form = useForm<CacheFormValues>({
-        defaultValues: { cache: runner.cache, cacheSizeGb: runner.cacheSizeGb },
+    const form = useForm<FormValues>({
+        defaultValues: {
+            cache: runner.cache,
+            cacheSizeGb: runner.cacheSizeGb,
+            concurrency: runner.concurrency,
+        },
     });
     const [RootError, handleSubmit] = useFormErrorHandling(
         form,
@@ -40,6 +50,9 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
         <Form form={form} onSubmit={handleSubmit}>
             <Section>
                 <Text>{t("form.configure.text")}</Text>
+                {runner.provider === "gitlab" && (
+                    <ConcurrencyField form={form} size={runner.size} />
+                )}
                 <CacheFields form={form} />
                 <RootError />
                 <ActionGroup>

@@ -110,6 +110,7 @@ const cases: {
             labels: "mittwald, ci",
             ephemeral: true,
             size: "small",
+            concurrency: 4,
         },
         expect: {
             provider: "github",
@@ -118,6 +119,7 @@ const cases: {
             labels: ["mittwald", "ci"],
             ephemeral: true,
             size: "small",
+            concurrency: 1,
         },
     },
     {
@@ -131,6 +133,7 @@ const cases: {
             token: "glpat-0123456789abcdef",
             labels: "mittwald",
             size: "medium",
+            concurrency: 2,
         },
         expect: {
             provider: "gitlab",
@@ -139,6 +142,7 @@ const cases: {
             size: "medium",
             cache: false,
             cacheSizeGb: 10,
+            concurrency: 2,
         },
     },
     {
@@ -252,6 +256,17 @@ describe.each(cases)("runner lifecycle: $title", ({
             { runnerId, cache: false },
         );
         expect(disabled).toMatchObject({ cache: false, cacheSizeGb: 7 });
+    });
+
+    it("changes the concurrency only where the provider supports it", async () => {
+        const configured = await runner.configureRunner(
+            client,
+            extensionInstanceId,
+            { runnerId, cache: false, concurrency: 3 },
+        );
+        expect(configured.concurrency).toBe(
+            input.provider === "gitlab" ? 3 : 1,
+        );
     });
 
     it("refuses access from other extension instances", async () => {

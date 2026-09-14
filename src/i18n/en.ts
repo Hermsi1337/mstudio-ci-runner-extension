@@ -31,6 +31,7 @@ export const en = {
     "runners.version.unknown": "unknown",
     "runners.version.updateAvailable": "Update to {version}",
     "runners.ephemeralSuffix": "(ephemeral)",
+    "runners.concurrencySuffix": "({jobs} jobs at once)",
     "runners.cache.off": "off",
     "runners.cache.limit": "{size} GB",
     "runners.logs.heading": "Logs: {name}",
@@ -54,7 +55,7 @@ export const en = {
     "form.configure.heading": "Settings: {name}",
     "form.configure.button": "Save",
     "form.configure.text":
-        "Changing the cache redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the tool-cache volume and its cronjob.",
+        "Changing a setting redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the tool-cache volume and its cronjob.",
     "form.summary.heading": "Created in this project",
     "form.summary.stack":
         "Container stack CI Runner ({provider}): {name} with the service runner",
@@ -159,6 +160,19 @@ export const en = {
     "form.cacheSize.range": "Enter a value between 1 and 500 GB",
     "form.cacheSize.help":
         "mittwald volumes have no size limit of their own, so the extension creates a cronjob in the project that runs every hour inside the runner container. It deletes the least recently modified files until the cache fits the limit. The cronjob is removed with the runner.",
+    "form.concurrency.label": "Jobs at once",
+    "form.concurrency.required": "Enter how many jobs run at once",
+    "form.concurrency.range": "Enter a value between 1 and 8",
+    "form.concurrency.help":
+        "How many jobs the runner takes at the same time (concurrent in the GitLab Runner config). All jobs share the CPU and memory limits of the size, so a second job slows the first one down and a build that needs more memory than its share fails.",
+    "form.concurrency.recommendation.small":
+        "Small: 1 job. 0.5 CPU and 1 GB RAM fit one job.",
+    "form.concurrency.recommendation.medium":
+        "Medium: 1 job, 2 for scripts and deployments. Two builds with npm or Composer share 1 CPU and 2 GB RAM.",
+    "form.concurrency.recommendation.large":
+        "Large: 2 jobs, up to 4 for scripts and deployments. Four jobs share 2 CPUs and 4 GB RAM.",
+    "form.concurrency.github":
+        "A GitHub runner takes one job at a time. Create several runners for parallel jobs.",
     "form.size.help":
         "CPU and memory limits of the runner container, counted against the container hosting resources of this project. Small fits scripts and deployments, medium builds with npm or composer, large parallel test suites.",
 

@@ -31,6 +31,11 @@ export const zRunnerStatus = z.enum([
 ]);
 
 /**
+ * Jobs the runner takes at the same time. GitLab only; a GitHub runner takes one job at a time and ignores the value.
+ */
+export const zConcurrency = z.int().gte(1).lte(8).default(1);
+
+/**
  * Adds the volume tool-cache for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
  */
 export const zCacheEnabled = z.boolean().default(false);
@@ -46,6 +51,7 @@ export const zRunnerBase = z.object({
     ephemeral: z.boolean().optional().default(false),
     cache: zCacheEnabled.optional(),
     cacheSizeGb: zCacheSizeGb.optional(),
+    concurrency: zConcurrency.optional(),
     size: zRunnerSize.optional()
 });
 
@@ -96,7 +102,8 @@ export const zRunnerIdRequest = z.object({
 export const zConfigureRunnerRequest = z.object({
     runnerId: z.uuid(),
     cache: zCacheEnabled,
-    cacheSizeGb: zCacheSizeGb.optional()
+    cacheSizeGb: zCacheSizeGb.optional(),
+    concurrency: zConcurrency.optional()
 });
 
 export const zRunnerLogsRequest = z.object({
@@ -115,6 +122,7 @@ export const zRunner = z.object({
     size: zRunnerSize,
     cache: z.boolean(),
     cacheSizeGb: z.int(),
+    concurrency: z.int(),
     stackId: z.uuid(),
     serviceId: z.string().nullable(),
     studioUrl: z.url().nullable(),

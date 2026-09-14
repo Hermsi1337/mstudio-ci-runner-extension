@@ -43,6 +43,7 @@ export const runners = pgTable("runners", {
     runnerVersion: varchar({ length: 32 }),
     cache: boolean().notNull().default(false),
     cacheSizeGb: integer().notNull().default(10),
+    concurrency: integer().notNull().default(1),
     cronjobIds: text().notNull().default("[]"),
     createdBy: varchar({ length: 36 }).notNull(),
     createdAt: timestamp().defaultNow().notNull(),

@@ -59,8 +59,14 @@ export type RunnerBase = {
     ephemeral?: boolean;
     cache?: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
+    concurrency?: Concurrency;
     size?: RunnerSize;
 };
+
+/**
+ * Jobs the runner takes at the same time. GitLab only; a GitHub runner takes one job at a time and ignores the value.
+ */
+export type Concurrency = number;
 
 /**
  * Adds the volume tool-cache for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
@@ -137,6 +143,7 @@ export type ConfigureRunnerRequest = {
     runnerId: string;
     cache: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
+    concurrency?: Concurrency;
 };
 
 export type RunnerLogsRequest = {
@@ -161,6 +168,7 @@ export type Runner = {
      * Cache limit in GB. Carries the last configured value even while cache is false.
      */
     cacheSizeGb: number;
+    concurrency: number;
     stackId: string;
     serviceId: string | null;
     /**

@@ -93,7 +93,12 @@ export const RunnerTable = () => {
                             </Link>
                         </TableCell>
                         <TableCell>{runner.labels.join(", ")}</TableCell>
-                        <TableCell>{t(`form.size.${runner.size}`)}</TableCell>
+                        <TableCell>
+                            {t(`form.size.${runner.size}`)}
+                            {runner.concurrency > 1
+                                ? ` ${t("runners.concurrencySuffix", { jobs: runner.concurrency })}`
+                                : ""}
+                        </TableCell>
                         <TableCell>
                             {runner.cache
                                 ? t("runners.cache.limit", {

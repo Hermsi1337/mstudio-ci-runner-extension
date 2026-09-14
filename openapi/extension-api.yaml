@@ -42,8 +42,16 @@ components:
           $ref: '#/components/schemas/CacheEnabled'
         cacheSizeGb:
           $ref: '#/components/schemas/CacheSizeGb'
+        concurrency:
+          $ref: '#/components/schemas/Concurrency'
         size:
           $ref: '#/components/schemas/RunnerSize'
+    Concurrency:
+      type: integer
+      minimum: 1
+      maximum: 8
+      default: 1
+      description: Jobs the runner takes at the same time. GitLab only; a GitHub runner takes one job at a time and ignores the value.
     CacheEnabled:
       type: boolean
       default: false
@@ -146,6 +154,8 @@ components:
           $ref: '#/components/schemas/CacheEnabled'
         cacheSizeGb:
           $ref: '#/components/schemas/CacheSizeGb'
+        concurrency:
+          $ref: '#/components/schemas/Concurrency'
     RunnerLogsRequest:
       type: object
       required: [runnerId]
@@ -160,7 +170,7 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, cache, cacheSizeGb, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, cache, cacheSizeGb, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
       properties:
         id:
           type: string
@@ -188,6 +198,8 @@ components:
         cacheSizeGb:
           type: integer
           description: Cache limit in GB. Carries the last configured value even while cache is false.
+        concurrency:
+          type: integer
         stackId:
           type: string
           format: uuid

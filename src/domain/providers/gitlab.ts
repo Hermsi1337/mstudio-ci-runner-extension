@@ -73,6 +73,7 @@ function describeError(
 export const gitlabProvider: RunnerProvider<GitLabRequest> = {
     id: "gitlab",
     runnerVersion: runnerVersions.gitlab,
+    concurrencyVariable: "RUNNER_CONCURRENT",
     currentImage: () => getEnvironmentVariables().RUNNER_IMAGE_GITLAB,
 
     async prepare(input, runnerName): Promise<PreparedRunner> {

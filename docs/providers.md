@@ -12,6 +12,7 @@ deletion) is shared.
 |---|---|
 | `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` |
 | `currentImage()` | Image this extension release creates runners with (`RUNNER_IMAGE_<PROVIDER>`) |
+| `concurrencyVariable` | Optional. Environment variable for the number of jobs the runner takes at once (`RUNNER_CONCURRENT` for GitLab). Without it the runner takes one job at a time and `concurrency` is stored as 1 |
 | `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes and the credentials to store |
 | `release(credentials)` | Remove the provider-side registration; must tolerate runners that are already gone |
 
@@ -33,14 +34,14 @@ involved. `runner.ts` then creates a mittwald service cronjob (stack, service, c
 from `cacheTrimCronjob(sizeGb)` that runs `/usr/local/bin/trim-cache.sh` hourly inside
 the container, stores its id in `runners.cronjobIds` and deletes it with the runner.
 
-`configureRunner` changes the cache after creation (`ConfigureRunnerRequest`: `cache`,
-`cacheSizeGb`). `withCache` and `withoutCache` add or strip the cache mount and
+`configureRunner` changes cache and concurrency after creation
+(`ConfigureRunnerRequest`: `cache`, `cacheSizeGb`, `concurrency`). `withCache` and `withoutCache` add or strip the cache mount and
 variables from the service state mittwald reports, the stack is redeclared and mittwald
 recreates the container. Turning the cache on creates the cronjob, changing the limit
 patches its command, turning it off deletes the cronjob and the volume
 (`container.listStackVolumes`, `container.deleteVolume`). A volume that is still in use
-(412) stays orphaned in the stack and can be removed in mStudio. `runners.cache` and
-`runners.cacheSizeGb` record the current setting.
+(412) stays orphaned in the stack and can be removed in mStudio. `runners.cache`,
+`runners.cacheSizeGb` and `runners.concurrency` record the current settings.
 
 Registry in `src/domain/providers/index.ts`. `src/domain/runner.ts` picks the provider
 from `input.provider` and knows no provider details beyond that.

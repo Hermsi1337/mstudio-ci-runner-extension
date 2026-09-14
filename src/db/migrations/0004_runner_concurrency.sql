@@ -1,0 +1,1 @@
+ALTER TABLE "runners" ADD COLUMN "concurrency" integer DEFAULT 1 NOT NULL;

@@ -33,6 +33,7 @@ export const de: Messages = {
     "runners.version.unknown": "unbekannt",
     "runners.version.updateAvailable": "Update auf {version}",
     "runners.ephemeralSuffix": "(ephemeral)",
+    "runners.concurrencySuffix": "({jobs} Jobs gleichzeitig)",
     "runners.cache.off": "aus",
     "runners.cache.limit": "{size} GB",
     "runners.logs.heading": "Logs: {name}",
@@ -56,7 +57,7 @@ export const de: Messages = {
     "form.configure.heading": "Einstellungen: {name}",
     "form.configure.button": "Speichern",
     "form.configure.text":
-        "Änderst du den Cache, wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Volume tool-cache und seinen Cronjob.",
+        "Änderst du eine Einstellung, wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Volume tool-cache und seinen Cronjob.",
     "form.summary.heading": "Wird in diesem Projekt angelegt",
     "form.summary.stack":
         "Container-Stack CI Runner ({provider}): {name} mit dem Service runner",
@@ -161,6 +162,19 @@ export const de: Messages = {
     "form.cacheSize.range": "Gib einen Wert zwischen 1 und 500 GB an",
     "form.cacheSize.help":
         "mittwald-Volumes haben selbst kein Größenlimit, daher legt die Extension im Projekt einen Cronjob an, der stündlich im Runner-Container läuft. Er löscht die am längsten nicht geänderten Dateien, bis der Cache ins Limit passt. Der Cronjob wird mit dem Runner entfernt.",
+    "form.concurrency.label": "Jobs gleichzeitig",
+    "form.concurrency.required": "Gib an, wie viele Jobs gleichzeitig laufen",
+    "form.concurrency.range": "Gib einen Wert zwischen 1 und 8 an",
+    "form.concurrency.help":
+        "Wie viele Jobs der Runner gleichzeitig annimmt (concurrent in der GitLab-Runner-Config). Alle Jobs teilen sich CPU- und Speicherlimit der Größe. Ein zweiter Job bremst den ersten, und ein Build, der mehr Speicher braucht als seinen Anteil, schlägt fehl.",
+    "form.concurrency.recommendation.small":
+        "Klein: 1 Job. 0,5 CPU und 1 GB RAM reichen für einen Job.",
+    "form.concurrency.recommendation.medium":
+        "Mittel: 1 Job, 2 für Skripte und Deployments. Zwei Builds mit npm oder Composer teilen sich 1 CPU und 2 GB RAM.",
+    "form.concurrency.recommendation.large":
+        "Groß: 2 Jobs, bis zu 4 für Skripte und Deployments. Vier Jobs teilen sich 2 CPUs und 4 GB RAM.",
+    "form.concurrency.github":
+        "Ein GitHub-Runner nimmt einen Job nach dem anderen an. Für parallele Jobs lege mehrere Runner an.",
     "form.size.help":
         "CPU- und Speicherlimit des Runner-Containers, zählt zu den Container-Hosting-Ressourcen dieses Projekts. Klein reicht für Skripte und Deployments, Mittel für Builds mit npm oder Composer, Groß für parallele Testsuiten.",
 

@@ -26,7 +26,11 @@ import {
     withCache,
     withoutCache,
 } from "./cache.ts";
-import { getProvider, getProviderById } from "./providers/index.ts";
+import {
+    getProvider,
+    getProviderById,
+    type RunnerProvider,
+} from "./providers/index.ts";
 
 const log = createLogger("runner");
 
@@ -67,6 +71,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         size: (row.size as RunnerSize) ?? "medium",
         cache: row.cache,
         cacheSizeGb: row.cacheSizeGb,
+        concurrency: row.concurrency,
         stackId: row.stackId,
         serviceId,
         studioUrl: studioUrl(row, serviceId),
@@ -121,6 +126,20 @@ function parseCredentials(row: RunnerRow): Record<string, string> {
     } catch {
         return {};
     }
+}
+
+function withConcurrency(
+    provider: RunnerProvider,
+    environment: Record<string, string>,
+    concurrency: number,
+): Record<string, string> {
+    if (!provider.concurrencyVariable) {
+        return environment;
+    }
+    return {
+        ...environment,
+        [provider.concurrencyVariable]: String(concurrency),
+    };
 }
 
 /**
@@ -292,6 +311,9 @@ export async function createRunner(
     const prepared = await provider.prepare({ ...input, labels }, runnerName);
     const cache = input.cache ?? false;
     const cacheSizeGb = input.cacheSizeGb ?? 10;
+    const concurrency = provider.concurrencyVariable
+        ? (input.concurrency ?? 1)
+        : 1;
     const { environment, mounts } = cache
         ? withCache(prepared.environment, prepared.volumes)
         : withoutCache(prepared.environment, prepared.volumes);
@@ -337,7 +359,11 @@ export async function createRunner(
             {
                 description: `${provider.id} runner ${input.name}`,
                 image: prepared.image,
-                environment,
+                environment: withConcurrency(
+                    provider,
+                    environment,
+                    concurrency,
+                ),
                 restartPolicy: "always",
                 deploy: { resources: { limits: runnerSizes[size] } },
                 volumes: mounts,
@@ -376,6 +402,7 @@ export async function createRunner(
         runnerVersion: prepared.runnerVersion,
         cache,
         cacheSizeGb,
+        concurrency,
         cronjobIds: JSON.stringify(cronjobIds),
         createdBy: userId,
     };
@@ -508,10 +535,11 @@ export async function updateRunner(
 }
 
 /**
- * Turns the package manager cache on or off after creation or changes its
- * limit. Switching adds or removes the cache volume and environment on the
- * service state mittwald reports; mittwald recreates the container. Turning
- * the cache off deletes its cronjob and volume.
+ * Changes cache and concurrency after creation. Switching the cache adds or
+ * removes the cache volume and environment on the service state mittwald
+ * reports, concurrency changes its environment variable; both redeclare the
+ * stack and mittwald recreates the container. Turning the cache off deletes
+ * its cronjob and volume.
  */
 export async function configureRunner(
     client: MittwaldAPIV2Client,
@@ -519,16 +547,20 @@ export async function configureRunner(
     input: ConfigureRunnerRequest,
 ): Promise<Runner> {
     const row = await findRunner(extensionInstanceId, input.runnerId);
+    const provider = getProviderById(row.provider);
     const service = await fetchService(client, row);
-    if (!service) {
+    if (!provider || !service) {
         throw new NotFoundError("runnerContainer");
     }
     const cache = input.cache;
     const cacheSizeGb = input.cacheSizeGb ?? row.cacheSizeGb;
+    const concurrency = provider.concurrencyVariable
+        ? (input.concurrency ?? row.concurrency)
+        : 1;
     addLogContext({ runnerId: row.id, stackId: row.stackId });
 
     let updatedService = service;
-    if (cache !== row.cache) {
+    if (cache !== row.cache || concurrency !== row.concurrency) {
         const state = service.pendingState ?? service.deployedState;
         const { environment, mounts } = cache
             ? withCache(state.envs ?? {}, state.volumes ?? [])
@@ -542,7 +574,11 @@ export async function configureRunner(
                 {
                     description: service.description,
                     image: state.image,
-                    environment,
+                    environment: withConcurrency(
+                        provider,
+                        environment,
+                        concurrency,
+                    ),
                     restartPolicy: service.restartPolicy,
                     deploy: service.deploy,
                     volumes: mounts,
@@ -586,6 +622,7 @@ export async function configureRunner(
         .set({
             cache,
             cacheSizeGb,
+            concurrency,
             serviceId: updatedService.id,
             cronjobIds: JSON.stringify(cronjobIds),
         })
@@ -594,8 +631,10 @@ export async function configureRunner(
     log.info("runner configured", {
         cache,
         cacheSizeGb,
+        concurrency,
         previousCache: row.cache,
         previousCacheSizeGb: row.cacheSizeGb,
+        previousConcurrency: row.concurrency,
     });
     return toView(updated, updatedService);
 }
