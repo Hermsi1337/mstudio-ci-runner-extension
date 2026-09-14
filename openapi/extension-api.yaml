@@ -13,14 +13,36 @@ components:
       type: string
       enum: [github, gitlab]
       description: CI system the runner registers with.
+      example: github
     RunnerSize:
       type: string
-      enum: [small, medium, large]
-      description: Resource preset for the runner container.
+      enum: [small, medium, large, custom]
+      description: Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
+      example: medium
+    Cpus:
+      type: number
+      minimum: 0.25
+      maximum: 8
+      multipleOf: 0.25
+      description: CPU limit of the runner container. Only used with size custom.
+      example: 1.5
+    MemoryMb:
+      type: integer
+      minimum: 512
+      maximum: 16384
+      multipleOf: 256
+      description: Memory limit of the runner container in MB. Only used with size custom.
+      example: 3072
+    TokenType:
+      type: string
+      enum: [registration, pat]
+      description: How the runner authenticated at creation. Decides whether the extension can remove the registration on delete.
+      example: pat
     RunnerStatus:
       type: string
       enum: [running, stopped, error, creating, starting, stopping, unknown, missing]
       description: Container status as reported by mittwald, plus `unknown` (status unavailable) and `missing` (stack deleted outside the extension).
+      example: running
     RunnerBase:
       type: object
       required: [name]
@@ -29,11 +51,13 @@ components:
           type: string
           minLength: 2
           maxLength: 64
+          example: acme-app
         labels:
           type: string
           maxLength: 500
           default: mittwald
           description: Comma separated runner labels (GitHub) or tags (GitLab).
+          example: mittwald, node
         ephemeral:
           type: boolean
           default: false
@@ -46,12 +70,17 @@ components:
           $ref: '#/components/schemas/Concurrency'
         size:
           $ref: '#/components/schemas/RunnerSize'
+        cpus:
+          $ref: '#/components/schemas/Cpus'
+        memoryMb:
+          $ref: '#/components/schemas/MemoryMb'
     Concurrency:
       type: integer
       minimum: 1
       maximum: 8
       default: 1
       description: Jobs the runner takes at the same time. GitLab only; a GitHub runner takes one job at a time and ignores the value.
+      example: 2
     CacheEnabled:
       type: boolean
       default: false
@@ -62,12 +91,14 @@ components:
       maximum: 500
       default: 10
       description: Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
+      example: 20
     GitHubTarget:
       type: string
       minLength: 1
       maxLength: 200
       pattern: '^(https://github\.com/)?[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)?/?$'
       description: GitHub organisation (`owner`) or repository (`owner/repo`), optionally as full URL.
+      example: acme/app
     GitHubRunnerRequest:
       allOf:
         - $ref: '#/components/schemas/RunnerBase'
@@ -92,9 +123,11 @@ components:
               minLength: 10
               maxLength: 500
               description: Registration token or PAT, depending on `tokenType`.
+              example: AEBIHM56SBF3SULYYYY3BH3KU333M
             runnerGroup:
               type: string
               maxLength: 128
+              example: Default
     GitLabRunnerType:
       type: string
       enum: [project_type, group_type, instance_type]
@@ -113,6 +146,7 @@ components:
               format: uri
               default: https://gitlab.com
               description: Base URL of the GitLab instance.
+              example: https://gitlab.example.com
             tokenType:
               type: string
               enum: [registration, pat]
@@ -128,11 +162,13 @@ components:
               type: string
               maxLength: 300
               description: Project path (`group/project`) or group path for project/group runners. Empty for instance runners. Only with tokenType pat.
+              example: acme/app
             token:
               type: string
               minLength: 10
               maxLength: 500
               description: Runner authentication token or PAT, depending on `tokenType`.
+              example: glrt-t1_AbCdEfGhIjKlMnOpQrSt
             runUntagged:
               type: boolean
               default: true
@@ -153,6 +189,7 @@ components:
         runnerId:
           type: string
           format: uuid
+          example: 8c2f1d0e-5b4a-4c3d-9e2f-1a2b3c4d5e6f
     ConfigureRunnerRequest:
       type: object
       required: [runnerId, cache]
@@ -161,12 +198,19 @@ components:
         runnerId:
           type: string
           format: uuid
+          example: 8c2f1d0e-5b4a-4c3d-9e2f-1a2b3c4d5e6f
         cache:
           $ref: '#/components/schemas/CacheEnabled'
         cacheSizeGb:
           $ref: '#/components/schemas/CacheSizeGb'
         concurrency:
           $ref: '#/components/schemas/Concurrency'
+        size:
+          $ref: '#/components/schemas/RunnerSize'
+        cpus:
+          $ref: '#/components/schemas/Cpus'
+        memoryMb:
+          $ref: '#/components/schemas/MemoryMb'
     RunnerLogsRequest:
       type: object
       required: [runnerId]
@@ -181,64 +225,89 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, cache, cacheSizeGb, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, tokenType, size, cpus, memoryMb, cache, cacheSizeGb, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
       properties:
         id:
           type: string
           format: uuid
+          example: 8c2f1d0e-5b4a-4c3d-9e2f-1a2b3c4d5e6f
         provider:
           $ref: '#/components/schemas/Provider'
         name:
           type: string
+          example: acme-app
         target:
           type: string
           description: Human readable registration target, e.g. `acme/app` or `gitlab.com group/project`.
+          example: acme/app
         targetUrl:
           type: string
           format: uri
+          example: https://github.com/acme/app
         labels:
           type: array
           items:
             type: string
+          example: [mittwald, node]
         ephemeral:
           type: boolean
+        tokenType:
+          $ref: '#/components/schemas/TokenType'
         size:
           $ref: '#/components/schemas/RunnerSize'
+        cpus:
+          type: number
+          description: Effective CPU limit, from the preset or the custom value.
+          example: 1
+        memoryMb:
+          type: integer
+          description: Effective memory limit in MB, from the preset or the custom value.
+          example: 2048
         cache:
           type: boolean
         cacheSizeGb:
           type: integer
           description: Cache limit in GB. Carries the last configured value even while cache is false.
+          example: 10
         concurrency:
           type: integer
+          example: 1
         stackId:
           type: string
           format: uuid
+          example: 3f9a7c21-6d4e-4b8a-a1c2-7e5d9f0b2c4a
         serviceId:
           type: [string, 'null']
+          example: 5b1e8d3c-2a7f-4e9b-b6c0-9d8e7f6a5b4c
         studioUrl:
           type: [string, 'null']
           format: uri
           description: Detail page of the runner container in mStudio. Null while the service id is unknown.
+          example: https://studio.mittwald.de/projects/p-1/container/stacks/3f9a7c21/container/5b1e8d3c/general
         status:
           $ref: '#/components/schemas/RunnerStatus'
         statusMessage:
           type: [string, 'null']
+          example: null
         image:
           type: [string, 'null']
           description: Image the runner container was declared with.
+          example: ghcr.io/hermsi1337/mstudio-ci-runner-github:0.1.0
         runnerVersion:
           type: [string, 'null']
           description: Version of the runner software inside the image, e.g. `2.337.0` for actions/runner. Null for runners created before this field existed.
+          example: 2.337.0
         latestRunnerVersion:
           type: string
           description: Runner software version shipped with this extension release.
+          example: 2.337.0
         updateAvailable:
           type: boolean
           description: True when the runner runs an older image than the one this extension release ships.
         createdAt:
           type: string
           format: date-time
+          example: 2026-09-14T18:30:00Z
     RunnerList:
       type: array
       items:

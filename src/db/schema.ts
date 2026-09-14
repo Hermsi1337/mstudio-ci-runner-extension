@@ -6,6 +6,7 @@ import { buildExtensionInstanceTable } from "@weissaufschwarz/mitthooks-drizzle/
 import {
     boolean,
     integer,
+    real,
     text,
     timestamp,
     varchar,
@@ -38,7 +39,10 @@ export const runners = pgTable("runners", {
     credentials: encryptedText().notNull(),
     labels: text().notNull(),
     ephemeral: boolean().notNull().default(false),
+    tokenType: varchar({ length: 16 }).notNull().default("registration"),
     size: varchar({ length: 16 }).notNull().default("medium"),
+    cpus: real(),
+    memoryMb: integer(),
     image: text(),
     runnerVersion: varchar({ length: 32 }),
     cache: boolean().notNull().default(false),

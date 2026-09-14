@@ -17,6 +17,7 @@ import { useEffect } from "react";
 import type { Runner, RunnerStatus } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
+import { toMemoryGb } from "@/runner-sizes.ts";
 import { RunnerActions } from "./RunnerActions.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
@@ -176,7 +177,14 @@ export const RunnerList = ({ onCreate }: { onCreate: () => void }) => {
                             <LabeledValue>
                                 <Label>{t("runners.column.size")}</Label>
                                 <Text>
-                                    {t(`form.size.${runner.size}`)}
+                                    {runner.size === "custom"
+                                        ? t("form.size.customValue", {
+                                              cpus: runner.cpus,
+                                              memory: toMemoryGb(
+                                                  runner.memoryMb,
+                                              ),
+                                          })
+                                        : t(`form.size.${runner.size}`)}
                                     {runner.concurrency > 1 &&
                                         `, ${t("runners.concurrency", {
                                             jobs: runner.concurrency,

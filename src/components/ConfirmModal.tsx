@@ -3,9 +3,9 @@ import {
     Button,
     Content,
     Heading,
+    Markdown,
     Modal,
     type OverlayController,
-    Text,
 } from "@mittwald/flow-remote-react-components";
 import { useState } from "react";
 import { useTranslation } from "@/i18n/react.tsx";
@@ -49,7 +49,7 @@ export const ConfirmModal = ({
         <Modal size="s" controller={controller}>
             <Heading>{heading}</Heading>
             <Content>
-                <Text>{text}</Text>
+                <Markdown>{text}</Markdown>
             </Content>
             <ActionGroup>
                 <Button color={color} isPending={pending} onPress={confirm}>

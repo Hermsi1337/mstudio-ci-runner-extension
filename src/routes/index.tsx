@@ -8,6 +8,7 @@ import { Title } from "@mittwald/mstudio-ext-react-components";
 import { createFileRoute } from "@tanstack/react-router";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
+import { FeedbackCard } from "@/components/FeedbackCard.tsx";
 import { RunnersCard } from "@/components/runners/RunnersCard.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 
@@ -34,6 +35,7 @@ function App() {
                 <NotificationProvider>
                     <Section>
                         <RunnersCard />
+                        <FeedbackCard />
                     </Section>
                 </NotificationProvider>
             </ErrorBoundary>

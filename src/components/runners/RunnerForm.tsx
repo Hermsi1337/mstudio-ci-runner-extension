@@ -36,12 +36,14 @@ import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
+import { toMemoryMb } from "@/runner-sizes.ts";
 import { CacheFields } from "./CacheFields.tsx";
 import { ConcurrencyField } from "./ConcurrencyField.tsx";
 import { CreatedResources } from "./CreatedResources.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
 import { ParsedCommand } from "./ParsedCommand.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
+import { ResourceFields } from "./ResourceFields.tsx";
 
 type TokenType = NonNullable<CreateRunnerRequest["tokenType"]>;
 
@@ -50,6 +52,8 @@ interface FormValues {
     name: string;
     labels: string;
     size: RunnerSize;
+    cpus: number;
+    memoryGb: number;
     ephemeral: boolean;
     cache: boolean;
     cacheSizeGb: number;
@@ -69,6 +73,9 @@ function toRequest(values: FormValues): CreateRunnerRequest {
         name: values.name,
         labels: values.labels,
         size: values.size,
+        cpus: values.size === "custom" ? values.cpus : undefined,
+        memoryMb:
+            values.size === "custom" ? toMemoryMb(values.memoryGb) : undefined,
         cache: values.cache,
         cacheSizeGb: values.cacheSizeGb,
         concurrency: values.concurrency,
@@ -119,6 +126,8 @@ export const RunnerForm = () => {
             name: "",
             labels: "mittwald",
             size: "medium",
+            cpus: 1,
+            memoryGb: 2,
             ephemeral: false,
             cache: false,
             cacheSizeGb: 10,
@@ -138,6 +147,8 @@ export const RunnerForm = () => {
     const tokenType = form.watch("tokenType");
     const name = form.watch("name");
     const size = form.watch("size");
+    const cpus = form.watch("cpus");
+    const memoryGb = form.watch("memoryGb");
     const cache = form.watch("cache");
     const cacheSizeGb = form.watch("cacheSizeGb");
     const runnerType = form.watch("runnerType");
@@ -175,7 +186,6 @@ export const RunnerForm = () => {
             <ColumnLayout>
                 <Content>
                     <Section>
-                        <Heading>{t("form.section.ciSystem")}</Heading>
                         <Field name="provider" rules={{ required: true }}>
                             <SegmentedControl>
                                 <Label>
@@ -658,31 +668,14 @@ export const RunnerForm = () => {
 
                     <Section>
                         <Heading>{t("form.section.resources")}</Heading>
-                        <Field name="size" rules={{ required: true }}>
-                            <Select>
-                                <Label>
-                                    {t("form.size.label")}
-                                    <FieldHelp
-                                        subject={t("form.size.label")}
-                                        text={t("form.size.help")}
-                                    />
-                                </Label>
-                                <Option value="small">
-                                    {t("form.size.small")}
-                                </Option>
-                                <Option value="medium">
-                                    {t("form.size.medium")}
-                                </Option>
-                                <Option value="large">
-                                    {t("form.size.large")}
-                                </Option>
-                                <FieldDescription>
-                                    {provider === "github"
-                                        ? t("form.concurrency.github")
-                                        : t("form.size.description")}
-                                </FieldDescription>
-                            </Select>
-                        </Field>
+                        <ResourceFields
+                            form={form}
+                            description={
+                                provider === "github"
+                                    ? t("form.concurrency.github")
+                                    : t("form.size.description")
+                            }
+                        />
 
                         {provider === "gitlab" && (
                             <ConcurrencyField form={form} size={size} />
@@ -698,6 +691,9 @@ export const RunnerForm = () => {
                     <CreatedResources
                         provider={provider}
                         name={name}
+                        size={size}
+                        cpus={cpus}
+                        memoryGb={memoryGb}
                         cache={cache}
                         cacheSizeGb={cacheSizeGb}
                     />

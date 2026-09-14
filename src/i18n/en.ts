@@ -9,8 +9,9 @@ export const en = {
         "This page runs outside mStudio. Requests use LOCAL_API_TOKEN against the project LOCAL_PROJECT_ID. Not available in production.",
 
     "runners.heading": "Runners",
+    "runners.intro.heading": "How runners work",
     "runners.intro":
-        "Each runner is its own container stack in this project and registers itself with GitHub or GitLab on start. Deleting a runner removes its registration.",
+        "Each runner is its own container stack in this project and registers itself with GitHub or GitLab on start. Jobs run directly in the container. Create as many runners as you need, for one repository or for a whole organization or group.",
     "runners.empty.heading": "No runners yet",
     "runners.empty.text":
         'Use "Create runner" to add the first CI runner to this project.',
@@ -50,8 +51,10 @@ export const en = {
     "runners.update.text":
         "The container is recreated with runner version {version}. A running job is cancelled.",
     "runners.delete.heading": "Delete {name}?",
-    "runners.delete.text.github":
+    "runners.delete.text.github.pat":
         "Removes the registration on GitHub, the container stack and its volumes, including the cache. A running job is cancelled.",
+    "runners.delete.text.github.registration":
+        "Removes the container stack and its volumes, including the cache. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
         "Removes the runner from GitLab, the container stack and its volumes, including the cache. A running job is cancelled.",
     "runners.logs.heading": "Logs: {name}",
@@ -64,6 +67,22 @@ export const en = {
 
     "provider.github": "GitHub Actions",
     "provider.gitlab": "GitLab CI",
+
+    "feedback.heading": "Feedback and support",
+    "feedback.text":
+        "This extension is open source and lives on GitHub. Every report and every question helps.",
+    "feedback.issue.heading": "Something broke?",
+    "feedback.issue.text":
+        "A runner that does not register, a wrong text, a missing feature: open an issue with the steps to reproduce.",
+    "feedback.issue.link": "Open an issue",
+    "feedback.question.heading": "A question?",
+    "feedback.question.text":
+        "Which size fits, how to reach a database from a job, what the cache does: ask in the discussions.",
+    "feedback.question.link": "Start a discussion",
+    "feedback.code.heading": "Want to see the code?",
+    "feedback.code.text":
+        "Extension, runner images and docs are in one repository under the MIT license. Pull requests welcome.",
+    "feedback.code.link": "Open the repository",
 
     "status.running": "Running",
     "status.starting": "Starting",
@@ -85,7 +104,7 @@ export const en = {
     "form.summary.heading": "Created in this project",
     "form.summary.stack.label": "Stack: CI Runner ({provider}): {name}",
     "form.summary.stack.text":
-        "One container (service runner) with the CPU and memory limits of the selected size.",
+        "One container (service runner) limited to {cpus} CPU and {memory} GB RAM.",
     "form.summary.dataVolume.label": "Volume: runner-data",
     "form.summary.dataVolume.text.github":
         "Runner registration and work directory: checkouts, downloaded actions, tool cache of the setup actions.",
@@ -96,7 +115,7 @@ export const en = {
         "Package manager cache. Its usage shows separately in mStudio.",
     "form.summary.cronjob.label": "Cronjob: cache cleanup",
     "form.summary.cronjob.text": "Trims tool-cache to {size} GB every hour.",
-    "form.section.ciSystem": "CI system",
+    "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Resources",
     "form.configCommand.parsed": "Registers at {target}, token {token}",
@@ -165,10 +184,24 @@ export const en = {
     "form.size.small": "Small (0.5 CPU, 1 GB RAM)",
     "form.size.medium": "Medium (1 CPU, 2 GB RAM)",
     "form.size.large": "Large (2 CPU, 4 GB RAM)",
+    "form.size.custom": "Custom",
+    "form.size.customValue": "Custom ({cpus} CPU, {memory} GB RAM)",
+    "form.cpus.label": "CPU limit",
+    "form.cpus.description": "0.25 to 8 CPUs in steps of 0.25.",
+    "form.cpus.required": "Enter a CPU limit",
+    "form.cpus.range": "Enter a value between 0.25 and 8",
+    "form.cpus.help":
+        "Share of CPU cores the container may use. One job with npm or Composer uses one CPU well; scripts and deployments get by with less.",
+    "form.memory.label": "Memory limit (GB)",
+    "form.memory.description": "0.5 to 16 GB in steps of 0.5.",
+    "form.memory.required": "Enter a memory limit",
+    "form.memory.range": "Enter a value between 0.5 and 16",
+    "form.memory.help":
+        "Memory the container may use. A job that exceeds it is killed. Plan about 1 GB per job, more for test suites with a browser or a database.",
 
     "help.open": "Help for {subject}",
     "form.provider.help":
-        "Choose where the runner registers. GitHub Actions runners appear under Settings, Actions, Runners of the repository or organization. GitLab CI runners appear under Settings, CI/CD, Runners of the project or group.",
+        "Choose where the runner registers. GitHub Actions runners appear under `Settings` → `Actions` → `Runners` of the repository or organization. GitLab CI runners appear under `Settings` → `CI/CD` → `Runners` of the project or group.",
     "form.name.help":
         "Shown as the runner name in GitHub or GitLab and in this list. Letters, digits and hyphens are kept, every other character becomes a hyphen.",
     "form.github.target.help":
@@ -176,18 +209,18 @@ export const en = {
     "form.github.tokenType.help":
         "Registration token: open the runner settings of the repository or organization on GitHub, click New self-hosted runner and copy the token from the config command. The token expires after one hour, so the runner registers once and stores the resulting credentials (a few small files) in the runner-data volume of its stack. Restarts and updates reuse them without a new token. No PAT is stored. Ephemeral runners are not possible because every job would need a fresh registration.\nPersonal access token: the container fetches registration and removal tokens itself on every start, so it needs no stored registration. Needed for ephemeral runners. The PAT is stored encrypted and lives in the container.",
     "form.github.configCommand.help":
-        "On GitHub open the repository or organization, then Settings, Actions, Runners, New self-hosted runner. Under Configure copy the line starting with ./config.sh (or ./config.cmd) and paste it here. Only --url and --token are used. The token expires after one hour, so create the runner right away. When you delete the runner it deregisters as long as the token is valid; otherwise GitHub removes the offline runner after 14 days.",
+        "On GitHub open the repository or organization, then `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Under `Configure` copy the line starting with `./config.sh` (or `./config.cmd`) and paste it here. Only `--url` and `--token` are used. The token expires after one hour, so create the runner right away. When you delete the runner it deregisters as long as the token is valid; otherwise GitHub removes the offline runner after 14 days.",
     "form.github.token.help":
-        "The runner registers with a personal access token. Create a fine-grained token on GitHub under Settings, Developer settings, Personal access tokens. Repository: permission Administration, read and write. Organization: permission Self-hosted runners, read and write.\nThe token is stored encrypted and handed to the runner container, which fetches a registration token with it on every start. Members with access to the container can read it, so keep its scope small.",
+        "The runner registers with a personal access token. Create a fine-grained token on GitHub under `Settings` → `Developer settings` → `Personal access tokens`. Repository: permission `Administration: Read and write`. Organization: permission `Self-hosted runners: Read and write`.\nThe token is stored encrypted and handed to the runner container, which fetches a registration token with it on every start. Members with access to the container can read it, so keep its scope small.",
     "form.github.token.link": "Create a fine-grained token on GitHub",
     "form.github.runnerGroup.help":
         "Only for organizations. Runner groups control which repositories may use the runner. Leave empty for the group Default.",
     "form.github.ephemeral.help":
         "An ephemeral runner takes exactly one job, deregisters and registers again with a clean work directory. Safer for untrusted code, slower per job because every job starts on a fresh registration.",
     "form.gitlab.tokenType.help":
-        "Runner token: create the runner on GitLab under Settings, CI/CD, Runners, New project runner (or group or instance runner), choose its tags there and copy the gitlab-runner register command from the next page. The runner exists in GitLab already, the container registers with its token. No PAT is needed and the token is stored encrypted for deleting the runner later.\nPersonal access token: the extension creates the runner via the API with the scope, path, tags and untagged setting from this form. The PAT is used once and not stored.",
+        "Runner token: create the runner on GitLab under `Settings` → `CI/CD` → `Runners` → `New project runner` (or group or instance runner), choose its tags there and copy the `gitlab-runner register` command from the next page. The runner exists in GitLab already, the container registers with its token. No PAT is needed and the token is stored encrypted for deleting the runner later.\nPersonal access token: the extension creates the runner via the API with the scope, path, tags and untagged setting from this form. The PAT is used once and not stored.",
     "form.gitlab.configCommand.help":
-        "On GitLab open the project or group, then Settings, CI/CD, Runners, New project runner. Set tags and whether untagged jobs run, click Create runner and copy the gitlab-runner register line from step 1. Only --url and --token are used. The token belongs to that runner; deleting the runner here removes it from GitLab.",
+        "On GitLab open the project or group, then `Settings` → `CI/CD` → `Runners` → `New project runner`. Set tags and whether untagged jobs run, click `Create runner` and copy the `gitlab-runner register` line from step 1. Only `--url` and `--token` are used. The token belongs to that runner; deleting the runner here removes it from GitLab.",
     "form.gitlab.instanceUrl.help":
         "https://gitlab.com for the hosted service, or the base URL of your self-managed instance, for example https://gitlab.example.com.",
     "form.gitlab.runnerType.help":
@@ -224,6 +257,8 @@ export const en = {
         "Medium: 1 job, 2 for scripts and deployments. Two builds with npm or Composer share 1 CPU and 2 GB RAM.",
     "form.concurrency.recommendation.large":
         "Large: 2 jobs, up to 4 for scripts and deployments. Four jobs share 2 CPUs and 4 GB RAM.",
+    "form.concurrency.recommendation.custom":
+        "Custom: about one job per CPU, and about 1 GB RAM per job.",
     "form.concurrency.github":
         "A GitHub runner takes one job at a time. Create several runners for parallel jobs.",
     "form.size.help":

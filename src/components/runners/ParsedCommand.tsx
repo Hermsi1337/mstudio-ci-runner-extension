@@ -1,8 +1,4 @@
-import {
-    Flex,
-    IconSucceeded,
-    Text,
-} from "@mittwald/flow-remote-react-components";
+import { Alert, Text } from "@mittwald/flow-remote-react-components";
 import type { Provider } from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
@@ -28,14 +24,13 @@ export const ParsedCommand = ({
         return null;
     }
     return (
-        <Flex align="center" gap="xs">
-            <IconSucceeded />
+        <Alert status="success">
             <Text>
                 {t("form.configCommand.parsed", {
                     target: parsed.target.replace(/^https?:\/\//, ""),
                     token: maskToken(parsed.token),
                 })}
             </Text>
-        </Flex>
+        </Alert>
     );
 };

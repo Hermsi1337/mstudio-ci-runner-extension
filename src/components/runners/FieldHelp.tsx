@@ -3,7 +3,7 @@ import {
     ContextualHelp,
     ContextualHelpTrigger,
     Link,
-    Text,
+    Markdown,
 } from "@mittwald/flow-remote-react-components";
 import { useTranslation } from "@/i18n/react.tsx";
 
@@ -19,9 +19,7 @@ export const FieldHelp = ({ subject, text, link }: FieldHelpProps) => {
         <ContextualHelpTrigger>
             <Button aria-label={t("help.open", { subject })} />
             <ContextualHelp>
-                {text.split("\n").map((paragraph) => (
-                    <Text key={paragraph}>{paragraph}</Text>
-                ))}
+                <Markdown>{text.replaceAll("\n", "\n\n")}</Markdown>
                 {link && (
                     <Link href={link.href} target="_blank">
                         {link.label}

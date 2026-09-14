@@ -15,6 +15,7 @@ Details: [mittwald developer portal, contributor](https://developer.mittwald.de/
 | Scopes | `project:read`, `stack:read`, `stack:write`, `stack:delete`, `cronjob:write`, `cronjob:delete` |
 | Webhooks (all four) | `https://<extension-host>/api/webhooks/mittwald` |
 | Frontend fragment | Anchor *project menu* (or the anchor of your choice), URL `https://<extension-host>/` |
+| Logo | `docs/assets/logo.png` (512 px, rendered from `logo.svg`) |
 
 There are no `container:*` scopes. The container endpoints are named `container-*`,
 the scope is called `stack`; `stack:delete` also covers deleting the cache volume when

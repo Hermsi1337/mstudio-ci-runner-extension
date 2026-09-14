@@ -94,7 +94,10 @@ const cases: {
             targetUrl: "https://github.com/acme/app",
             labels: ["mittwald"],
             ephemeral: false,
+            tokenType: "registration",
             size: "small",
+            cpus: 0.5,
+            memoryMb: 1024,
             cache: true,
             cacheSizeGb: 20,
         },
@@ -109,7 +112,9 @@ const cases: {
             token: "github_pat_0123456789",
             labels: "mittwald, ci",
             ephemeral: true,
-            size: "small",
+            size: "custom",
+            cpus: 0.75,
+            memoryMb: 1536,
             concurrency: 4,
         },
         expect: {
@@ -118,7 +123,10 @@ const cases: {
             targetUrl: "https://github.com/acme",
             labels: ["mittwald", "ci"],
             ephemeral: true,
-            size: "small",
+            tokenType: "pat",
+            size: "custom",
+            cpus: 0.75,
+            memoryMb: 1536,
             concurrency: 1,
         },
     },
@@ -275,6 +283,37 @@ describe.each(cases)("runner lifecycle: $title", ({
             { runnerId, cache: false },
         );
         expect(disabled).toMatchObject({ cache: false, cacheSizeGb: 7 });
+    });
+
+    it("switches between a preset and custom limits", async () => {
+        const custom = await runner.configureRunner(
+            client,
+            extensionInstanceId,
+            {
+                runnerId,
+                cache: false,
+                size: "custom",
+                cpus: 1.5,
+                memoryMb: 3072,
+            },
+        );
+        expect(zRunner.parse(custom)).toEqual(custom);
+        expect(custom).toMatchObject({
+            size: "custom",
+            cpus: 1.5,
+            memoryMb: 3072,
+        });
+
+        const preset = await runner.configureRunner(
+            client,
+            extensionInstanceId,
+            { runnerId, cache: false, size: "large" },
+        );
+        expect(preset).toMatchObject({
+            size: "large",
+            cpus: 2,
+            memoryMb: 4096,
+        });
     });
 
     it("changes the concurrency only where the provider supports it", async () => {

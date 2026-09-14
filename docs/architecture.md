@@ -18,11 +18,16 @@ Stack and structure follow the [mittwald reference extension](https://github.com
 
 ## UI
 
-`src/components/runners/RunnersCard.tsx` is the page: a card with the runner list and
-the create modal. The list is Flow's `List` (`RunnerList.tsx`), one `ListItemView` per
+`src/routes/index.tsx` stacks two cards: `RunnersCard.tsx` with the runner list and the
+create modal, and `FeedbackCard.tsx` with links to the repository. Rules for every
+screen are in [styleguide.md](styleguide.md). The list is Flow's `List` (`RunnerList.tsx`), one `ListItemView` per
 runner with a context menu (`RunnerActions.tsx`) that opens the logs, settings and
 confirmation modals through overlay controllers. Flow's list switches from columns to
 stacked rows by container width, so no separate mobile layout exists.
+
+Size presets (`small`, `medium`, `large`) and their limits live in
+`src/runner-sizes.ts`, imported by the domain for the stack declaration and by the UI
+for the summary. `custom` carries `cpus` and `memoryMb` in the request and the row.
 
 Two Flow rules shape the components:
 
@@ -45,8 +50,9 @@ Two Flow rules shape the components:
 4. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
    requested ([providers.md](providers.md#package-manager-cache)), creates a stack
    `CI Runner (<provider>): <name>` via `container.createStack` and declares the service
-   `runner` via `container.declareStack` with `restartPolicy: always` and resource limits
-   by size.
+   `runner` via `container.declareStack` with `restartPolicy: always` and the resource
+   limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
+   `custom`).
 5. A row in `runners` links extension instance, provider, stack and service. The API
    derives `studioUrl` from them, the detail page of the container in mStudio, linked
    from the runner name in the table.
@@ -71,7 +77,9 @@ Tables in `src/db/schema.ts`:
   `ENCRYPTION_SALT`) holding provider-specific JSON, e.g. the GitLab runner token.
   `image` and `runnerVersion` record what the stack was declared with; `updateAvailable`
   in the API compares `image` with the image of the running extension release.
-  `cache`, `cacheSizeGb` and `concurrency` hold the settings, `cronjobIds` lists the mittwald
+  `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb` and `concurrency` hold the settings
+  (`cpus` and `memoryMb` only for `size = custom`), `tokenType` records how the runner
+  authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald
   cronjobs created for the runner (cache cleanup).
 
 One stack per runner, no shared stack. Deleting is a single `deleteStack` without

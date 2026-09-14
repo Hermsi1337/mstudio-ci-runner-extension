@@ -20,6 +20,7 @@ import {
     UpstreamError,
 } from "@/global-errors.ts";
 import { addLogContext, createLogger } from "@/logger.ts";
+import { runnerSizes } from "@/runner-sizes.ts";
 import {
     cacheTrimCronjob,
     deleteCacheVolume,
@@ -39,12 +40,40 @@ type ServiceResponse =
 type ServiceDeclaration =
     MittwaldAPIV2.Components.Schemas.ContainerServiceDeclareRequest;
 
-export const runnerSizes: Record<RunnerSize, { cpus: string; memory: string }> =
-    {
-        small: { cpus: "0.5", memory: "1gb" },
-        medium: { cpus: "1", memory: "2gb" },
-        large: { cpus: "2", memory: "4gb" },
+export interface RunnerResources {
+    size: RunnerSize;
+    cpus: number;
+    memoryMb: number;
+}
+
+/**
+ * Presets carry their limits in code, custom sizes carry them in the request or
+ * the row. A custom size without both values falls back to medium.
+ */
+export function resolveResources(input: {
+    size?: RunnerSize | string | null;
+    cpus?: number | null;
+    memoryMb?: number | null;
+}): RunnerResources {
+    if (input.size === "custom" && input.cpus && input.memoryMb) {
+        return { size: "custom", cpus: input.cpus, memoryMb: input.memoryMb };
+    }
+    const size =
+        input.size && input.size in runnerSizes
+            ? (input.size as keyof typeof runnerSizes)
+            : "medium";
+    return { size, ...runnerSizes[size] };
+}
+
+function resourceLimits(resources: RunnerResources): {
+    cpus: string;
+    memory: string;
+} {
+    return {
+        cpus: String(resources.cpus),
+        memory: `${resources.memoryMb}mb`,
     };
+}
 
 const SERVICE_KEY = "runner";
 const STUDIO_URL = "https://studio.mittwald.de";
@@ -60,6 +89,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
     const image = row.image ?? service?.deployedState.image ?? null;
     const currentImage = provider?.currentImage() ?? null;
     const serviceId = row.serviceId ?? service?.id ?? null;
+    const resources = resolveResources(row);
     return {
         id: row.id,
         provider: row.provider as Provider,
@@ -68,7 +98,10 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         targetUrl: row.targetUrl,
         labels: row.labels.split(",").filter(Boolean),
         ephemeral: row.ephemeral,
-        size: (row.size as RunnerSize) ?? "medium",
+        tokenType: row.tokenType === "pat" ? "pat" : "registration",
+        size: resources.size,
+        cpus: resources.cpus,
+        memoryMb: resources.memoryMb,
         cache: row.cache,
         cacheSizeGb: row.cacheSizeGb,
         concurrency: row.concurrency,
@@ -298,7 +331,7 @@ export async function createRunner(
     input: CreateRunnerRequest,
 ): Promise<Runner> {
     const provider = getProvider(input);
-    const size: RunnerSize = input.size ?? "medium";
+    const resources = resolveResources(input);
     const labels = (input.labels ?? "mittwald")
         .split(",")
         .map((l) => l.trim())
@@ -307,7 +340,13 @@ export async function createRunner(
     const runnerName = slugify(input.name) || `runner-${uuid.v4().slice(0, 8)}`;
 
     addLogContext({ provider: provider.id, projectId });
-    log.info("creating runner", { name: input.name, runnerName, size });
+    log.info("creating runner", {
+        name: input.name,
+        runnerName,
+        size: resources.size,
+        cpus: resources.cpus,
+        memoryMb: resources.memoryMb,
+    });
     const prepared = await provider.prepare({ ...input, labels }, runnerName);
     const cache = input.cache ?? false;
     const cacheSizeGb = input.cacheSizeGb ?? 10;
@@ -365,7 +404,7 @@ export async function createRunner(
                     concurrency,
                 ),
                 restartPolicy: "always",
-                deploy: { resources: { limits: runnerSizes[size] } },
+                deploy: { resources: { limits: resourceLimits(resources) } },
                 volumes: mounts,
             },
         );
@@ -397,7 +436,10 @@ export async function createRunner(
         credentials: JSON.stringify(prepared.credentials),
         labels: prepared.labels,
         ephemeral: prepared.ephemeral,
-        size,
+        tokenType: input.tokenType ?? "registration",
+        size: resources.size,
+        cpus: resources.size === "custom" ? resources.cpus : null,
+        memoryMb: resources.size === "custom" ? resources.memoryMb : null,
         image: prepared.image,
         runnerVersion: prepared.runnerVersion,
         cache,
@@ -557,10 +599,19 @@ export async function configureRunner(
     const concurrency = provider.concurrencyVariable
         ? (input.concurrency ?? row.concurrency)
         : 1;
+    const resources = resolveResources(input.size ? input : row);
+    const resourcesChanged =
+        resources.size !== row.size ||
+        resources.cpus !== resolveResources(row).cpus ||
+        resources.memoryMb !== resolveResources(row).memoryMb;
     addLogContext({ runnerId: row.id, stackId: row.stackId });
 
     let updatedService = service;
-    if (cache !== row.cache || concurrency !== row.concurrency) {
+    if (
+        cache !== row.cache ||
+        concurrency !== row.concurrency ||
+        resourcesChanged
+    ) {
         const state = service.pendingState ?? service.deployedState;
         const { environment, mounts } = cache
             ? withCache(state.envs ?? {}, state.volumes ?? [])
@@ -580,7 +631,10 @@ export async function configureRunner(
                         concurrency,
                     ),
                     restartPolicy: service.restartPolicy,
-                    deploy: service.deploy,
+                    deploy: {
+                        ...service.deploy,
+                        resources: { limits: resourceLimits(resources) },
+                    },
                     volumes: mounts,
                     ports: state.ports,
                     command: state.command,
@@ -623,6 +677,9 @@ export async function configureRunner(
             cache,
             cacheSizeGb,
             concurrency,
+            size: resources.size,
+            cpus: resources.size === "custom" ? resources.cpus : null,
+            memoryMb: resources.size === "custom" ? resources.memoryMb : null,
             serviceId: updatedService.id,
             cronjobIds: JSON.stringify(cronjobIds),
         })
@@ -632,6 +689,10 @@ export async function configureRunner(
         cache,
         cacheSizeGb,
         concurrency,
+        size: resources.size,
+        cpus: resources.cpus,
+        memoryMb: resources.memoryMb,
+        previousSize: row.size,
         previousCache: row.cache,
         previousCacheSizeGb: row.cacheSizeGb,
         previousConcurrency: row.concurrency,

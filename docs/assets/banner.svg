@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-label="mStudio CI Runner Extension">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#081a45"/>
+      <stop offset="1" stop-color="#1748c9"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.04"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 L0 0 0 40" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="320" rx="24" fill="url(#bg)"/>
+  <rect width="1200" height="320" rx="24" fill="url(#grid)"/>
+  <!-- logo mark -->
+  <g transform="translate(90 40) scale(0.47)">
+    <g stroke="#ffffff" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" fill="none">
+      <path d="M256 96 L400 176 L400 336 L256 416 L112 336 L112 176 Z" fill="url(#face)"/>
+      <path d="M112 176 L256 256 L400 176"/>
+      <path d="M256 256 L256 416"/>
+    </g>
+    <path d="M296 176 L360 212 L296 248 Z" fill="#7cf0c8"/>
+    <path d="M164 300 L164 372 L228 336 Z" fill="#ffffff"/>
+  </g>
+  <g font-family="Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" fill="#ffffff">
+    <text x="360" y="128" font-size="56" font-weight="700" letter-spacing="-1">mStudio CI Runner</text>
+    <text x="360" y="174" font-size="22" font-weight="400" fill-opacity="0.85">Self-hosted CI runners on mittwald Container Hosting, one click per runner</text>
+    <g font-size="18" font-weight="600">
+      <rect x="360" y="212" width="176" height="40" rx="20" fill="#ffffff" fill-opacity="0.12"/>
+      <text x="448" y="238" text-anchor="middle">GitHub Actions</text>
+      <rect x="548" y="212" width="120" height="40" rx="20" fill="#ffffff" fill-opacity="0.12"/>
+      <text x="608" y="238" text-anchor="middle">GitLab CI</text>
+      <rect x="680" y="212" width="160" height="40" rx="20" fill="#7cf0c8" fill-opacity="0.18"/>
+      <text x="760" y="238" text-anchor="middle" fill="#7cf0c8">open source</text>
+    </g>
+  </g>
+</svg>

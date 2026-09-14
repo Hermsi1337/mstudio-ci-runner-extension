@@ -10,12 +10,16 @@ import {
     Text,
 } from "@mittwald/flow-remote-react-components";
 import type { ReactNode } from "react";
-import type { Provider } from "@/generated/extension-api";
+import type { Provider, RunnerSize } from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
+import { runnerSizes, toMemoryGb } from "@/runner-sizes.ts";
 
 interface CreatedResourcesProps {
     provider: Provider;
     name: string;
+    size: RunnerSize;
+    cpus: number;
+    memoryGb: number;
     cache: boolean;
     cacheSizeGb: number;
 }
@@ -27,10 +31,20 @@ interface CreatedResourcesProps {
 export const CreatedResources = ({
     provider,
     name,
+    size,
+    cpus,
+    memoryGb,
     cache,
     cacheSizeGb,
 }: CreatedResourcesProps) => {
     const t = useTranslation();
+    const limits =
+        size === "custom"
+            ? { cpus, memoryGb }
+            : {
+                  cpus: runnerSizes[size].cpus,
+                  memoryGb: toMemoryGb(runnerSizes[size].memoryMb),
+              };
     const items: {
         key: string;
         icon: ReactNode;
@@ -44,7 +58,10 @@ export const CreatedResources = ({
                 provider,
                 name: name || "…",
             }),
-            text: t("form.summary.stack.text"),
+            text: t("form.summary.stack.text", {
+                cpus: limits.cpus,
+                memory: limits.memoryGb,
+            }),
         },
         {
             key: "runner-data",

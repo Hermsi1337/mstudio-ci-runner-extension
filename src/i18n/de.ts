@@ -11,8 +11,9 @@ export const de: Messages = {
         "Diese Seite läuft außerhalb von mStudio. Anfragen nutzen LOCAL_API_TOKEN gegen das Projekt LOCAL_PROJECT_ID. In Produktion nicht verfügbar.",
 
     "runners.heading": "Runner",
+    "runners.intro.heading": "So arbeiten Runner",
     "runners.intro":
-        "Jeder Runner ist ein eigener Container-Stack in diesem Projekt und registriert sich beim Start selbst bei GitHub oder GitLab. Beim Löschen wird die Registrierung entfernt.",
+        "Jeder Runner ist ein eigener Container-Stack in diesem Projekt und registriert sich beim Start selbst bei GitHub oder GitLab. Jobs laufen direkt im Container. Leg so viele Runner an, wie du brauchst, für ein Repository oder für eine ganze Organisation oder Gruppe.",
     "runners.empty.heading": "Noch keine Runner",
     "runners.empty.text":
         'Lege über "Runner anlegen" den ersten CI-Runner in diesem Projekt an.',
@@ -54,8 +55,10 @@ export const de: Messages = {
     "runners.update.text":
         "Der Container wird mit Runner-Version {version} neu erstellt. Ein laufender Job bricht ab.",
     "runners.delete.heading": "{name} löschen?",
-    "runners.delete.text.github":
+    "runners.delete.text.github.pat":
         "Entfernt die Registrierung auf GitHub, den Container-Stack und seine Volumes inklusive Cache. Ein laufender Job bricht ab.",
+    "runners.delete.text.github.registration":
+        "Entfernt den Container-Stack und seine Volumes inklusive Cache. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
         "Entfernt den Runner aus GitLab, den Container-Stack und seine Volumes inklusive Cache. Ein laufender Job bricht ab.",
     "runners.logs.heading": "Logs: {name}",
@@ -68,6 +71,22 @@ export const de: Messages = {
 
     "provider.github": "GitHub Actions",
     "provider.gitlab": "GitLab CI",
+
+    "feedback.heading": "Feedback und Support",
+    "feedback.text":
+        "Diese Extension ist Open Source und lebt auf GitHub. Jede Meldung und jede Frage hilft.",
+    "feedback.issue.heading": "Etwas kaputt?",
+    "feedback.issue.text":
+        "Ein Runner, der sich nicht registriert, ein falscher Text, ein fehlendes Feature: leg ein Issue mit den Schritten zum Nachstellen an.",
+    "feedback.issue.link": "Issue anlegen",
+    "feedback.question.heading": "Eine Frage?",
+    "feedback.question.text":
+        "Welche Größe passt, wie ein Job eine Datenbank erreicht, was der Cache macht: frag in den Discussions.",
+    "feedback.question.link": "Discussion starten",
+    "feedback.code.heading": "Code ansehen?",
+    "feedback.code.text":
+        "Extension, Runner-Images und Doku liegen in einem Repository unter MIT-Lizenz. Pull Requests willkommen.",
+    "feedback.code.link": "Repository öffnen",
 
     "status.running": "Läuft",
     "status.starting": "Startet",
@@ -89,7 +108,7 @@ export const de: Messages = {
     "form.summary.heading": "Wird in diesem Projekt angelegt",
     "form.summary.stack.label": "Stack: CI Runner ({provider}): {name}",
     "form.summary.stack.text":
-        "Ein Container (Service runner) mit den CPU- und Speicherlimits der gewählten Größe.",
+        "Ein Container (Service runner), begrenzt auf {cpus} CPU und {memory} GB RAM.",
     "form.summary.dataVolume.label": "Volume: runner-data",
     "form.summary.dataVolume.text.github":
         "Runner-Registrierung und Arbeitsverzeichnis: Checkouts, geladene Actions, Tool-Cache der setup-Actions.",
@@ -100,7 +119,7 @@ export const de: Messages = {
         "Paketmanager-Cache. Die Belegung ist in mStudio separat sichtbar.",
     "form.summary.cronjob.label": "Cronjob: Cache aufräumen",
     "form.summary.cronjob.text": "Kürzt tool-cache stündlich auf {size} GB.",
-    "form.section.ciSystem": "CI-System",
+    "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Ressourcen",
     "form.configCommand.parsed": "Registriert bei {target}, Token {token}",
@@ -170,10 +189,24 @@ export const de: Messages = {
     "form.size.small": "Klein (0,5 CPU, 1 GB RAM)",
     "form.size.medium": "Mittel (1 CPU, 2 GB RAM)",
     "form.size.large": "Groß (2 CPU, 4 GB RAM)",
+    "form.size.custom": "Individuell",
+    "form.size.customValue": "Individuell ({cpus} CPU, {memory} GB RAM)",
+    "form.cpus.label": "CPU-Limit",
+    "form.cpus.description": "0,25 bis 8 CPUs in Schritten von 0,25.",
+    "form.cpus.required": "Gib ein CPU-Limit an",
+    "form.cpus.range": "Gib einen Wert zwischen 0,25 und 8 an",
+    "form.cpus.help":
+        "Anteil an CPU-Kernen, den der Container nutzen darf. Ein Job mit npm oder Composer lastet eine CPU gut aus, Skripte und Deployments kommen mit weniger aus.",
+    "form.memory.label": "Speicherlimit (GB)",
+    "form.memory.description": "0,5 bis 16 GB in Schritten von 0,5.",
+    "form.memory.required": "Gib ein Speicherlimit an",
+    "form.memory.range": "Gib einen Wert zwischen 0,5 und 16 an",
+    "form.memory.help":
+        "Arbeitsspeicher, den der Container nutzen darf. Ein Job, der mehr braucht, wird beendet. Rechne mit etwa 1 GB pro Job, mehr für Testsuiten mit Browser oder Datenbank.",
 
     "help.open": "Hilfe zu {subject}",
     "form.provider.help":
-        "Wähle, wo sich der Runner registriert. GitHub-Actions-Runner erscheinen unter Settings, Actions, Runners des Repositorys oder der Organisation. GitLab-CI-Runner erscheinen unter Settings, CI/CD, Runners des Projekts oder der Gruppe.",
+        "Wähle, wo sich der Runner registriert. GitHub-Actions-Runner erscheinen unter `Settings` → `Actions` → `Runners` des Repositorys oder der Organisation. GitLab-CI-Runner erscheinen unter `Settings` → `CI/CD` → `Runners` des Projekts oder der Gruppe.",
     "form.name.help":
         "Wird als Runner-Name in GitHub oder GitLab und in dieser Liste angezeigt. Buchstaben, Ziffern und Bindestriche bleiben erhalten, alle anderen Zeichen werden zu Bindestrichen.",
     "form.github.target.help":
@@ -181,18 +214,18 @@ export const de: Messages = {
     "form.github.tokenType.help":
         "Registrierungs-Token: Öffne auf GitHub die Runner-Einstellungen des Repositorys oder der Organisation, klicke New self-hosted runner und kopiere das Token aus dem config-Befehl. Das Token läuft nach einer Stunde ab, daher registriert sich der Runner einmal und legt die entstehenden Zugangsdaten (ein paar kleine Dateien) im Volume runner-data seines Stacks ab. Neustarts und Updates nutzen sie ohne neues Token. Es wird kein PAT gespeichert. Ephemerale Runner gehen damit nicht, weil jeder Job eine frische Registrierung bräuchte.\nPersonal Access Token: Der Container holt sich Registrierungs- und Entfernungs-Token bei jedem Start selbst und braucht keine gespeicherte Registrierung. Nötig für ephemerale Runner. Das PAT wird verschlüsselt gespeichert und liegt im Container.",
     "form.github.configCommand.help":
-        "Öffne auf GitHub das Repository oder die Organisation, dann Settings, Actions, Runners, New self-hosted runner. Kopiere unter Configure die Zeile, die mit ./config.sh (oder ./config.cmd) beginnt, und füge sie hier ein. Genutzt werden nur --url und --token. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Beim Löschen meldet sich der Runner ab, solange das Token gültig ist; sonst entfernt GitHub den Offline-Runner nach 14 Tagen.",
+        "Öffne auf GitHub das Repository oder die Organisation, dann `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Kopiere unter `Configure` die Zeile, die mit `./config.sh` (oder `./config.cmd`) beginnt, und füge sie hier ein. Genutzt werden nur `--url` und `--token`. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Beim Löschen meldet sich der Runner ab, solange das Token gültig ist; sonst entfernt GitHub den Offline-Runner nach 14 Tagen.",
     "form.github.token.help":
-        "Der Runner registriert sich mit einem Personal Access Token. Lege auf GitHub unter Settings, Developer settings, Personal access tokens ein Fine-grained Token an. Repository: Berechtigung Administration, read and write. Organisation: Berechtigung Self-hosted runners, read and write.\nDas Token wird verschlüsselt gespeichert und an den Runner-Container übergeben, der damit bei jedem Start ein Registrierungs-Token holt. Mitglieder mit Zugriff auf den Container können es lesen, halte den Umfang daher klein.",
+        "Der Runner registriert sich mit einem Personal Access Token. Lege auf GitHub unter `Settings` → `Developer settings` → `Personal access tokens` ein Fine-grained Token an. Repository: Berechtigung `Administration: Read and write`. Organisation: Berechtigung `Self-hosted runners: Read and write`.\nDas Token wird verschlüsselt gespeichert und an den Runner-Container übergeben, der damit bei jedem Start ein Registrierungs-Token holt. Mitglieder mit Zugriff auf den Container können es lesen, halte den Umfang daher klein.",
     "form.github.token.link": "Fine-grained Token auf GitHub anlegen",
     "form.github.runnerGroup.help":
         "Nur für Organisationen. Runner-Gruppen steuern, welche Repositorys den Runner nutzen dürfen. Leer lassen für die Gruppe Default.",
     "form.github.ephemeral.help":
         "Ein ephemeraler Runner nimmt genau einen Job an, meldet sich ab und registriert sich neu mit leerem Arbeitsverzeichnis. Sicherer bei fremdem Code, pro Job langsamer, weil jeder Job mit einer frischen Registrierung startet.",
     "form.gitlab.tokenType.help":
-        "Runner-Token: Lege den Runner auf GitLab unter Settings, CI/CD, Runners, New project runner (oder Group- bzw. Instance-Runner) an, wähle dort die Tags und kopiere auf der Folgeseite den gitlab-runner register-Befehl. Der Runner existiert damit schon in GitLab, der Container registriert sich mit seinem Token. Kein PAT nötig; das Token wird verschlüsselt gespeichert, um den Runner später zu löschen.\nPersonal Access Token: Die Extension legt den Runner per API an, mit Geltungsbereich, Pfad, Tags und Untagged-Einstellung aus diesem Formular. Das PAT wird einmal genutzt und nicht gespeichert.",
+        "Runner-Token: Lege den Runner auf GitLab unter `Settings` → `CI/CD` → `Runners` → `New project runner` (oder Group- bzw. Instance-Runner) an, wähle dort die Tags und kopiere auf der Folgeseite den Befehl `gitlab-runner register`. Der Runner existiert damit schon in GitLab, der Container registriert sich mit seinem Token. Kein PAT nötig; das Token wird verschlüsselt gespeichert, um den Runner später zu löschen.\nPersonal Access Token: Die Extension legt den Runner per API an, mit Geltungsbereich, Pfad, Tags und Untagged-Einstellung aus diesem Formular. Das PAT wird einmal genutzt und nicht gespeichert.",
     "form.gitlab.configCommand.help":
-        "Öffne auf GitLab das Projekt oder die Gruppe, dann Settings, CI/CD, Runners, New project runner. Lege Tags fest und ob Jobs ohne Tags laufen, klicke Create runner und kopiere aus Schritt 1 die Zeile gitlab-runner register. Nur --url und --token werden genutzt. Das Token gehört zu diesem Runner; löschst du den Runner hier, verschwindet er auch aus GitLab.",
+        "Öffne auf GitLab das Projekt oder die Gruppe, dann `Settings` → `CI/CD` → `Runners` → `New project runner`. Lege Tags fest und ob Jobs ohne Tags laufen, klicke `Create runner` und kopiere aus Schritt 1 die Zeile `gitlab-runner register`. Nur `--url` und `--token` werden genutzt. Das Token gehört zu diesem Runner; löschst du den Runner hier, verschwindet er auch aus GitLab.",
     "form.gitlab.instanceUrl.help":
         "https://gitlab.com für den gehosteten Dienst oder die Basis-URL deiner eigenen Instanz, zum Beispiel https://gitlab.example.com.",
     "form.gitlab.runnerType.help":
@@ -229,6 +262,8 @@ export const de: Messages = {
         "Mittel: 1 Job, 2 für Skripte und Deployments. Zwei Builds mit npm oder Composer teilen sich 1 CPU und 2 GB RAM.",
     "form.concurrency.recommendation.large":
         "Groß: 2 Jobs, bis zu 4 für Skripte und Deployments. Vier Jobs teilen sich 2 CPUs und 4 GB RAM.",
+    "form.concurrency.recommendation.custom":
+        "Individuell: etwa ein Job pro CPU und etwa 1 GB RAM pro Job.",
     "form.concurrency.github":
         "Ein GitHub-Runner nimmt einen Job nach dem anderen an. Für parallele Jobs lege mehrere Runner an.",
     "form.size.help":

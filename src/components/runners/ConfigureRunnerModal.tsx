@@ -22,13 +22,15 @@ import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
+import { toMemoryGb, toMemoryMb } from "@/runner-sizes.ts";
 import { CacheFields, type CacheFormValues } from "./CacheFields.tsx";
 import {
     ConcurrencyField,
     type ConcurrencyFormValues,
 } from "./ConcurrencyField.tsx";
+import { ResourceFields, type ResourceFormValues } from "./ResourceFields.tsx";
 
-type FormValues = CacheFormValues & ConcurrencyFormValues;
+type FormValues = CacheFormValues & ConcurrencyFormValues & ResourceFormValues;
 
 function pipelineSnippet(runner: Runner): string | null {
     if (runner.labels.length === 0) {
@@ -50,13 +52,27 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
             cache: runner.cache,
             cacheSizeGb: runner.cacheSizeGb,
             concurrency: runner.concurrency,
+            size: runner.size,
+            cpus: runner.cpus,
+            memoryGb: toMemoryGb(runner.memoryMb),
         },
     });
     const [RootError, handleSubmit] = useFormErrorHandling(
         form,
         async (values) => {
             await RunnerClientGhost.configureRunner({
-                data: { runnerId: runner.id, ...values },
+                data: {
+                    runnerId: runner.id,
+                    cache: values.cache,
+                    cacheSizeGb: values.cacheSizeGb,
+                    concurrency: values.concurrency,
+                    size: values.size,
+                    cpus: values.size === "custom" ? values.cpus : undefined,
+                    memoryMb:
+                        values.size === "custom"
+                            ? toMemoryMb(values.memoryGb)
+                            : undefined,
+                },
             });
             RunnerClientGhost.listRunners().invalidate(queryClient);
             notify(
@@ -72,10 +88,27 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
     return (
         <Form form={form} onSubmit={handleSubmit}>
             <Content>
-                {runner.provider === "gitlab" && (
-                    <ConcurrencyField form={form} size={runner.size} />
-                )}
-                <CacheFields form={form} />
+                <Section>
+                    <Heading>{t("form.section.resources")}</Heading>
+                    <ResourceFields
+                        form={form}
+                        description={
+                            runner.provider === "github"
+                                ? t("form.concurrency.github")
+                                : t("form.size.description")
+                        }
+                    />
+                    {runner.provider === "gitlab" && (
+                        <ConcurrencyField
+                            form={form}
+                            size={form.watch("size")}
+                        />
+                    )}
+                </Section>
+                <Section>
+                    <Heading>{t("form.section.cache")}</Heading>
+                    <CacheFields form={form} />
+                </Section>
                 {changed && (
                     <Alert status="warning">
                         <Heading>{t("form.configure.warning.heading")}</Heading>
@@ -85,7 +118,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                 <RootError />
                 {snippet && (
                     <Section>
-                        <Heading level={4}>{t("form.snippet.heading")}</Heading>
+                        <Heading>{t("form.snippet.heading")}</Heading>
                         <Text>{t(`form.snippet.text.${runner.provider}`)}</Text>
                         <CodeBlock code={snippet} language="yaml" copyable />
                     </Section>

@@ -1,5 +1,6 @@
 import {
     Accordion,
+    Alert,
     Button,
     Content,
     Header,
@@ -38,7 +39,12 @@ export const RunnersCard = () => {
                             {t("form.create.button")}
                         </Button>
                     </Header>
-                    <Text>{t("runners.intro")}</Text>
+                    <Alert status="info">
+                        <Heading>{t("runners.intro.heading")}</Heading>
+                        <Content>
+                            <Text>{t("runners.intro")}</Text>
+                        </Content>
+                    </Alert>
                     <Accordion>
                         <Heading>{t("app.dockerNotice.title")}</Heading>
                         <Content>

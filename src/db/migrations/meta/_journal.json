@@ -36,6 +36,13 @@
       "when": 1789395726213,
       "tag": "0004_runner_concurrency",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789410453470,
+      "tag": "0005_runner_custom_size",
+      "breakpoints": true
     }
   ]
 }

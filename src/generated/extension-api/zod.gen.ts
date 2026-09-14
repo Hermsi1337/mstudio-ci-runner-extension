@@ -8,13 +8,29 @@ import * as z from 'zod';
 export const zProvider = z.enum(['github', 'gitlab']);
 
 /**
- * Resource preset for the runner container.
+ * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
  */
 export const zRunnerSize = z.enum([
     'small',
     'medium',
-    'large'
+    'large',
+    'custom'
 ]);
+
+/**
+ * CPU limit of the runner container. Only used with size custom.
+ */
+export const zCpus = z.number().gte(0.25).lte(8);
+
+/**
+ * Memory limit of the runner container in MB. Only used with size custom.
+ */
+export const zMemoryMb = z.int().gte(512).lte(16384);
+
+/**
+ * How the runner authenticated at creation. Decides whether the extension can remove the registration on delete.
+ */
+export const zTokenType = z.enum(['registration', 'pat']);
 
 /**
  * Container status as reported by mittwald, plus `unknown` (status unavailable) and `missing` (stack deleted outside the extension).
@@ -52,7 +68,9 @@ export const zRunnerBase = z.object({
     cache: zCacheEnabled.optional(),
     cacheSizeGb: zCacheSizeGb.optional(),
     concurrency: zConcurrency.optional(),
-    size: zRunnerSize.optional()
+    size: zRunnerSize.optional(),
+    cpus: zCpus.optional(),
+    memoryMb: zMemoryMb.optional()
 });
 
 /**
@@ -104,7 +122,10 @@ export const zConfigureRunnerRequest = z.object({
     runnerId: z.uuid(),
     cache: zCacheEnabled,
     cacheSizeGb: zCacheSizeGb.optional(),
-    concurrency: zConcurrency.optional()
+    concurrency: zConcurrency.optional(),
+    size: zRunnerSize.optional(),
+    cpus: zCpus.optional(),
+    memoryMb: zMemoryMb.optional()
 });
 
 export const zRunnerLogsRequest = z.object({
@@ -120,7 +141,10 @@ export const zRunner = z.object({
     targetUrl: z.url(),
     labels: z.array(z.string()),
     ephemeral: z.boolean(),
+    tokenType: zTokenType,
     size: zRunnerSize,
+    cpus: z.number(),
+    memoryMb: z.int(),
     cache: z.boolean(),
     cacheSizeGb: z.int(),
     concurrency: z.int(),

@@ -11,5 +11,6 @@
 | [runner-image.md](runner-image.md) | Runner images per provider: env vars, entrypoint, building, workflow examples |
 | [operations.md](operations.md) | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | [i18n.md](i18n.md) | Languages: locale detection, catalogs, adding texts |
+| [styleguide.md](styleguide.md) | UI rules: components, layout, modals, forms, lists, texts, colors |
 
 Rules for maintaining these pages: [AGENTS.md](../AGENTS.md).

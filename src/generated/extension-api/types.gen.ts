@@ -15,18 +15,39 @@ export const Provider = { GITHUB: 'github', GITLAB: 'gitlab' } as const;
 export type Provider = typeof Provider[keyof typeof Provider];
 
 /**
- * Resource preset for the runner container.
+ * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
  */
 export const RunnerSize = {
     SMALL: 'small',
     MEDIUM: 'medium',
-    LARGE: 'large'
+    LARGE: 'large',
+    CUSTOM: 'custom'
 } as const;
 
 /**
- * Resource preset for the runner container.
+ * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
  */
 export type RunnerSize = typeof RunnerSize[keyof typeof RunnerSize];
+
+/**
+ * CPU limit of the runner container. Only used with size custom.
+ */
+export type Cpus = number;
+
+/**
+ * Memory limit of the runner container in MB. Only used with size custom.
+ */
+export type MemoryMb = number;
+
+/**
+ * How the runner authenticated at creation. Decides whether the extension can remove the registration on delete.
+ */
+export const TokenType = { REGISTRATION: 'registration', PAT: 'pat' } as const;
+
+/**
+ * How the runner authenticated at creation. Decides whether the extension can remove the registration on delete.
+ */
+export type TokenType = typeof TokenType[keyof typeof TokenType];
 
 /**
  * Container status as reported by mittwald, plus `unknown` (status unavailable) and `missing` (stack deleted outside the extension).
@@ -61,6 +82,8 @@ export type RunnerBase = {
     cacheSizeGb?: CacheSizeGb;
     concurrency?: Concurrency;
     size?: RunnerSize;
+    cpus?: Cpus;
+    memoryMb?: MemoryMb;
 };
 
 /**
@@ -155,6 +178,9 @@ export type ConfigureRunnerRequest = {
     cache: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
     concurrency?: Concurrency;
+    size?: RunnerSize;
+    cpus?: Cpus;
+    memoryMb?: MemoryMb;
 };
 
 export type RunnerLogsRequest = {
@@ -173,7 +199,16 @@ export type Runner = {
     targetUrl: string;
     labels: Array<string>;
     ephemeral: boolean;
+    tokenType: TokenType;
     size: RunnerSize;
+    /**
+     * Effective CPU limit, from the preset or the custom value.
+     */
+    cpus: number;
+    /**
+     * Effective memory limit in MB, from the preset or the custom value.
+     */
+    memoryMb: number;
     cache: boolean;
     /**
      * Cache limit in GB. Carries the last configured value even while cache is false.

@@ -1,5 +1,6 @@
 import "@mittwald/flow-react-components/all.css";
 import { ErrorFallback } from "local:@/components/ErrorFallback.tsx";
+import { FeedbackCard } from "local:@/components/FeedbackCard.tsx";
 import { RunnersCard } from "local:@/components/runners/RunnersCard.tsx";
 import {
     Alert,
@@ -41,6 +42,7 @@ function LocalApp() {
                         <Text>{t("local.text")}</Text>
                     </Alert>
                     <RunnersCard />
+                    <FeedbackCard />
                 </Section>
             </NotificationProvider>
         </ErrorBoundary>

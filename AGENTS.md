@@ -41,6 +41,10 @@ the [README](README.md), details in [docs/](docs/README.md).
 10. **Images are built from tags only.** Never from pushes to `main`
     ([docs/operations.md](docs/operations.md)).
 11. **Writing style.** All text, in every language, follows the rules below.
+12. **UI follows the style guide.** Every screen, modal, list and text in mStudio
+    follows [docs/styleguide.md](docs/styleguide.md): Flow components only, one
+    layout for every width, no text without a container, tested in local mode and
+    inside mStudio.
 
 ## Writing style
 
@@ -77,6 +81,7 @@ into this file. Every file has exactly one topic and links to the others.
 | `docs/runner-image.md` | Runner images per provider: env vars, entrypoint, building, workflow examples |
 | `docs/operations.md` | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | `docs/i18n.md` | Languages: how the locale is chosen, catalogs, adding texts |
+| `docs/styleguide.md` | UI rules: components, layout, modals, forms, lists, texts, colors |
 
 Checklist before every commit:
 
@@ -87,6 +92,8 @@ Checklist before every commit:
 - New provider or changed provider behavior: `docs/providers.md`, `docs/runner-image.md`.
 - New or changed user-facing text: both catalogs in `src/i18n/`, `docs/i18n.md` if the
   mechanism changes.
+- New or changed screen, modal or component pattern: `docs/styleguide.md`, screenshots
+  at 1440, 1024, 768 and 414 px in local mode and inside mStudio.
 - Change to specs or generators: `docs/codegen.md`.
 - New test or new container in tests: `docs/testing.md`.
 - New directory or moved module: `docs/architecture.md` and the structure below.
@@ -108,6 +115,7 @@ docker/runner/common/        scripts shared by all runner images (trim-cache.sh)
 docker/runner/versions.json  runner software version per provider, single source for workflow, build and UI
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
 docs/                        documentation, one topic per file
+docs/assets/                 logo (SVG, PNG for the mStudio registration) and README banner
 openapi/extension-api.yaml   extension API contract (source for codegen)
 openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
 scripts/slim-openapi.ts      produces openapi/upstream
@@ -123,6 +131,7 @@ src/routes/                  TanStack Router routes (/ inside mStudio, /local wi
 src/middleware/              session token verification, access token, local mode, error handling
 src/local-mode.ts            client-side flag that switches the middleware to local mode
 src/logger.ts                logger with scopes, LOG_LEVEL and LOG_FORMAT
+src/runner-sizes.ts          size presets and limits, shared by domain and UI
 src/mittwald/client.ts       factory for the mittwald API client (configurable base URL)
 src/db/                      Drizzle schema, pool, migration runner, generated migrations
 src/i18n/                    message catalogs (en, de), locale resolution, React hooks
