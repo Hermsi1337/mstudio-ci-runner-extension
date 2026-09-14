@@ -5,6 +5,7 @@ import {
     Alert,
     Heading,
     LayoutCard,
+    Markdown,
     Section,
     Text,
 } from "@mittwald/flow-react-components";
@@ -40,7 +41,7 @@ function LocalApp() {
                 </Alert>
                 <Alert status="info">
                     <Heading>{t("app.dockerNotice.title")}</Heading>
-                    <Text>{t("app.dockerNotice.text")}</Text>
+                    <Markdown>{t("app.dockerNotice.text")}</Markdown>
                 </Alert>
                 <RunnersCard />
             </Section>

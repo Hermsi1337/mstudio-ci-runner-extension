@@ -2,8 +2,8 @@ import {
     Alert,
     Heading,
     LayoutCard,
+    Markdown,
     Section,
-    Text,
 } from "@mittwald/flow-remote-react-components";
 import RemoteRoot from "@mittwald/flow-remote-react-components/RemoteRoot";
 import { Title } from "@mittwald/mstudio-ext-react-components";
@@ -36,7 +36,7 @@ function App() {
                 <Section>
                     <Alert status="info">
                         <Heading>{t("app.dockerNotice.title")}</Heading>
-                        <Text>{t("app.dockerNotice.text")}</Text>
+                        <Markdown>{t("app.dockerNotice.text")}</Markdown>
                     </Alert>
                     <RunnersCard />
                 </Section>

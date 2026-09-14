@@ -4,7 +4,7 @@ export const de: Messages = {
     "app.title": "CI Runner",
     "app.dockerNotice.title": "Kein Docker in den Runnern",
     "app.dockerNotice.text":
-        "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon. GitHub-Workflows mit container:, services: oder docker build und GitLab-Jobs, die auf image: angewiesen sind, schlagen fehl. Normale Jobs (Node, PHP, Composer, Python, rsync, SSH-Deploys) laufen problemlos.",
+        "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon.\n\n**Geht nicht**\n\n- GitHub Actions: `container:`, `services:`, `docker build`, Docker-Container-Actions\n- GitLab CI: `image:`, `services:`, alles was `docker` aufruft\n\n**Geht**\n\n- Jobs direkt auf Ubuntu 24.04: Node über `actions/setup-node`, Python, `build-essential`\n- `git`, `curl`, `rsync`, SSH-Deploys\n- Pakete nachinstallieren mit `sudo apt-get`",
 
     "local.heading": "Lokaler Modus",
     "local.text":
@@ -132,6 +132,9 @@ export const de: Messages = {
         "Kommagetrennte Labels, mit denen sich der Runner registriert. Im Workflow referenzierst du sie mit runs-on: [self-hosted, mittwald]. Jobs mit anderen Labels erreichen diesen Runner nicht.",
     "form.tags.help":
         "Kommagetrennte Tags, mit denen sich der Runner registriert. In der Pipeline referenzierst du sie mit tags: [mittwald]. Jobs mit anderen Tags erreichen diesen Runner nicht, außer Jobs ohne Tags sind erlaubt.",
+    "form.cache.label": "Dauerhafter Cache für Paketmanager",
+    "form.cache.help":
+        "Legt ein Volume unter /home/runner/.cache an und richtet npm, pnpm, yarn, pip, Composer und Go darauf aus (XDG_CACHE_HOME plus die tool-eigenen Variablen). Downloads früherer Jobs werden wiederverwendet, Installationen laufen schneller. Das Volume übersteht Jobs, Neustarts und Updates und wächst, bis du den Runner löschst.",
     "form.size.help":
         "CPU- und Speicherlimit des Runner-Containers, zählt zu den Container-Hosting-Ressourcen dieses Projekts. Klein reicht für Skripte und Deployments, Mittel für Builds mit npm oder Composer, Groß für parallele Testsuiten.",
 

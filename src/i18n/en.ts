@@ -2,7 +2,7 @@ export const en = {
     "app.title": "CI Runners",
     "app.dockerNotice.title": "No Docker inside runners",
     "app.dockerNotice.text":
-        "Runners run on mittwald Container Hosting without a Docker daemon. GitHub workflows using container:, services: or docker build and GitLab jobs relying on image: will fail. Plain jobs (Node, PHP, Composer, Python, rsync, SSH deploys) work fine.",
+        "Runners run on mittwald Container Hosting without a Docker daemon.\n\n**Fails**\n\n- GitHub Actions: `container:`, `services:`, `docker build`, Docker container actions\n- GitLab CI: `image:`, `services:`, anything that calls `docker`\n\n**Works**\n\n- Jobs that run directly on Ubuntu 24.04: Node via `actions/setup-node`, Python, `build-essential`\n- `git`, `curl`, `rsync`, SSH deploys\n- Installing packages with `sudo apt-get`",
 
     "local.heading": "Local mode",
     "local.text":
@@ -130,6 +130,9 @@ export const en = {
         "Comma separated labels the runner registers with. Reference them in the workflow with runs-on: [self-hosted, mittwald]. Jobs whose labels do not match never reach this runner.",
     "form.tags.help":
         "Comma separated tags the runner registers with. Reference them in the pipeline with tags: [mittwald]. Jobs whose tags do not match never reach this runner unless untagged jobs are allowed.",
+    "form.cache.label": "Persistent cache for package managers",
+    "form.cache.help":
+        "Adds a volume at /home/runner/.cache and points npm, pnpm, yarn, pip, Composer and Go at it (XDG_CACHE_HOME plus the tool specific variables). Downloads from earlier jobs are reused, which speeds up installs. The volume survives jobs, restarts and updates and grows until you delete the runner.",
     "form.size.help":
         "CPU and memory limits of the runner container, counted against the container hosting resources of this project. Small fits scripts and deployments, medium builds with npm or composer, large parallel test suites.",
 
