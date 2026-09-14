@@ -1,7 +1,7 @@
 import {
     AccentBox,
     ColumnLayout,
-    Content,
+    Flex,
     Heading,
     IconCode,
     IconSupport,
@@ -70,13 +70,13 @@ export const FeedbackCard = () => {
                     {tiles.map((tile) => (
                         <AccentBox key={tile.key} color={tile.color}>
                             {tile.icon}
-                            <Content>
+                            <Flex direction="column" gap="s">
                                 <Heading level={4}>{tile.heading}</Heading>
                                 <Text>{tile.text}</Text>
                                 <Link href={tile.href} target="_blank">
                                     {tile.link}
                                 </Link>
-                            </Content>
+                            </Flex>
                         </AccentBox>
                     ))}
                 </ColumnLayout>

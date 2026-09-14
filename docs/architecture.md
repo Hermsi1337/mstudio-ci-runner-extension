@@ -20,8 +20,8 @@ Stack and structure follow the [mittwald reference extension](https://github.com
 
 `src/routes/index.tsx` stacks two cards: `RunnersCard.tsx` with the runner list and the
 create modal, and `FeedbackCard.tsx` with links to the repository. Rules for every
-screen are in [styleguide.md](styleguide.md). The list is Flow's `List` (`RunnerList.tsx`), one `ListItemView` per
-runner with a context menu (`RunnerActions.tsx`) that opens the logs, settings and
+screen are in [styleguide.md](styleguide.md). The runners are grouped by registration target, one Flow `List` per group
+(`RunnerList.tsx`), one `ListItemView` per runner with a context menu (`RunnerActions.tsx`) that opens the logs, settings and
 confirmation modals through overlay controllers. Flow's list switches from columns to
 stacked rows by container width, so no separate mobile layout exists.
 

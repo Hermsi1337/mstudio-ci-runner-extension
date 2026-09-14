@@ -74,12 +74,15 @@ Section
 ## Lists
 
 - `typedList<T>()` with `StaticData`, one `Item` rendering a `ListItemView`.
+- Entities that belong to a parent are grouped by it: one `Section` per group with a
+  `Header` (link to the parent, count badge) and one list per group. Search and a
+  provider filter sit above the groups and apply to all of them.
 - Row anatomy: `Avatar` (identity), `Heading` with badges (name, status), `Text` as
   subtitle (type, target), `LabeledValue` columns wrapped in `Content`, a
   `ContextMenu`. Column layout `s={[12]}`, `m={[6, 3, 3]}`, `l={[4, 2, 2, 2, 2]}`.
 - Inside `ListItemView`, a bare `Text` is moved to the subtitle. Column values sit
   inside `Content`, which starts a new props context level.
-- Search, filters and sorting appear from four entries on; below that they are noise.
+- Search and filters appear from four entries on; below that they are noise.
 - Status is a `Badge` with a fixed color per state (`StatusBadge.tsx`). Do not invent
   colors per component.
 
