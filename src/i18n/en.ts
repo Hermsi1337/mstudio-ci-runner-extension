@@ -1,4 +1,8 @@
 export const en = {
+    "brand.heading": "mStudio CI Runner",
+    "brand.tagline":
+        "Self-hosted CI runners on mittwald Container Hosting, managed from this project.",
+    "brand.openSource": "Open source",
     "app.title": "CI Runners",
     "app.dockerNotice.title": "No Docker inside runners",
     "app.dockerNotice.text":

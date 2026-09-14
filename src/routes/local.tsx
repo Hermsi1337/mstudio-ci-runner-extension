@@ -1,4 +1,5 @@
 import "@mittwald/flow-react-components/all.css";
+import { BrandHeader } from "local:@/components/BrandHeader.tsx";
 import { ErrorFallback } from "local:@/components/ErrorFallback.tsx";
 import { FeedbackCard } from "local:@/components/FeedbackCard.tsx";
 import { RunnersCard } from "local:@/components/runners/RunnersCard.tsx";
@@ -41,6 +42,7 @@ function LocalApp() {
                         <Heading>{t("local.heading")}</Heading>
                         <Text>{t("local.text")}</Text>
                     </Alert>
+                    <BrandHeader />
                     <RunnersCard />
                     <FeedbackCard />
                 </Section>

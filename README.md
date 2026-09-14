@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="mStudio CI Runner: self-hosted CI runners on mittwald Container Hosting" width="100%">
+  <img src="src/assets/banner.svg" alt="mStudio CI Runner: self-hosted CI runners on mittwald Container Hosting" width="100%">
 </p>
 
 <p align="center">
@@ -102,7 +102,7 @@ UI rules in [docs/styleguide.md](docs/styleguide.md), security reports via
 
 Structure and base stack come from the
 [mittwald reference extension](https://github.com/mittwald/reference-extension).
-The logo and banner live in [docs/assets/](docs/assets/); `logo.png` is the icon
+The logo and banner live in [src/assets/](src/assets/); `logo.png` is the icon
 registered in mStudio.
 
 ## License

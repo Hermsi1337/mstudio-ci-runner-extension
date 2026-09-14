@@ -27,6 +27,7 @@ alike and come before personal taste. Writing style for texts is in
 
 ```
 Section
+  AccentBox              brand header: logo, name, tagline, provider badges (BrandHeader.tsx)
   LayoutCard             one card per topic, Heading first
     Section
       Header             Heading + primary Button
@@ -96,6 +97,8 @@ Section
 - Avatars: color encodes the provider (GitHub violet, GitLab teal). Do not encode
   status in the avatar, the badge does that.
 - Icons come from Flow (`IconSettings`, `IconDelete`, ...). No emoji, no custom SVG.
+  The only image is the logo in `BrandHeader.tsx`, inlined as a data URI because
+  relative asset URLs point at the wrong host inside mStudio.
 
 ## Texts
 

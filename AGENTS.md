@@ -115,7 +115,7 @@ docker/runner/common/        scripts shared by all runner images (trim-cache.sh)
 docker/runner/versions.json  runner software version per provider, single source for workflow, build and UI
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
 docs/                        documentation, one topic per file
-docs/assets/                 logo (SVG, PNG for the mStudio registration) and README banner
+src/assets/                  logo (SVG inlined into the UI, PNG for the mStudio registration) and README banner
 openapi/extension-api.yaml   extension API contract (source for codegen)
 openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
 scripts/slim-openapi.ts      produces openapi/upstream

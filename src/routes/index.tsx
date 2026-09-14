@@ -7,6 +7,7 @@ import RemoteRoot from "@mittwald/flow-remote-react-components/RemoteRoot";
 import { Title } from "@mittwald/mstudio-ext-react-components";
 import { createFileRoute } from "@tanstack/react-router";
 import { ErrorBoundary } from "react-error-boundary";
+import { BrandHeader } from "@/components/BrandHeader.tsx";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
 import { FeedbackCard } from "@/components/FeedbackCard.tsx";
 import { RunnersCard } from "@/components/runners/RunnersCard.tsx";
@@ -34,6 +35,7 @@ function App() {
                 <Title>{t("app.title")}</Title>
                 <NotificationProvider>
                     <Section>
+                        <BrandHeader />
                         <RunnersCard />
                         <FeedbackCard />
                     </Section>

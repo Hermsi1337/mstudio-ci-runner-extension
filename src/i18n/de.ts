@@ -1,6 +1,10 @@
 import type { Messages } from "./index.ts";
 
 export const de: Messages = {
+    "brand.heading": "mStudio CI Runner",
+    "brand.tagline":
+        "Selbst gehostete CI-Runner auf mittwald Container Hosting, verwaltet aus diesem Projekt.",
+    "brand.openSource": "Open Source",
     "app.title": "CI Runner",
     "app.dockerNotice.title": "Kein Docker in den Runnern",
     "app.dockerNotice.text":
