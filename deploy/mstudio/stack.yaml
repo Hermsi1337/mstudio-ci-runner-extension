@@ -1,0 +1,40 @@
+services:
+  extension:
+    image: "ghcr.io/hermsi1337/mstudio-ci-runner-extension:{{ .Env.EXTENSION_VERSION }}"
+    description: "CI runner extension"
+    restartPolicy: always
+    ports:
+      - "3000/tcp"
+    environment:
+      PORT: "3000"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: extension
+      POSTGRES_PASSWORD: "{{ .Env.POSTGRES_PASSWORD }}"
+      POSTGRES_DB: extension
+      POSTGRES_USE_SSL: "false"
+      RUN_MIGRATIONS_ON_STARTUP: "true"
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      EXTENSION_VERSION: "{{ .Env.EXTENSION_VERSION }}"
+      EXTENSION_ID: "{{ .Env.EXTENSION_ID }}"
+      EXTENSION_SECRET: "{{ .Env.EXTENSION_SECRET }}"
+      ENCRYPTION_MASTER_PASSWORD: "{{ .Env.ENCRYPTION_MASTER_PASSWORD }}"
+      ENCRYPTION_SALT: "{{ .Env.ENCRYPTION_SALT }}"
+
+  postgres:
+    image: "postgres:17-alpine"
+    description: "PostgreSQL for the CI runner extension"
+    restartPolicy: always
+    ports:
+      - "5432/tcp"
+    environment:
+      POSTGRES_USER: extension
+      POSTGRES_PASSWORD: "{{ .Env.POSTGRES_PASSWORD }}"
+      POSTGRES_DB: extension
+    volumes:
+      - "postgres-data:/var/lib/postgresql/data"
+
+volumes:
+  postgres-data:
+    name: ci-runner-extension-postgres

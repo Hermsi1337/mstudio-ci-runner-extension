@@ -1,0 +1,2576 @@
+{
+  "paths": {
+    "/v2/projects/{projectId}/stacks": {
+      "post": {
+        "operationId": "container-create-stack",
+        "parameters": [
+          {
+            "description": "ID of the Project to create a Stack for.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/de.mittwald.v1.container.CreateStack"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.container.StackResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Create a Stack.",
+        "tags": [
+          "Container"
+        ]
+      },
+      "get": {
+        "operationId": "container-list-stacks",
+        "parameters": [
+          {
+            "description": "ID of the Project to list Stacks for.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search term to list Stacks for. The stack's description as well as Service descriptions and Service names are searchable.",
+            "in": "query",
+            "name": "searchTerm",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The max count of resources to return in the list response.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 0
+            },
+            "required": false
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of items to skip. Should be multiple of `limit`.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "required": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page to display. `skip` and `page` end up doing the same. If both `page` and `skip` are set, skip is used.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/de.mittwald.v1.container.StackResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-Pagination-Limit": {
+                "description": "The limit used to select the resources for the response",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Skip": {
+                "description": "The number of skipped items",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Page": {
+                "description": "The calculate page of the list response. Refer to parameters to learn more.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Pagination-TotalCount": {
+                "description": "The total amount of items available in the remote ressource. Use this value in combination with the limit to calculate the available pages.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "List Stacks belonging to a Project.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
+    "/v2/stacks/{stackId}": {
+      "put": {
+        "operationId": "container-declare-stack",
+        "description": "Note that this endpoint only declares the `services` and `volumes` of a Stack. Scalar Stack properties like `description` and `updateSchedule` are not part of this declaration and remain unchanged; use `PATCH /v2/stacks/{stackId}` to manage them. Including them in the declarative `PUT` (omitting a property then resets it) is planned for the next API version (v3).",
+        "parameters": [
+          {
+            "description": "ID of the Stack to create, update or delete Services or Volumes for.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "services": {
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/de.mittwald.v1.container.ServiceDeclareRequest"
+                    },
+                    "description": "A set of containers that should be started in this stack. The key is relevant for\nnetwork connectivity between containers, because you can use it as DNS name to\nresolve this containers from other containers running in the same project (or from\nmanaged apps running in the same project).\n\nTo **delete** an existing container from a stack using a `PUT` request, simply omit\nit from the request body. Using a `PATCH` request, set it to an empty object `{}`.\n\nKeys must be strings of max 63 characters.\n",
+                    "type": "object"
+                  },
+                  "volumes": {
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeDeclareRequest"
+                    },
+                    "description": "A set of named volumes that should be created for this stack. Removing a volume\nfrom this set will not delete the volume (for safety), but only detach it from the\nstack. To delete a volume, use the `DELETE /stacks/{stackId}/volumes/{volumeId}` endpoint.\n",
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.container.StackResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Declaratively create, update or delete Services or Volumes belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      },
+      "delete": {
+        "operationId": "container-delete-stack",
+        "parameters": [
+          {
+            "description": "ID if the Stack to be deleted.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Delete a Stack.",
+        "tags": [
+          "Container"
+        ]
+      },
+      "get": {
+        "operationId": "container-get-stack",
+        "parameters": [
+          {
+            "description": "ID of the Stack to be retrieved.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.container.StackResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get a Stack.",
+        "tags": [
+          "Container"
+        ]
+      },
+      "patch": {
+        "operationId": "container-update-stack",
+        "parameters": [
+          {
+            "description": "ID of the Stack to create, update or delete Services or Volumes for.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Whether to recreate Services belonging to a Stack.",
+            "in": "query",
+            "name": "recreate",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "description": {
+                    "example": "uptime kuma",
+                    "type": "string"
+                  },
+                  "services": {
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/de.mittwald.v1.container.ServiceRequest"
+                    },
+                    "description": "A set of containers that should be started in this stack. The key is relevant for\nnetwork connectivity between containers, because you can use it as DNS name to\nresolve this containers from other containers running in the same project (or from\nmanaged apps running in the same project).\n\nTo **delete** an existing container from a stack using a `PUT` request, simply omit\nit from the request body. Using a `PATCH` request, set it to an empty object `{}`.\n\nKeys must be strings of max 63 characters.\n",
+                    "type": "object"
+                  },
+                  "updateSchedule": {
+                    "description": "Schedule for automatic image updates of this stack. Set to `null` to remove the\nschedule; omit the property to leave it unchanged.\n",
+                    "nullable": true,
+                    "properties": {
+                      "cron": {
+                        "example": "* * * * *",
+                        "type": "string"
+                      },
+                      "timezone": {
+                        "description": "Valid timezones can be retrieved via GET /v2/time-zones",
+                        "example": "Europe/Berlin",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "cron"
+                    ],
+                    "type": "object"
+                  },
+                  "volumes": {
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeRequest"
+                    },
+                    "description": "A set of named volumes that should be created for this stack. Removing a volume\nfrom this set will not delete the volume (for safety), but only detach it from the\nstack. To delete a volume, use the `DELETE /stacks/{stackId}/volumes/{volumeId}` endpoint.\n",
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.container.StackResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Create, update or delete Services or Volumes belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
+    "/v2/stacks/{stackId}/services/{serviceId}": {
+      "get": {
+        "operationId": "container-get-service",
+        "parameters": [
+          {
+            "description": "ID of the Stack the Service belongs to. ID of the default Stack equals the ID of the Project.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Service to be retrieved.",
+            "in": "path",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.container.ServiceResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get a Service belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
+    "/v2/stacks/{stackId}/services/{serviceId}/logs": {
+      "get": {
+        "operationId": "container-get-service-logs",
+        "parameters": [
+          {
+            "description": "ID of the Stack the Service belongs to. ID of the default Stack equals the ID of the Project.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Service to get logs for.",
+            "in": "path",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Number of last log lines to return. Returns full log if not set.",
+            "in": "query",
+            "name": "tail",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Byte range of the raw log file to return. Ignored if a valid tail is set. Offsets refer to the raw log file; NUL bytes are stripped from the returned body.",
+            "in": "header",
+            "name": "Range",
+            "required": false,
+            "schema": {
+              "example": "bytes=1024-",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only serve the requested byte range if the log file is unchanged; otherwise, the whole log is served.",
+            "in": "header",
+            "name": "If-Range",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "206": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Partial Content"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "416": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "503": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get logs belonging to a Service.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
+    "/v2/stacks/{stackId}/services/{serviceId}/actions/restart": {
+      "post": {
+        "operationId": "container-restart-service",
+        "parameters": [
+          {
+            "description": "ID of the Stack to restart a Service for.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Service to restart.",
+            "in": "path",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Restart a started Service.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
+    "/v2/stacks/{stackId}/volumes": {
+      "get": {
+        "operationId": "container-list-stack-volumes",
+        "parameters": [
+          {
+            "description": "ID of the Stack to list Volumes for.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search term to list Volumes for. The field name is searchable.",
+            "in": "query",
+            "name": "searchTerm",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sorts the list with given order.",
+            "in": "query",
+            "name": "sortOrder",
+            "schema": {
+              "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeSortOrder"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The max count of resources to return in the list response.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 0
+            },
+            "required": false
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of items to skip. Should be multiple of `limit`.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "required": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page to display. `skip` and `page` end up doing the same. If both `page` and `skip` are set, skip is used.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-Pagination-Limit": {
+                "description": "The limit used to select the resources for the response",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Skip": {
+                "description": "The number of skipped items",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Page": {
+                "description": "The calculate page of the list response. Refer to parameters to learn more.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Pagination-TotalCount": {
+                "description": "The total amount of items available in the remote ressource. Use this value in combination with the limit to calculate the available pages.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "List Volumes belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
+    "/v2/stacks/{stackId}/volumes/{volumeId}": {
+      "delete": {
+        "operationId": "container-delete-volume",
+        "parameters": [
+          {
+            "description": "ID of the Stack the Volume belongs too. ID of the default Stack equals the ID of the Project.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Volume to be deleted.",
+            "in": "path",
+            "name": "volumeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Delete a Volume belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      },
+      "get": {
+        "operationId": "container-get-volume",
+        "parameters": [
+          {
+            "description": "ID of the Stack the Volume belongs too. ID of the default Stack equals the ID of the Project.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Volume to be retrieved.",
+            "in": "path",
+            "name": "volumeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get a Volume belonging to a Stack.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
+    "/v2/projects/{projectId}/cronjobs": {
+      "post": {
+        "operationId": "cronjob-create-cronjob",
+        "parameters": [
+          {
+            "description": "ID of the Project you want to create a Cronjob for.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobRequest"
+              }
+            }
+          },
+          "description": "cronjob",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Create a Cronjob.",
+        "tags": [
+          "Cronjob"
+        ]
+      },
+      "get": {
+        "operationId": "cronjob-list-cronjobs",
+        "parameters": [
+          {
+            "description": "ID of the Project for which to list Cronjobs for.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to true if response should include service cronjobs",
+            "in": "query",
+            "name": "includeServiceCronjobs",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "ID of the Stack for which to list Cronjobs for. Requires includeServiceCronjobs=true.",
+            "in": "query",
+            "name": "stackId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The max count of resources to return in the list response.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 0
+            },
+            "required": false
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of items to skip. Should be multiple of `limit`.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "required": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page to display. `skip` and `page` end up doing the same. If both `page` and `skip` are set, skip is used.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/de.mittwald.v1.cronjob.Cronjob"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-Pagination-Limit": {
+                "description": "The limit used to select the resources for the response",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Skip": {
+                "description": "The number of skipped items",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Page": {
+                "description": "The calculate page of the list response. Refer to parameters to learn more.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Pagination-TotalCount": {
+                "description": "The total amount of items available in the remote ressource. Use this value in combination with the limit to calculate the available pages.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "List Cronjobs belonging to a Project.",
+        "tags": [
+          "Cronjob"
+        ]
+      }
+    },
+    "/v2/cronjobs/{cronjobId}": {
+      "delete": {
+        "operationId": "cronjob-delete-cronjob",
+        "parameters": [
+          {
+            "description": "ID of the Cronjob to delete.",
+            "in": "path",
+            "name": "cronjobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Delete a Cronjob.",
+        "tags": [
+          "Cronjob"
+        ]
+      },
+      "get": {
+        "operationId": "cronjob-get-cronjob",
+        "parameters": [
+          {
+            "description": "ID of the Cronjob to be retrieved.",
+            "in": "path",
+            "name": "cronjobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.cronjob.Cronjob"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get a Cronjob.",
+        "tags": [
+          "Cronjob"
+        ]
+      },
+      "patch": {
+        "operationId": "cronjob-update-cronjob",
+        "parameters": [
+          {
+            "description": "ID of the Cronjob to be updated.",
+            "in": "path",
+            "name": "cronjobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "concurrencyPolicy": {
+                    "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ConcurrencyPolicy"
+                  },
+                  "description": {
+                    "example": "i am a cronjob",
+                    "type": "string"
+                  },
+                  "destination": {
+                    "description": "deprecated, use target instead",
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobUrl"
+                      },
+                      {
+                        "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobCommand"
+                      }
+                    ]
+                  },
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "failedExecutionAlertThreshold": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "interval": {
+                    "example": "*/5 * * * *",
+                    "type": "string"
+                  },
+                  "target": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/de.mittwald.v1.cronjob.AppInstallationTarget"
+                      },
+                      {
+                        "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ServiceTarget"
+                      }
+                    ]
+                  },
+                  "timeZone": {
+                    "type": "string"
+                  },
+                  "timeout": {
+                    "maximum": 86400,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Update a Cronjob.",
+        "tags": [
+          "Cronjob"
+        ]
+      }
+    },
+    "/v2/extension-instances/{extensionInstanceId}/tokens": {
+      "post": {
+        "operationId": "extension-authenticate-instance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "extensionInstanceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "extensionInstanceSecret": {
+                    "description": "The latest secret an external application received via lifecycle webhooks.\nNamely ExtensionAddedToContext and ExtensionInstanceSecretRotated.\n",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "extensionInstanceSecret"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "expiry": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "publicToken": {
+                      "description": "Set this in the 'x-access-token' header when performing domain actions.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "publicToken",
+                    "expiry"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "You received a public token with a short expiry. You can now perform domain actions."
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Authenticate your external application using the extensionInstanceSecret.",
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/v2/authenticate-session-token": {
+      "post": {
+        "operationId": "extension-authenticate-with-session-token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "extensionSecret": {
+                    "description": "The secret you you generated for your extension.",
+                    "type": "string"
+                  },
+                  "sessionToken": {
+                    "description": "The session token you received from the mStudio.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionToken"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "expiry": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "publicToken": {
+                      "description": "Set this in the 'x-access-token' header when performing domain actions.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "publicToken",
+                    "expiry"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "You received a public token with a short expiry. You can now perform domain actions."
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Authenticate your external application using a session token and an extension secret",
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/v2/public-keys/{serial}": {
+      "get": {
+        "operationId": "extension-get-public-key",
+        "parameters": [
+          {
+            "description": "The serial id of a specific public key. Use `latest` to get the latest public key.",
+            "in": "path",
+            "name": "serial",
+            "required": true,
+            "schema": {
+              "example": "latest",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The purpose of the public key. Use `webhook` to get the public key for webhook verification.",
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "default": "webhook",
+              "enum": [
+                "webhook",
+                "session_token"
+              ],
+              "example": "webhook",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The expected format of the public key. Defaults to raw base64 encoded.",
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "raw",
+              "enum": [
+                "raw",
+                "spki"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.marketplace.PublicKey"
+                }
+              }
+            },
+            "description": "Use this public key to verify the webhook signature on your end."
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get the public key to verify the webhook signature.",
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    }
+  },
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Mittwald API (subset)",
+    "description": "## Introduction\n\nThis OpenAPI spec documents the mittwald API. It follows the\n[OpenAPI 3.0.0 specification](https://spec.openapis.org/oas/v3.0.0.html).\n\n## Authentication\n\nYou will need an API token to access the API. You can obtain one by logging into the\n[mStudio](https://studio.mittwald.de) and navigating to the\n[\"API Tokens\" section in the user menu](https://studio.mittwald.de/app/profile/api-tokens).\n\nWhen making requests to the API, you can authenticate by passing your API token in the `X-Access-Token` header or as a\nbearer token.\n\n## Rate Limiting\n\nPlease note that usage of the API is rate-limited to prevent abuse. You can inspect the rate limiting for your current\nuser by observing the `X-Ratelimit-*` headers included in each response.\n\n## mStudio\n\nA main consumer of the mittwald API is the management interface for our customers, the\n[mStudio](https://studio.mittwald.de).\n\n## Contact and support\n\nFor support, please use the [mStudio support area](https://studio.mittwald.de/app/support/conversations) or drop us an\nemail at [support@mittwald.de](mailto:support@mittwald.de).\n\nFor security issues, please report to [security@mittwald.de](mailto:security@mittwald.de).\n",
+    "contact": {
+      "name": "Mittwald CM Service GmbH & Co. KG"
+    },
+    "version": "2.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.mittwald.de"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "de.mittwald.v1.container.CreateStack": {
+        "properties": {
+          "description": {
+            "example": "uptime kuma",
+            "type": "string"
+          },
+          "templateConfig": {
+            "properties": {
+              "templateId": {
+                "example": "uptime-kuma",
+                "type": "string"
+              },
+              "userInputs": {
+                "description": "Values for template user inputs. Missing optional values are filled from template defaults.",
+                "items": {
+                  "properties": {
+                    "name": {
+                      "example": "HOST",
+                      "type": "string"
+                    },
+                    "value": {
+                      "example": "kuma.example.org",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "templateId"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.container.StackResponse": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "prefix": {
+            "description": "Prefix for all service-names in this stack.",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/de.mittwald.v1.container.ServiceResponse"
+            },
+            "type": "array"
+          },
+          "templateId": {
+            "description": "Id of the Template used to create this stack, if one was used.",
+            "type": "string"
+          },
+          "updateSchedule": {
+            "nullable": true,
+            "properties": {
+              "cron": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "cron"
+            ],
+            "type": "object"
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/de.mittwald.v1.container.VolumeResponse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "description",
+          "disabled",
+          "prefix"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.container.ServiceDeclareRequest": {
+        "properties": {
+          "command": {
+            "description": "The container command (equivalent to the [Docker cmd](https://docs.docker.com/reference/dockerfile/#cmd)). When omitted, this defaults to the command defined in the image.\n",
+            "example": [
+              "mysqld"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deploy": {
+            "$ref": "#/components/schemas/de.mittwald.v1.container.Deploy"
+          },
+          "description": {
+            "example": "MySQL DB",
+            "type": "string"
+          },
+          "entrypoint": {
+            "description": "The container entrypoint (equivalent to the [Docker entrypoint](https://docs.docker.com/reference/dockerfile/#entrypoint)). When omitted, this defaults to the entrypoint defined in the image.\n",
+            "example": [
+              "docker-entrypoint.sh"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "environment": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Key-value map of environment variables that should be passed into the container.\n",
+            "example": {
+              "MYSQL_DATABASE": "my_db",
+              "MYSQL_PASSWORD": "my_password",
+              "MYSQL_ROOT_PASSWORD": "my_root_password",
+              "MYSQL_USER": "my_user"
+            },
+            "type": "object"
+          },
+          "envs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "deprecated": true,
+            "description": "DEPRECATED: Use 'environment' instead. This field will be removed in a future version.",
+            "example": {
+              "MYSQL_DATABASE": "my_db",
+              "MYSQL_PASSWORD": "my_password",
+              "MYSQL_ROOT_PASSWORD": "my_root_password",
+              "MYSQL_USER": "my_user"
+            },
+            "type": "object"
+          },
+          "image": {
+            "description": "The image to run, in the usual format also used by `docker run` and `docker compose`. When\nthe image is pulled from a private registry, make sure to create the registry first\nusing the `container-create-registry` endpoint (you can push the image later, although\nthe container will remain in a pending state until the image is actually available).\n\nThe appropriate registry is matched by hostname.\n",
+            "example": "mysql:8.0",
+            "type": "string"
+          },
+          "ports": {
+            "description": "Exposed ports. Follows the format `<public-port>:<container-port>/<protocol>`. Exposed ports can be accessed from other containers (or managed apps) within the same project. To expose a port publicly, connect it with an ingress resource.\n",
+            "example": [
+              "3306/tcp"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "restartPolicy": {
+            "example": "always",
+            "type": "string"
+          },
+          "volumes": {
+            "description": "Volume mounts for this container. These items always follow the format `<volume>:<mountpoint>`. The `<volume>` may either be a named volume, or a file path in the (always present) project file system (which is shared among containers and managed apps within a project).\n",
+            "example": [
+              "data:/var/lib/mysql:ro",
+              "/home/p-XXXXX/html:/var/www"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.container.VolumeDeclareRequest": {
+        "properties": {
+          "name": {
+            "example": "mysql-volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.container.ServiceRequest": {
+        "properties": {
+          "command": {
+            "description": "The container command (equivalent to the [Docker cmd](https://docs.docker.com/reference/dockerfile/#cmd)). When omitted, this defaults to the command defined in the image.\n",
+            "example": [
+              "mysqld"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deploy": {
+            "$ref": "#/components/schemas/de.mittwald.v1.container.Deploy"
+          },
+          "description": {
+            "example": "MySQL DB",
+            "type": "string"
+          },
+          "entrypoint": {
+            "description": "The container entrypoint (equivalent to the [Docker entrypoint](https://docs.docker.com/reference/dockerfile/#entrypoint)). When omitted, this defaults to the entrypoint defined in the image.\n",
+            "example": [
+              "docker-entrypoint.sh"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "environment": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Key-value map of environment variables that should be passed into the container.\n",
+            "example": {
+              "MYSQL_DATABASE": "my_db",
+              "MYSQL_PASSWORD": "my_password",
+              "MYSQL_ROOT_PASSWORD": "my_root_password",
+              "MYSQL_USER": "my_user"
+            },
+            "type": "object"
+          },
+          "envs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "deprecated": true,
+            "description": "Deprecated by 'environment'. This field will be removed in a future version.",
+            "example": {
+              "MYSQL_DATABASE": "my_db",
+              "MYSQL_PASSWORD": "my_password",
+              "MYSQL_ROOT_PASSWORD": "my_root_password",
+              "MYSQL_USER": "my_user"
+            },
+            "type": "object"
+          },
+          "image": {
+            "description": "The image to run, in the usual format also used by `docker run` and `docker compose`. When\nthe image is pulled from a private registry, make sure to create the registry first\nusing the `container-create-registry` endpoint (you can push the image later, although\nthe container will remain in a pending state until the image is actually available).\n\nThe appropriate registry is matched by hostname.\n",
+            "example": "mysql:8.0",
+            "type": "string"
+          },
+          "ports": {
+            "description": "Exposed ports. Follows the format `<public-port>:<container-port>/<protocol>`. Exposed ports can be accessed from other containers (or managed apps) within the same project. To expose a port publicly, connect it with an ingress resource.\n",
+            "example": [
+              "3306/tcp"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "restartPolicy": {
+            "example": "always",
+            "type": "string"
+          },
+          "volumes": {
+            "description": "Volume mounts for this container. These items always follow the format `<volume>:<mountpoint>`. The `<volume>` may either be a named volume, or a file path in the (always present) project file system (which is shared among containers and managed apps within a project).\n",
+            "example": [
+              "data:/var/lib/mysql:ro",
+              "/home/p-XXXXX/html:/var/www"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "de.mittwald.v1.container.VolumeRequest": {
+        "properties": {
+          "name": {
+            "example": "mysql-volume",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "de.mittwald.v1.container.ServiceResponse": {
+        "properties": {
+          "deploy": {
+            "$ref": "#/components/schemas/de.mittwald.v1.container.Deploy"
+          },
+          "deployedState": {
+            "$ref": "#/components/schemas/de.mittwald.v1.container.ServiceState"
+          },
+          "description": {
+            "example": "MySQL DB",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "message": {
+            "description": "Message explaining the current state of the container. This may contain information about the current state of the container, or errors that occurred during deployment.\n",
+            "example": "Container ready",
+            "type": "string"
+          },
+          "pendingState": {
+            "$ref": "#/components/schemas/de.mittwald.v1.container.ServiceState"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requiresRecreate": {
+            "type": "boolean"
+          },
+          "restartPolicy": {
+            "enum": [
+              "no",
+              "always",
+              "on-failure",
+              "unless-stopped"
+            ],
+            "example": "always",
+            "type": "string"
+          },
+          "serviceName": {
+            "example": "mysql-db",
+            "type": "string"
+          },
+          "shortId": {
+            "description": "A short ID of the container. This is a unique identifier for the container within the project, and can be used to reference it in other API calls, or for SSH connections.\n",
+            "example": "c-12e4u6",
+            "type": "string"
+          },
+          "stackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/de.mittwald.v1.container.ServiceStatus"
+          },
+          "statusSetAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "templateId": {
+            "description": "ID of the template used to create this service, if one was used.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stackId",
+          "projectId",
+          "description",
+          "serviceName",
+          "pendingState",
+          "deployedState",
+          "status",
+          "shortId",
+          "statusSetAt",
+          "requiresRecreate"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.container.VolumeSortOrder": {
+        "enum": [
+          "nameAsc",
+          "nameDesc",
+          "storageAsc",
+          "storageDesc"
+        ],
+        "type": "string"
+      },
+      "de.mittwald.v1.container.VolumeResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "linkedServices": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orphaned": {
+            "description": "Whether the Volume is attached to a Stack.",
+            "type": "boolean"
+          },
+          "stackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "storageUsageInBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "storageUsageInBytesSetAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stackId",
+          "name",
+          "orphaned",
+          "storageUsageInBytes",
+          "storageUsageInBytesSetAt"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.CronjobRequest": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "appId": {
+            "deprecated": true,
+            "description": "DEPRECATED: Use 'target.AppInstallationTarget' instead. This field will be removed in a future version.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "appInstallationId": {
+            "description": "DEPRECATED: Use 'target.AppInstallationTarget' instead. This field will be removed in a future version.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "concurrencyPolicy": {
+            "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ConcurrencyPolicy"
+          },
+          "description": {
+            "example": "i am a cronjob",
+            "type": "string"
+          },
+          "destination": {
+            "description": "DEPRECATED: Use 'target.AppInstallationTarget' instead. This field will be removed in a future version.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobUrl"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobCommand"
+              }
+            ]
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "failedExecutionAlertThreshold": {
+            "maximum": 80,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "interval": {
+            "example": "*/5 * * * *",
+            "type": "string"
+          },
+          "target": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.AppInstallationTarget"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ServiceTarget"
+              }
+            ]
+          },
+          "timeZone": {
+            "example": "Europe/Berlin",
+            "type": "string"
+          },
+          "timeout": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "description",
+          "interval",
+          "active",
+          "timeout"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.Cronjob": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "appId": {
+            "deprecated": true,
+            "description": "DEPRECATED: Use 'appInstallationId' instead. This field will be removed in a future version.",
+            "type": "string"
+          },
+          "appInstallationId": {
+            "description": "DEPRECATED: Use 'target.appCronjob' instead. This field will be removed in a future version.",
+            "type": "string"
+          },
+          "concurrencyPolicy": {
+            "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ConcurrencyPolicy"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "example": "i am a cronjob",
+            "type": "string"
+          },
+          "destination": {
+            "description": "DEPRECATED: Use 'target.' instead. This field will be removed in a future version.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobUrl"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobCommand"
+              }
+            ]
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "failedExecutionAlertThreshold": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "interval": {
+            "example": "*/5 * * * *",
+            "type": "string"
+          },
+          "latestExecution": {
+            "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobExecution"
+          },
+          "nextExecutionTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shortId": {
+            "example": "cron-bd26li",
+            "type": "string"
+          },
+          "target": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.AppInstallationTarget"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ServiceTargetResponse"
+              }
+            ]
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "timeout": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "appId",
+          "shortId",
+          "interval",
+          "active",
+          "createdAt",
+          "updatedAt",
+          "description",
+          "timeout",
+          "failedExecutionAlertThreshold"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.ConcurrencyPolicy": {
+        "enum": [
+          "allow",
+          "forbid",
+          "replace"
+        ],
+        "type": "string"
+      },
+      "de.mittwald.v1.cronjob.CronjobUrl": {
+        "properties": {
+          "url": {
+            "example": "https://mydomain.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.CronjobCommand": {
+        "properties": {
+          "interpreter": {
+            "example": "/usr/bin/bash",
+            "type": "string"
+          },
+          "parameters": {
+            "example": "--debug",
+            "type": "string"
+          },
+          "path": {
+            "example": "/html/my-wordpress/script.sh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "interpreter",
+          "path"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.AppInstallationTarget": {
+        "properties": {
+          "appInstallationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "destination": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobUrl"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobCommand"
+              }
+            ]
+          }
+        },
+        "required": [
+          "appInstallationId",
+          "destination"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.ServiceTarget": {
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "serviceIdentifier": {
+            "type": "string"
+          },
+          "stackId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stackId",
+          "serviceIdentifier",
+          "command"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.marketplace.PublicKey": {
+        "properties": {
+          "algorithm": {
+            "example": "Ed25519",
+            "type": "string"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "description": "raw base64 public key",
+                "format": "byte",
+                "type": "string"
+              },
+              {
+                "description": "SPKI, ASN.1 DER serialized, PEM encoded public key",
+                "type": "string"
+              }
+            ]
+          },
+          "serial": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "serial",
+          "algorithm",
+          "key"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.commons.ValidationErrors": {
+        "type": "object",
+        "required": [
+          "type",
+          "validationErrors"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ValidationError"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "example": "Validation failed"
+          },
+          "validationErrors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/de.mittwald.v1.commons.ValidationErrorSchema"
+            }
+          }
+        }
+      },
+      "de.mittwald.v1.commons.Error": {
+        "type": "object",
+        "required": [
+          "type",
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Something went wrong"
+          },
+          "type": {
+            "type": "string",
+            "example": "InternalServerError"
+          }
+        }
+      },
+      "de.mittwald.v1.container.Deploy": {
+        "properties": {
+          "resources": {
+            "$ref": "#/components/schemas/de.mittwald.v1.container.Resources"
+          }
+        },
+        "type": "object"
+      },
+      "de.mittwald.v1.container.ServiceState": {
+        "properties": {
+          "command": {
+            "description": "The container command (equivalent to the [Docker cmd](https://docs.docker.com/reference/dockerfile/#cmd)). When omitted, this defaults to the command defined in the image.\n",
+            "example": [
+              "mysqld"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "entrypoint": {
+            "description": "The container entrypoint (equivalent to the [Docker entrypoint](https://docs.docker.com/reference/dockerfile/#entrypoint)). When omitted, this defaults to the entrypoint defined in the image.\n",
+            "example": [
+              "docker-entrypoint.sh"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "envs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Key-value map of environment variables that should be passed into the container.\n",
+            "example": {
+              "MYSQL_DATABASE": "my_db",
+              "MYSQL_PASSWORD": "my_password",
+              "MYSQL_ROOT_PASSWORD": "my_root_password",
+              "MYSQL_USER": "my_user"
+            },
+            "type": "object"
+          },
+          "image": {
+            "description": "The image to run, in the usual format also used by `docker run` and `docker compose`. When\nthe image is pulled from a private registry, make sure to create the registry first\nusing the `container-create-registry` endpoint (you can push the image later, although\nthe container will remain in a pending state until the image is actually available).\n\nThe appropriate registry is matched by hostname.\n",
+            "example": "mysql:8.0",
+            "type": "string"
+          },
+          "imageDigest": {
+            "description": "The digest of the image that is currently deployed.\n",
+            "type": "string"
+          },
+          "ports": {
+            "description": "Exposed ports. Follows the format `<public-port>:<container-port>/<protocol>`. Exposed ports can be accessed from other containers (or managed apps) within the same project. To expose a port publicly, connect it with an ingress resource.\n",
+            "example": [
+              "3306/tcp"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "volumes": {
+            "description": "Volume mounts for this container. These items always follow the format `<volume>:<mountpoint>`. The `<volume>` may either be a named volume, or a file path in the (always present) project file system (which is shared among containers and managed apps within a project).\n",
+            "example": [
+              "data:/var/lib/mysql:ro",
+              "/home/p-XXXXX/html:/var/www"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.container.ServiceStatus": {
+        "enum": [
+          "running",
+          "stopped",
+          "error",
+          "creating",
+          "starting",
+          "stopping"
+        ],
+        "type": "string"
+      },
+      "de.mittwald.v1.cronjob.CronjobExecution": {
+        "properties": {
+          "abortedBy": {
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "cronjobId": {
+            "type": "string"
+          },
+          "durationInMilliseconds": {
+            "example": 12374,
+            "format": "int64",
+            "type": "integer"
+          },
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "executionEnd": {
+            "deprecated": true,
+            "format": "date-time",
+            "type": "string"
+          },
+          "executionStart": {
+            "deprecated": true,
+            "format": "date-time",
+            "type": "string"
+          },
+          "exitCode": {
+            "example": 0,
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "example": "cron-bd26li-28027320",
+            "type": "string"
+          },
+          "logPath": {
+            "example": "/var/log/cronjobs/cron-bd26li-28027320.log",
+            "type": "string"
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "Complete",
+              "Failed",
+              "AbortedBySystem",
+              "Pending",
+              "Running",
+              "AbortedByUser",
+              "TimedOut"
+            ],
+            "type": "string"
+          },
+          "successful": {
+            "type": "boolean"
+          },
+          "triggeredBy": {
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "successful",
+          "cronjobId"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.ServiceTargetResponse": {
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "serviceShortId": {
+            "type": "string"
+          },
+          "stackId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stackId",
+          "serviceShortId",
+          "command"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.commons.ValidationErrorSchema": {
+        "type": "object",
+        "required": [
+          "message",
+          "path",
+          "type"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The standard error message",
+            "example": "should be string"
+          },
+          "path": {
+            "type": "string",
+            "description": "The path to the part of the data that was validated. JavaScript property access notation (e.g., \".prop[1].subProp\") is used.\n",
+            "example": ".address.street"
+          },
+          "type": {
+            "type": "string",
+            "description": "ajv validation error type (e.g. \"format\", \"required\", \"type\") or own validation error types",
+            "example": "format"
+          },
+          "context": {
+            "type": "object",
+            "example": {
+              "format": "email"
+            },
+            "description": "The object with the additional information about the error that can be used to create custom error messages. Keys depend on the\ntype that failed validation (e.g. \"missingProperty\" for type \"required\")\n",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "de.mittwald.v1.container.Resources": {
+        "properties": {
+          "limits": {
+            "$ref": "#/components/schemas/de.mittwald.v1.container.ResourceSpec"
+          }
+        },
+        "type": "object"
+      },
+      "de.mittwald.v1.container.ResourceSpec": {
+        "properties": {
+          "cpus": {
+            "description": "CPU limit for the container. The value can be specified as a decimal number, where `1` corresponds to\none full CPU core. For example, `0.5` means that the container is limited to using half of a CPU core.\n",
+            "example": "0.5",
+            "type": "string"
+          },
+          "memory": {
+            "description": "Memory limit for the container. The value can be specified in bytes or using a suffix to indicate\nthe unit.\n\nThe format matches the one [used by Docker Compose](https://docs.docker.com/reference/compose-file/extension/#specifying-byte-values):\n\n> Values express a byte value as a string in `{amount}{byte unit}` format: The supported units are\n`b` (bytes), `k` or `kb` (kilo bytes), `m` or `mb` (mega bytes) and `g` or `gb` (giga bytes).\n",
+            "example": "1gb",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "responses": {
+      "de.mittwald.v1.commons.ValidationError": {
+        "description": "Validation Error caused by invalid input data in the request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/de.mittwald.v1.commons.ValidationErrors"
+            }
+          }
+        }
+      },
+      "de.mittwald.v1.commons.DefaultError": {
+        "description": "An unexpected Error that occurred while handling the request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/de.mittwald.v1.commons.Error"
+            }
+          }
+        }
+      },
+      "de.mittwald.v1.commons.NotFoundError": {
+        "description": "The requested resource was not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/de.mittwald.v1.commons.Error"
+            }
+          }
+        }
+      },
+      "de.mittwald.v1.commons.RateLimitError": {
+        "description": "Your request ran into a rate limit. You have to wait until rate limit expires\n",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "too many requests"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "RateLimitError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

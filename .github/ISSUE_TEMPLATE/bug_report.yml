@@ -1,0 +1,45 @@
+name: Bug report
+description: Something does not work as documented.
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: Shown in mStudio under the extension, or the image tag you run.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: CI provider
+      options:
+        - GitHub Actions
+        - GitLab CI
+        - Not provider specific
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the extension in project ...
+        2. Create a runner with ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Error message as shown, or the log line from the extension or runner container. Remove tokens and secrets.
+    validations:
+      required: true
