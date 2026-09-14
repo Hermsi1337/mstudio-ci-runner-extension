@@ -5,12 +5,12 @@
  * follow XDG pick up XDG_CACHE_HOME; the others get their own variable.
  * mittwald volumes have no size limit, so an hourly cronjob inside the
  * container trims the directory with docker/runner/common/trim-cache.sh.
- * The volume is separate from runner-data so its usage shows up on its own in
+ * The volume is separate from the data volume so its usage shows up on its own in
  * mStudio and turning the cache off frees the space.
  */
 const CACHE_DIR = "/home/runner/.cache";
 
-export const CACHE_VOLUME = "tool-cache";
+export const CACHE_VOLUME = "cache";
 
 export const cacheMount = `${CACHE_VOLUME}:${CACHE_DIR}`;
 

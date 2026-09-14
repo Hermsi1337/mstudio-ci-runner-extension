@@ -43,7 +43,7 @@ flowchart LR
     M --> C[Runner container]
     C -->|registers itself| G[GitHub or GitLab]
     G -->|jobs| C
-    C -.->|package cache volume| V[(tool-cache)]
+    C -.->|package cache volume| V[(cache)]
 ```
 
 Runners of one repository, organization or GitLab instance share a container stack

@@ -16,20 +16,21 @@ deletion) is shared.
 | `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes, the labels to show and the credentials to store |
 | `release(credentials)` | Remove the provider-side registration; must tolerate runners that are already gone |
 
-Every provider returns `DATA_VOLUME_MOUNT` (`runner-data:/home/runner/data`) as its
-only volume; the images keep all persistent state below that directory
+Every provider returns `DATA_VOLUME_MOUNT` (`data:/home/runner/data`) as its only
+volume; the images keep all persistent state below that directory
 ([runner-image.md](runner-image.md#volumes)). The domain prefixes volume names with
-the service name before declaring them, so runners sharing a stack keep separate
-volumes.
+the service name before declaring them (`runner-<slug>-data`), so runners sharing a
+stack keep separate volumes.
 
 `updateRunner` in `src/domain/runner.ts` redeclares the service with `currentImage()` and
 the service state mittwald reports, so providers need no update hook. GitHub runners
-keep their registration in the `runner-data` volume, GitLab runners keep their runner token.
+keep their registration in the data volume, GitLab runners keep their runner token.
 
 ## Package manager cache
 
 The cache is provider-neutral and lives in `src/domain/cache.ts`, providers never touch
-it. `cache: true` adds the volume `tool-cache:/home/runner/.cache` and the environment
+it. `cache: true` adds the volume `cache:/home/runner/.cache` (declared as
+`runner-<slug>-cache`) and the environment
 `XDG_CACHE_HOME` plus the variables of npm, pnpm, yarn, pip, Composer and Go. The runner
 process inherits the variables into every job, so no provider cache feature is
 involved. `runner.ts` then creates a mittwald service cronjob (stack, service, command)

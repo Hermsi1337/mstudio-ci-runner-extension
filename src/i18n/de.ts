@@ -109,23 +109,24 @@ export const de: Messages = {
     "form.configure.button": "Speichern",
     "form.configure.warning.heading": "Der Container wird neu erstellt",
     "form.configure.warning.text":
-        "Beim Speichern wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Volume tool-cache und seinen Cronjob.",
+        "Beim Speichern wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Cache-Volume und seinen Cronjob.",
     "form.summary.heading": "Wird in diesem Projekt angelegt",
     "form.summary.stack.label": "Stack: CI Runner: {target}",
     "form.summary.stack.text":
         "Ein Stack pro Repository, Organisation oder Instanz. Entsteht mit dem ersten Runner, die weiteren teilen ihn.",
     "form.summary.service.label": "Container: {service}",
     "form.summary.service.text": "Begrenzt auf {cpus} CPU und {memory} GB RAM.",
-    "form.summary.dataVolume.label": "Volume: {service}-runner-data",
+    "form.summary.dataVolume.label": "Volume: {service}-data",
     "form.summary.dataVolume.text.github":
         "Runner-Registrierung und Arbeitsverzeichnis: Checkouts, geladene Actions, Tool-Cache der setup-Actions.",
     "form.summary.dataVolume.text.gitlab":
         "Builds-Verzeichnis und der Speicher hinter dem cache:-Keyword in .gitlab-ci.yml.",
-    "form.summary.cacheVolume.label": "Volume: {service}-tool-cache",
+    "form.summary.cacheVolume.label": "Volume: {service}-cache",
     "form.summary.cacheVolume.text":
         "Paketmanager-Cache. Die Belegung ist in mStudio separat sichtbar.",
     "form.summary.cronjob.label": "Cronjob: Cache aufräumen",
-    "form.summary.cronjob.text": "Kürzt tool-cache stündlich auf {size} GB.",
+    "form.summary.cronjob.text":
+        "Kürzt das Cache-Volume stündlich auf {size} GB.",
     "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Ressourcen",
@@ -219,7 +220,7 @@ export const de: Messages = {
     "form.github.target.help":
         "Für eine Organisation gibst du ihren Namen an, zum Beispiel meine-org. Für ein einzelnes Repository owner/repo, zum Beispiel meine-org/mein-repo. Ein Organisations-Runner bedient alle Repositorys, die seine Runner-Gruppe erlaubt.",
     "form.github.tokenType.help":
-        "Registrierungs-Token: Öffne auf GitHub die Runner-Einstellungen des Repositorys oder der Organisation, klicke New self-hosted runner und kopiere das Token aus dem config-Befehl. Das Token läuft nach einer Stunde ab, daher registriert sich der Runner einmal und legt die entstehenden Zugangsdaten (ein paar kleine Dateien) im Volume runner-data seines Stacks ab. Neustarts und Updates nutzen sie ohne neues Token. Es wird kein PAT gespeichert. Ephemerale Runner gehen damit nicht, weil jeder Job eine frische Registrierung bräuchte.\nPersonal Access Token: Der Container holt sich Registrierungs- und Entfernungs-Token bei jedem Start selbst und braucht keine gespeicherte Registrierung. Nötig für ephemerale Runner. Das PAT wird verschlüsselt gespeichert und liegt im Container.",
+        "Registrierungs-Token: Öffne auf GitHub die Runner-Einstellungen des Repositorys oder der Organisation, klicke New self-hosted runner und kopiere das Token aus dem config-Befehl. Das Token läuft nach einer Stunde ab, daher registriert sich der Runner einmal und legt die entstehenden Zugangsdaten (ein paar kleine Dateien) in seinem Daten-Volume ab. Neustarts und Updates nutzen sie ohne neues Token. Es wird kein PAT gespeichert. Ephemerale Runner gehen damit nicht, weil jeder Job eine frische Registrierung bräuchte.\nPersonal Access Token: Der Container holt sich Registrierungs- und Entfernungs-Token bei jedem Start selbst und braucht keine gespeicherte Registrierung. Nötig für ephemerale Runner. Das PAT wird verschlüsselt gespeichert und liegt im Container.",
     "form.github.configCommand.help":
         "Öffne auf GitHub das Repository oder die Organisation, dann `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Kopiere unter `Configure` die Zeile, die mit `./config.sh` (oder `./config.cmd`) beginnt, und füge sie hier ein. Genutzt werden nur `--url` und `--token`. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Beim Löschen meldet sich der Runner ab, solange das Token gültig ist; sonst entfernt GitHub den Offline-Runner nach 14 Tagen.",
     "form.github.token.help":
@@ -250,7 +251,7 @@ export const de: Messages = {
         "Kommagetrennte Tags, mit denen sich der Runner registriert. In der Pipeline referenzierst du sie mit tags: [mittwald]. Jobs mit anderen Tags erreichen diesen Runner nicht, außer Jobs ohne Tags sind erlaubt.",
     "form.cache.label": "Dauerhafter Cache für Paketmanager",
     "form.cache.help":
-        "Legt das Volume tool-cache unter /home/runner/.cache an und richtet npm, pnpm, yarn, pip, Composer und Go darauf aus (XDG_CACHE_HOME plus die tool-eigenen Variablen). Downloads früherer Jobs werden wiederverwendet, Installationen laufen schneller. Das Volume übersteht Jobs, Neustarts und Updates. Du kannst den Cache später in den Runner-Einstellungen ein- oder ausschalten; beim Ausschalten wird das Volume gelöscht.",
+        "Legt ein Cache-Volume unter /home/runner/.cache an und richtet npm, pnpm, yarn, pip, Composer und Go darauf aus (XDG_CACHE_HOME plus die tool-eigenen Variablen). Downloads früherer Jobs werden wiederverwendet, Installationen laufen schneller. Das Volume übersteht Jobs, Neustarts und Updates. Du kannst den Cache später in den Runner-Einstellungen ein- oder ausschalten; beim Ausschalten wird das Volume gelöscht.",
     "form.cacheSize.label": "Cache-Limit (GB)",
     "form.cacheSize.description":
         "Ein stündlicher Cronjob im Projekt löscht die ältesten Dateien oberhalb dieses Limits.",

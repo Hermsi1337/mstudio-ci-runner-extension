@@ -97,7 +97,7 @@ export async function assertGitHubRunnerAccess(
 
 /**
  * With a registration token the container registers once and keeps its runner
- * credentials in the runner-data volume, so restarts do not need a new token. With a
+ * credentials in the data volume, so restarts do not need a new token. With a
  * PAT the container fetches registration and removal tokens itself. Neither
  * mode needs provider-side cleanup.
  */

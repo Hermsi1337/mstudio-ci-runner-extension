@@ -92,7 +92,7 @@ export type RunnerBase = {
 export type Concurrency = number;
 
 /**
- * Adds the volume tool-cache for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+ * Adds a cache volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
  */
 export type CacheEnabled = boolean;
 

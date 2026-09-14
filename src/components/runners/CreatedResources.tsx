@@ -78,7 +78,7 @@ export const CreatedResources = ({
             }),
         },
         {
-            key: "runner-data",
+            key: "data",
             icon: <IconVolume />,
             label: t("form.summary.dataVolume.label", { service: serviceName }),
             text: t(`form.summary.dataVolume.text.${provider}`),
@@ -86,7 +86,7 @@ export const CreatedResources = ({
         ...(cache
             ? [
                   {
-                      key: "tool-cache",
+                      key: "cache",
                       icon: <IconVolume />,
                       label: t("form.summary.cacheVolume.label", {
                           service: serviceName,

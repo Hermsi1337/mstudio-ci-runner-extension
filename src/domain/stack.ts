@@ -283,7 +283,7 @@ export async function uniqueServiceName(
 
 /**
  * Volumes live in the stack namespace, so every runner prefixes its own with
- * the service name: runner-data:/x becomes runner-web-runner-data:/x.
+ * the service name: data:/x becomes runner-web-data:/x.
  */
 export function prefixMounts(serviceName: string, mounts: string[]): string[] {
     return mounts.map((mount) =>

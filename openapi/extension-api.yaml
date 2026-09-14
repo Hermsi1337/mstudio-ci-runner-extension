@@ -84,7 +84,7 @@ components:
     CacheEnabled:
       type: boolean
       default: false
-      description: Adds the volume tool-cache for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+      description: Adds a cache volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
     CacheSizeGb:
       type: integer
       minimum: 1

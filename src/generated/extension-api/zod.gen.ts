@@ -52,7 +52,7 @@ export const zRunnerStatus = z.enum([
 export const zConcurrency = z.int().gte(1).lte(8).default(1);
 
 /**
- * Adds the volume tool-cache for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+ * Adds a cache volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
  */
 export const zCacheEnabled = z.boolean().default(false);
 

@@ -105,23 +105,24 @@ export const en = {
     "form.configure.button": "Save",
     "form.configure.warning.heading": "The container is recreated",
     "form.configure.warning.text":
-        "Saving redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the tool-cache volume and its cronjob.",
+        "Saving redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the cache volume and its cronjob.",
     "form.summary.heading": "Created in this project",
     "form.summary.stack.label": "Stack: CI Runner: {target}",
     "form.summary.stack.text":
         "One stack per repository, organization or instance. Created with the first runner, shared by the others.",
     "form.summary.service.label": "Container: {service}",
     "form.summary.service.text": "Limited to {cpus} CPU and {memory} GB RAM.",
-    "form.summary.dataVolume.label": "Volume: {service}-runner-data",
+    "form.summary.dataVolume.label": "Volume: {service}-data",
     "form.summary.dataVolume.text.github":
         "Runner registration and work directory: checkouts, downloaded actions, tool cache of the setup actions.",
     "form.summary.dataVolume.text.gitlab":
         "Builds directory and the storage behind the cache: keyword in .gitlab-ci.yml.",
-    "form.summary.cacheVolume.label": "Volume: {service}-tool-cache",
+    "form.summary.cacheVolume.label": "Volume: {service}-cache",
     "form.summary.cacheVolume.text":
         "Package manager cache. Its usage shows separately in mStudio.",
     "form.summary.cronjob.label": "Cronjob: cache cleanup",
-    "form.summary.cronjob.text": "Trims tool-cache to {size} GB every hour.",
+    "form.summary.cronjob.text":
+        "Trims the cache volume to {size} GB every hour.",
     "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Resources",
@@ -214,7 +215,7 @@ export const en = {
     "form.github.target.help":
         "For an organization enter its name, for example my-org. For a single repository enter owner/repo, for example my-org/my-repo. An organization runner serves every repository its runner group allows.",
     "form.github.tokenType.help":
-        "Registration token: open the runner settings of the repository or organization on GitHub, click New self-hosted runner and copy the token from the config command. The token expires after one hour, so the runner registers once and stores the resulting credentials (a few small files) in the runner-data volume of its stack. Restarts and updates reuse them without a new token. No PAT is stored. Ephemeral runners are not possible because every job would need a fresh registration.\nPersonal access token: the container fetches registration and removal tokens itself on every start, so it needs no stored registration. Needed for ephemeral runners. The PAT is stored encrypted and lives in the container.",
+        "Registration token: open the runner settings of the repository or organization on GitHub, click New self-hosted runner and copy the token from the config command. The token expires after one hour, so the runner registers once and stores the resulting credentials (a few small files) in its data volume. Restarts and updates reuse them without a new token. No PAT is stored. Ephemeral runners are not possible because every job would need a fresh registration.\nPersonal access token: the container fetches registration and removal tokens itself on every start, so it needs no stored registration. Needed for ephemeral runners. The PAT is stored encrypted and lives in the container.",
     "form.github.configCommand.help":
         "On GitHub open the repository or organization, then `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Under `Configure` copy the line starting with `./config.sh` (or `./config.cmd`) and paste it here. Only `--url` and `--token` are used. The token expires after one hour, so create the runner right away. When you delete the runner it deregisters as long as the token is valid; otherwise GitHub removes the offline runner after 14 days.",
     "form.github.token.help":
@@ -245,7 +246,7 @@ export const en = {
         "Comma separated tags the runner registers with. Reference them in the pipeline with tags: [mittwald]. Jobs whose tags do not match never reach this runner unless untagged jobs are allowed.",
     "form.cache.label": "Persistent cache for package managers",
     "form.cache.help":
-        "Adds the volume tool-cache at /home/runner/.cache and points npm, pnpm, yarn, pip, Composer and Go at it (XDG_CACHE_HOME plus the tool specific variables). Downloads from earlier jobs are reused, which speeds up installs. The volume survives jobs, restarts and updates. You can turn the cache on or off later in the runner settings; turning it off deletes the volume.",
+        "Adds a cache volume at /home/runner/.cache and points npm, pnpm, yarn, pip, Composer and Go at it (XDG_CACHE_HOME plus the tool specific variables). Downloads from earlier jobs are reused, which speeds up installs. The volume survives jobs, restarts and updates. You can turn the cache on or off later in the runner settings; turning it off deletes the volume.",
     "form.cacheSize.label": "Cache limit (GB)",
     "form.cacheSize.description":
         "An hourly cronjob in the project deletes the oldest files above this limit.",

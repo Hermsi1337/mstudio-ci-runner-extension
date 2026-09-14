@@ -5,7 +5,7 @@
 #   CI_SERVER_URL      GitLab base URL, e.g. https://gitlab.com                          [required]
 #   CI_SERVER_TOKEN    runner authentication token (glrt-...) created via UI or API      [required]
 #   RUNNER_NAME        runner description/name (default: hostname)
-#   RUNNER_DATA_DIR    persistent state, the runner-data volume (default: /home/runner/data)
+#   RUNNER_DATA_DIR    persistent state, the data volume (default: /home/runner/data)
 #   RUNNER_BUILDS_DIR  builds directory (default: RUNNER_DATA_DIR/builds)
 #   RUNNER_CACHE_DIR   directory for the cache: keyword of GitLab CI (default: RUNNER_DATA_DIR/cache)
 #   RUNNER_CONCURRENT  concurrent jobs (default: 1)
@@ -17,7 +17,7 @@ set -euo pipefail
 : "${CI_SERVER_TOKEN:?CI_SERVER_TOKEN is required}"
 RUNNER_NAME="${RUNNER_NAME:-$(hostname)}"
 RUNNER_DATA_DIR="${RUNNER_DATA_DIR:-/home/runner/data}"
-# Runners created before the runner-data volume mount builds and cache volumes
+# Runners created before the data volume mount builds and cache volumes
 # at these paths. The image no longer creates them, so their presence means
 # such a volume is mounted.
 if [[ -d /home/runner/builds ]]; then

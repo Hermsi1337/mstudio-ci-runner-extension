@@ -10,7 +10,7 @@
 #   RUNNER_LABELS     comma separated labels (default: mittwald)
 #   RUNNER_GROUP      runner group (default: Default)
 #   RUNNER_EPHEMERAL  "true" => one job per registration, re-registers afterwards; needs GITHUB_TOKEN (default: false)
-#   RUNNER_DATA_DIR   persistent state, the runner-data volume (default: /home/runner/data)
+#   RUNNER_DATA_DIR   persistent state, the data volume (default: /home/runner/data)
 #   RUNNER_WORKDIR    working directory: checkouts, tool cache, actions (default: RUNNER_DATA_DIR/work)
 #   RUNNER_CONFIG_DIR directory that keeps the runner credentials across restarts (default: RUNNER_DATA_DIR/config)
 #   DISABLE_AUTO_UPDATE  "true" => --disableupdate
@@ -27,7 +27,7 @@ RUNNER_LABELS="${RUNNER_LABELS:-mittwald}"
 RUNNER_GROUP="${RUNNER_GROUP:-Default}"
 RUNNER_EPHEMERAL="${RUNNER_EPHEMERAL:-false}"
 RUNNER_DATA_DIR="${RUNNER_DATA_DIR:-/home/runner/data}"
-# Runners created before the runner-data volume mount work and config volumes
+# Runners created before the data volume mount work and config volumes
 # at these paths. The image no longer creates them, so their presence means
 # such a volume is mounted and the registration lives there.
 if [[ -d /home/runner/_config ]]; then

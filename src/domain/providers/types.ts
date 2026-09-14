@@ -6,7 +6,8 @@ import type { CreateRunnerRequest, Provider } from "@/generated/extension-api";
  * package manager cache is a second, optional volume handled by
  * src/domain/cache.ts.
  */
-export const DATA_VOLUME_MOUNT = "runner-data:/home/runner/data";
+/** The domain prefixes the name with the service name: runner-<slug>-data. */
+export const DATA_VOLUME_MOUNT = "data:/home/runner/data";
 
 export interface PreparedRunner {
     target: string;

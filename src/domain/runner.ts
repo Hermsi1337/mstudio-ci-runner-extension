@@ -525,7 +525,7 @@ export async function restartRunner(
  * Redeclares the stack with the image of this extension release and the
  * service state mittwald reports, so environment and volumes stay untouched.
  * mittwald recreates the container; GitHub runners keep their registration in
- * the runner-data volume, GitLab runners keep their runner token.
+ * the data volume, GitLab runners keep their runner token.
  */
 export async function updateRunner(
     client: MittwaldAPIV2Client,

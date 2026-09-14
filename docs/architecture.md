@@ -46,7 +46,7 @@ Two Flow rules shape the components:
    a discriminated union over `provider`.
 3. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
    registration in the CI system where needed and returns image, environment, the
-   `runner-data` volume and the credentials to store ([providers.md](providers.md)).
+   data volume and the credentials to store ([providers.md](providers.md)).
 4. `src/domain/stack.ts` finds the stack of the registration target in `runner_stacks`
    or creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
    (extension instance, target URL) settles parallel creates: the loser deletes its
@@ -56,7 +56,7 @@ Two Flow rules shape the components:
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
    runners of the stack stay untouched) with `restartPolicy: always` and the resource
    limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
-   `custom`). Volumes carry the service name as prefix (`runner-<slug>-runner-data`).
+   `custom`). Volumes carry the service name as prefix (`runner-<slug>-data`, `runner-<slug>-cache`).
 6. A row in `runners` links extension instance, provider, stack and service. The API
    derives `studioUrl` from them, the detail page of the container in mStudio, linked
    from the runner name in the list.
@@ -106,7 +106,7 @@ answer within 6 seconds.
 - Session tokens are verified server side; access tokens never reach the client.
 - GitHub with a registration token (default): the token reaches the container as
   `RUNNER_TOKEN`, is worthless after one hour and is not stored in the database. The
-  runner credentials live in the `runner-data` volume of the stack.
+  runner credentials live in the data volume of the runner.
 - GitHub with a PAT: the PAT is stored encrypted and passed to the runner container as
   `GITHUB_TOKEN`. Project members with container access can read it there. Use
   fine-grained PATs with minimal scope.

@@ -41,7 +41,7 @@ Default: the setup command from GitHub. Open *Settings → Actions → Runners �
 self-hosted runner* for the repository or organization and paste the
 `./config.sh --url ... --token ...` line into the form; it reads target and registration
 token from it. The token expires after one hour and is used once; the container keeps
-the registration in the `runner-data` volume. Ephemeral runners are not possible with it.
+the registration in the data volume. Ephemeral runners are not possible with it.
 
 Alternative for ephemeral runners: a fine-grained personal access token:
 
