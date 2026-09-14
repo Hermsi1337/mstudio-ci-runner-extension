@@ -1,0 +1,36 @@
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Conventional Commits title and label the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ github.event.pull_request.title }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! [[ "$TITLE" =~ ^(feat|fix|docs|ci|chore|refactor|test)(\([a-z0-9-]+\))?!?:\  ]]; then
+            echo "::error::Title must follow Conventional Commits, e.g. 'feat: add provider'. Got: $TITLE"
+            exit 1
+          fi
+          type="${BASH_REMATCH[1]}"
+          case "$type" in
+            feat) color=0e8a16 ;;
+            fix) color=d73a4a ;;
+            *) color=ededed ;;
+          esac
+          gh label create "$type" --repo "$REPO" --force --color "$color" >/dev/null
+          for other in feat fix docs ci chore refactor test; do
+            [ "$other" = "$type" ] && continue
+            gh pr edit "$NUMBER" --repo "$REPO" --remove-label "$other" >/dev/null 2>&1 || true
+          done
+          gh pr edit "$NUMBER" --repo "$REPO" --add-label "$type"

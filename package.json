@@ -86,7 +86,7 @@
   },
   "private": true,
   "description": "mittwald mStudio extension that provisions CI runners (GitHub Actions, GitLab CI) on container hosting",
-  "author": "Dennis Hermsmeier <dennis@hermsmeier.me>",
+  "author": "codeBoarder - Inh. Dennis Hermsmeier <hello@codeboarder.de>",
   "license": "MIT",
   "repository": {
     "type": "git",

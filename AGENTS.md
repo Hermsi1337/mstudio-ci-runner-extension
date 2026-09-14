@@ -128,7 +128,8 @@ src/db/                      Drizzle schema, pool, migration runner, generated m
 src/i18n/                    message catalogs (en, de), locale resolution, React hooks
 tests/integration/           Testcontainers tests
 tests/helpers/               container starters (PostgreSQL, Prism)
-.github/workflows/           CI on push/PR, image builds on tags only, deployment after image builds
+.github/                     community files (CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, templates, dependabot, release notes)
+.github/workflows/           CI on push/PR, PR title check, image builds on tags only, deployment after image builds
 ```
 
 The repository root stays lean: only files that tools require there

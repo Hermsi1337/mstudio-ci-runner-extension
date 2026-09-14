@@ -42,7 +42,8 @@ nothing runs on `latest`. The runner software versions come from
 Package visibility is independent of the repository and can only be changed on the web:
 *Packages → Package settings → Change visibility*. All images carry
 `org.opencontainers.image.source` so `GITHUB_TOKEN` may push from the workflow, and
-`org.opencontainers.image.licenses` (`MIT`, matching [LICENSE](../LICENSE)).
+`org.opencontainers.image.licenses` (`MIT`, matching [LICENSE](../LICENSE)) and
+`org.opencontainers.image.vendor`.
 
 ## Workflows
 
@@ -52,6 +53,17 @@ Package visibility is independent of the repository and can only be changed on t
 | `extension-image.yml` | Tags `v*`, manual | Extension image |
 | `runner-image.yml` | Tags `v*`, manual | Matrix over all providers, multi-arch |
 | `deploy.yml` | After `extension-image.yml` on a tag, manual | Stack update on mittwald Container Hosting |
+| `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
+
+## Release notes and dependencies
+
+GitHub release notes are generated from `.github/release.yml`. The categories use the
+type labels that `pr-title.yml` sets, so pull requests are squash-merged with their
+title as commit subject. Dependabot updates arrive under `dependabot` and are excluded.
+
+`.github/dependabot.yml` opens weekly pull requests for npm packages (grouped:
+`@mittwald/*`, `@tanstack/*`, dev dependencies), GitHub Actions and the base images of
+the three Dockerfiles.
 
 ## Deployment to mittwald Container Hosting
 

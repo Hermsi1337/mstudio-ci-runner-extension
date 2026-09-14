@@ -20,7 +20,8 @@ WORKDIR /app
 
 LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-runner-extension" \
       org.opencontainers.image.description="mittwald mStudio extension that provisions CI runners on Container Hosting" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.vendor="codeBoarder - Inh. Dennis Hermsmeier"
 
 ENV NODE_ENV=production
 ENV PORT=3000

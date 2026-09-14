@@ -1,5 +1,9 @@
 # mStudio CI Runner Extension
 
+[![CI](https://github.com/Hermsi1337/mstudio-ci-runner-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/Hermsi1337/mstudio-ci-runner-extension/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Hermsi1337/mstudio-ci-runner-extension)](https://github.com/Hermsi1337/mstudio-ci-runner-extension/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A [mittwald mStudio](https://studio.mittwald.de) extension that provisions CI
 runners on mittwald Container Hosting with one click. Supports GitHub Actions and
 GitLab CI; more providers are planned ([docs/providers.md](docs/providers.md)).
@@ -48,9 +52,10 @@ Structure and base stack come from the
 
 ## Contributing
 
-Issues and pull requests are welcome. The working rules in [AGENTS.md](AGENTS.md)
-apply to every change, including the checks under "Run before committing".
+Issues and pull requests are welcome. Process in
+[CONTRIBUTING.md](.github/CONTRIBUTING.md), working rules in [AGENTS.md](AGENTS.md),
+security reports via [SECURITY.md](.github/SECURITY.md).
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Copyright (c) 2026 Dennis Hermsmeier.
+MIT, see [LICENSE](LICENSE). Copyright (c) 2026 codeBoarder - Inh. Dennis Hermsmeier.

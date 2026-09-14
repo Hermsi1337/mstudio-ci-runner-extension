@@ -7,7 +7,8 @@ ARG TARGETARCH
 
 LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-runner-extension" \
       org.opencontainers.image.description="GitLab Runner (shell executor) for mittwald Container Hosting" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.vendor="codeBoarder - Inh. Dennis Hermsmeier"
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUNNER_HOME=/home/runner
