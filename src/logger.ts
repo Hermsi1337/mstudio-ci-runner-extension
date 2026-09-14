@@ -33,17 +33,12 @@ const levelColors: Record<LogLevel, string> = {
 };
 
 /**
- * Follows the NO_COLOR and FORCE_COLOR conventions; otherwise colors only when
- * both streams are terminals, so piped or captured output stays plain.
+ * Text output is colored unless NO_COLOR is set. A TTY check does not work
+ * here: the Vite dev server runs the app in a child process with piped
+ * output, so isTTY is false although the log lands in a terminal.
  */
 function detectColor(): boolean {
-    if (process.env.NO_COLOR !== undefined) {
-        return false;
-    }
-    if (process.env.FORCE_COLOR !== undefined) {
-        return process.env.FORCE_COLOR !== "0";
-    }
-    return Boolean(process.stdout.isTTY && process.stderr.isTTY);
+    return process.env.NO_COLOR === undefined;
 }
 
 let settings: LoggerSettings | undefined;

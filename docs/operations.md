@@ -123,7 +123,7 @@ key-value fields.
 |---|---|
 | `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error` |
 | `LOG_FORMAT` | `json` (default with `NODE_ENV=production`), `text` |
-| `NO_COLOR`, `FORCE_COLOR` | `text` output is colored when stdout and stderr are terminals; `NO_COLOR` disables, `FORCE_COLOR` forces it |
+| `NO_COLOR` | Set it to get `text` output without ANSI colors |
 
 Every server function call and webhook gets a `requestId`; lines written while the
 request runs, including detached cleanup work, carry it together with `fn` (the
