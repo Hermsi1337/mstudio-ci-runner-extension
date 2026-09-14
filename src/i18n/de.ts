@@ -16,14 +16,13 @@ export const de: Messages = {
     "runners.empty.heading": "Noch keine Runner",
     "runners.empty.text":
         'Lege über "Runner anlegen" den ersten CI-Runner in diesem Projekt an.',
-    "runners.column.name": "Name",
-    "runners.column.target": "Ziel",
-    "runners.column.labels": "Labels",
+    "runners.filter.provider": "CI-System",
+    "runners.filter.status": "Status",
+    "runners.sort.name": "Name",
+    "runners.sort.provider": "CI-System",
     "runners.column.size": "Größe",
     "runners.column.cache": "Cache",
     "runners.column.version": "Runner-Version",
-    "runners.column.status": "Status",
-    "runners.column.actions": "Aktionen",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Neustart",
     "runners.action.update": "Aktualisieren",
@@ -48,6 +47,9 @@ export const de: Messages = {
         "Runner {name} konnte nicht aktualisiert werden",
     "runners.notice.deleted": "Runner {name} gelöscht",
     "runners.notice.deleteFailed": "Runner {name} konnte nicht gelöscht werden",
+    "runners.restart.heading": "{name} neu starten?",
+    "runners.restart.text":
+        "Der Container stoppt und startet neu. Ein Job, der gerade darauf läuft, bricht ab.",
     "runners.update.heading": "{name} aktualisieren?",
     "runners.update.text":
         "Der Container wird mit Runner-Version {version} neu erstellt. Ein laufender Job bricht ab.",

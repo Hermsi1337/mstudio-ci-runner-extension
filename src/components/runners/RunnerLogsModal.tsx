@@ -1,5 +1,4 @@
 import {
-    Button,
     CodeBlock,
     Content,
     Flex,
@@ -8,8 +7,8 @@ import {
     IllustratedMessage,
     Label,
     Modal,
-    ModalTrigger,
     Option,
+    type OverlayController,
     Select,
     SkeletonText,
     Switch,
@@ -18,7 +17,7 @@ import {
 import { Suspense, useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
-import type { RunnerStatus } from "@/generated/extension-api";
+import type { Runner } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
 
@@ -49,7 +48,7 @@ const Logs = ({
 
     if (!logs) {
         return (
-            <IllustratedMessage color="light">
+            <IllustratedMessage>
                 <IconPending />
                 <Heading>{t("runners.logs.empty.heading")}</Heading>
                 <Text>{t("runners.logs.empty.text")}</Text>
@@ -60,54 +59,50 @@ const Logs = ({
 };
 
 export const RunnerLogsModal = ({
-    runnerId,
-    name,
-    status,
+    runner,
+    controller,
 }: {
-    runnerId: string;
-    name: string;
-    status: RunnerStatus;
+    runner: Runner;
+    controller: OverlayController;
 }) => {
     const t = useTranslation();
     const [tail, setTail] = useState<number>(300);
     const [follow, setFollow] = useState(
-        status === "creating" || status === "starting",
+        runner.status === "creating" || runner.status === "starting",
     );
     return (
-        <ModalTrigger>
-            <Button color="secondary" variant="soft" size="s">
-                {t("runners.action.logs")}
-            </Button>
-            <Modal size="l">
-                <Heading>{t("runners.logs.heading", { name })}</Heading>
-                <Content>
-                    <Flex align="end" gap="m" wrap="wrap">
-                        <Select
-                            selectedKey={String(tail)}
-                            onChange={(key) => setTail(Number(key))}
-                        >
-                            <Label>{t("runners.logs.tail")}</Label>
-                            {tailOptions.map((option) => (
-                                <Option key={option} value={String(option)}>
-                                    {t("runners.logs.lines", { lines: option })}
-                                </Option>
-                            ))}
-                        </Select>
-                        <Switch isSelected={follow} onChange={setFollow}>
-                            {t("runners.logs.follow")}
-                        </Switch>
-                    </Flex>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                        <Suspense fallback={<SkeletonText />}>
-                            <Logs
-                                runnerId={runnerId}
-                                tail={tail}
-                                follow={follow}
-                            />
-                        </Suspense>
-                    </ErrorBoundary>
-                </Content>
-            </Modal>
-        </ModalTrigger>
+        <Modal size="l" controller={controller}>
+            <Heading>
+                {t("runners.logs.heading", { name: runner.name })}
+            </Heading>
+            <Content>
+                <Flex align="end" gap="m" wrap="wrap">
+                    <Select
+                        isRequired
+                        selectedKey={String(tail)}
+                        onChange={(key) => setTail(Number(key))}
+                    >
+                        <Label>{t("runners.logs.tail")}</Label>
+                        {tailOptions.map((option) => (
+                            <Option key={option} value={String(option)}>
+                                {t("runners.logs.lines", { lines: option })}
+                            </Option>
+                        ))}
+                    </Select>
+                    <Switch isSelected={follow} onChange={setFollow}>
+                        {t("runners.logs.follow")}
+                    </Switch>
+                </Flex>
+                <ErrorBoundary FallbackComponent={ErrorFallback}>
+                    <Suspense fallback={<SkeletonText />}>
+                        <Logs
+                            runnerId={runner.id}
+                            tail={tail}
+                            follow={follow}
+                        />
+                    </Suspense>
+                </ErrorBoundary>
+            </Content>
+        </Modal>
     );
 };

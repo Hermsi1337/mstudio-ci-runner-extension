@@ -6,7 +6,7 @@ import {
     Content,
     Heading,
     Modal,
-    ModalTrigger,
+    type OverlayController,
     Section,
     Text,
     useOverlayController,
@@ -103,19 +103,20 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
     );
 };
 
-export const ConfigureRunnerModal = ({ runner }: { runner: Runner }) => {
+export const ConfigureRunnerModal = ({
+    runner,
+    controller,
+}: {
+    runner: Runner;
+    controller: OverlayController;
+}) => {
     const t = useTranslation();
     return (
-        <ModalTrigger>
-            <Button color="secondary" variant="soft" size="s">
-                {t("runners.action.configure")}
-            </Button>
-            <Modal size="m">
-                <Heading>
-                    {t("form.configure.heading", { name: runner.name })}
-                </Heading>
-                <ConfigureRunnerForm runner={runner} />
-            </Modal>
-        </ModalTrigger>
+        <Modal size="m" controller={controller}>
+            <Heading>
+                {t("form.configure.heading", { name: runner.name })}
+            </Heading>
+            <ConfigureRunnerForm runner={runner} />
+        </Modal>
     );
 };

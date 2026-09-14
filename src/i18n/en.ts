@@ -14,14 +14,13 @@ export const en = {
     "runners.empty.heading": "No runners yet",
     "runners.empty.text":
         'Use "Create runner" to add the first CI runner to this project.',
-    "runners.column.name": "Name",
-    "runners.column.target": "Target",
-    "runners.column.labels": "Labels",
+    "runners.filter.provider": "CI system",
+    "runners.filter.status": "Status",
+    "runners.sort.name": "Name",
+    "runners.sort.provider": "CI system",
     "runners.column.size": "Size",
     "runners.column.cache": "Cache",
     "runners.column.version": "Runner version",
-    "runners.column.status": "Status",
-    "runners.column.actions": "Actions",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Restart",
     "runners.action.update": "Update",
@@ -44,6 +43,9 @@ export const en = {
     "runners.notice.updateFailed": "Runner {name} could not be updated",
     "runners.notice.deleted": "Runner {name} deleted",
     "runners.notice.deleteFailed": "Runner {name} could not be deleted",
+    "runners.restart.heading": "Restart {name}?",
+    "runners.restart.text":
+        "The container stops and starts again. A job that is running on it is aborted.",
     "runners.update.heading": "Update {name}?",
     "runners.update.text":
         "The container is recreated with runner version {version}. A running job is cancelled.",

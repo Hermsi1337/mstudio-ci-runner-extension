@@ -71,7 +71,8 @@ Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
    `docker/runner/versions.json`.
 5. Image under `docker/runner/<name>/` ([runner-image.md](runner-image.md)), matrix entry
    in `.github/workflows/runner-image.yml`.
-6. Form fields in `src/components/runners/RunnerForm.tsx`, label in `RunnerTable.tsx`.
+6. Form fields in `src/components/runners/RunnerForm.tsx`, initials and filter value in
+   `RunnerList.tsx`, `provider.<name>` in both catalogs under `src/i18n/`.
    A provider that shows a setup command on its "new runner" page gets a pattern in
    `parseConfigCommand.ts`.
 7. Test case in `tests/integration/runner-lifecycle.test.ts` (Prism mock) and

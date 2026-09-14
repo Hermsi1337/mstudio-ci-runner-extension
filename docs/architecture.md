@@ -16,6 +16,22 @@
 
 Stack and structure follow the [mittwald reference extension](https://github.com/mittwald/reference-extension).
 
+## UI
+
+`src/components/runners/RunnersCard.tsx` is the page: a card with the runner list and
+the create modal. The list is Flow's `List` (`RunnerList.tsx`), one `ListItemView` per
+runner with a context menu (`RunnerActions.tsx`) that opens the logs, settings and
+confirmation modals through overlay controllers. Flow's list switches from columns to
+stacked rows by container width, so no separate mobile layout exists.
+
+Two Flow rules shape the components:
+
+- A `Section` header collects every `ActionGroup` below it into its action slot. The
+  create modal is therefore rendered next to the card and opened through a controller,
+  not through a `ModalTrigger` inside the header.
+- Inside a `ListItemView`, `Text` is tunneled into the subtitle. Column values are
+  wrapped in `Content`, which starts a new props context level.
+
 ## Data flow "create runner"
 
 1. The form inside mStudio calls `createRunnerServerFunction`. The middleware

@@ -30,7 +30,7 @@ export const ParsedCommand = ({
     return (
         <Flex align="center" gap="xs">
             <IconSucceeded />
-            <Text color="light">
+            <Text>
                 {t("form.configCommand.parsed", {
                     target: parsed.target.replace(/^https?:\/\//, ""),
                     token: maskToken(parsed.token),

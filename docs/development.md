@@ -50,6 +50,9 @@ components, which only render inside mStudio; the Vite plugin in
 `src/hooks/` (plus modules they import relatively) under the `local:` import prefix
 with the DOM-rendering `@mittwald/flow-react-components` swapped in.
 
+Modules served under the `local:` prefix are not watched: after a change in
+`src/components/` or `src/hooks/`, restart `pnpm run dev`.
+
 Not covered by local mode: session token handling, lifecycle webhooks, mStudio
 anchors. Real stacks are created in the project, delete them via the UI afterwards.
 

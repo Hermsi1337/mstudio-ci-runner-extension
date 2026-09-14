@@ -1,8 +1,7 @@
 import {
-    Button,
     Heading,
     Modal,
-    ModalTrigger,
+    type OverlayController,
 } from "@mittwald/flow-remote-react-components";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
@@ -13,19 +12,21 @@ import { RunnerForm } from "./RunnerForm.tsx";
  * Size l gives the form its two columns: fields left, the resources the
  * runner gets in the project right (ColumnLayout plus AccentBox inside
  * RunnerForm). Not dismissable by clicking outside so a half-filled form
- * does not vanish.
+ * does not vanish. Driven by a controller because a ModalTrigger inside the
+ * card header would hand the form's ActionGroup to the header's action slot.
  */
-export const CreateRunnerModal = () => {
+export const CreateRunnerModal = ({
+    controller,
+}: {
+    controller: OverlayController;
+}) => {
     const t = useTranslation();
     return (
-        <ModalTrigger>
-            <Button color="primary">{t("form.create.button")}</Button>
-            <Modal size="l" isDismissable={false}>
-                <Heading>{t("form.create.heading")}</Heading>
-                <ErrorBoundary FallbackComponent={ErrorFallback}>
-                    <RunnerForm />
-                </ErrorBoundary>
-            </Modal>
-        </ModalTrigger>
+        <Modal size="l" isDismissable={false} controller={controller}>
+            <Heading>{t("form.create.heading")}</Heading>
+            <ErrorBoundary FallbackComponent={ErrorFallback}>
+                <RunnerForm />
+            </ErrorBoundary>
+        </Modal>
     );
 };

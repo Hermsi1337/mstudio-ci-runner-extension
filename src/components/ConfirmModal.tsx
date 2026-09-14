@@ -4,32 +4,35 @@ import {
     Content,
     Heading,
     Modal,
-    ModalTrigger,
+    type OverlayController,
     Text,
-    useOverlayController,
 } from "@mittwald/flow-remote-react-components";
 import { useState } from "react";
 import { useTranslation } from "@/i18n/react.tsx";
 
-interface ConfirmButtonProps {
-    label: string;
+interface ConfirmModalProps {
+    controller: OverlayController;
     heading: string;
     text: string;
     confirmLabel: string;
     color: "primary" | "danger";
-    isDisabled?: boolean;
     onConfirm: () => Promise<unknown>;
 }
 
-const Confirmation = ({
+/**
+ * Asks before it acts. Driven by a controller so a context menu item can
+ * open it. Uses the controller directly instead of Flow's Action
+ * confirmation because closeOverlay did not work inside mStudio.
+ */
+export const ConfirmModal = ({
+    controller,
     heading,
     text,
     confirmLabel,
     color,
     onConfirm,
-}: Omit<ConfirmButtonProps, "label" | "isDisabled">) => {
+}: ConfirmModalProps) => {
     const t = useTranslation();
-    const modal = useOverlayController("Modal");
     const [pending, setPending] = useState(false);
 
     const confirm = async () => {
@@ -38,12 +41,12 @@ const Confirmation = ({
             await onConfirm();
         } finally {
             setPending(false);
-            modal.close();
+            controller.close();
         }
     };
 
     return (
-        <>
+        <Modal size="s" controller={controller}>
             <Heading>{heading}</Heading>
             <Content>
                 <Text>{text}</Text>
@@ -56,32 +59,11 @@ const Confirmation = ({
                     color="secondary"
                     variant="soft"
                     isDisabled={pending}
-                    onPress={modal.close}
+                    onPress={controller.close}
                 >
                     {t("form.cancel")}
                 </Button>
             </ActionGroup>
-        </>
+        </Modal>
     );
 };
-
-/**
- * A button that asks before it acts. Uses the overlay controller directly
- * instead of Flow's Action confirmation because closeOverlay did not work
- * inside mStudio.
- */
-export const ConfirmButton = ({
-    label,
-    isDisabled,
-    color,
-    ...confirmation
-}: ConfirmButtonProps) => (
-    <ModalTrigger>
-        <Button color={color} variant="soft" size="s" isDisabled={isDisabled}>
-            {label}
-        </Button>
-        <Modal size="s">
-            <Confirmation color={color} {...confirmation} />
-        </Modal>
-    </ModalTrigger>
-);
