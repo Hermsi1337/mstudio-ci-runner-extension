@@ -102,6 +102,10 @@ export const de: Messages = {
     "form.section.runner": "Runner",
     "form.section.resources": "Ressourcen",
     "form.configCommand.parsed": "Registriert bei {target}, Token {token}",
+    "form.snippet.heading": "In der Pipeline nutzen",
+    "form.snippet.text.github":
+        "Jobs erreichen diesen Runner über seine Labels in runs-on.",
+    "form.snippet.text.gitlab": "Jobs erreichen diesen Runner über seine Tags.",
     "form.provider.label": "CI-System",
     "form.name.label": "Name",
     "form.name.description": "Wird als Runner-Name im CI-System verwendet.",

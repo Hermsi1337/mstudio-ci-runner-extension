@@ -98,6 +98,10 @@ export const en = {
     "form.section.runner": "Runner",
     "form.section.resources": "Resources",
     "form.configCommand.parsed": "Registers at {target}, token {token}",
+    "form.snippet.heading": "Use in your pipeline",
+    "form.snippet.text.github":
+        "Jobs reach this runner through its labels in runs-on.",
+    "form.snippet.text.gitlab": "Jobs reach this runner through its tags.",
     "form.provider.label": "CI system",
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",

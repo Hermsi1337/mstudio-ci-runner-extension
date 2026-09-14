@@ -2,10 +2,12 @@ import {
     ActionGroup,
     Alert,
     Button,
+    CodeBlock,
     Content,
     Heading,
     Modal,
     ModalTrigger,
+    Section,
     Text,
     useOverlayController,
 } from "@mittwald/flow-remote-react-components";
@@ -27,6 +29,16 @@ import {
 } from "./ConcurrencyField.tsx";
 
 type FormValues = CacheFormValues & ConcurrencyFormValues;
+
+function pipelineSnippet(runner: Runner): string | null {
+    if (runner.labels.length === 0) {
+        return null;
+    }
+    const list = runner.labels.map((label) => `"${label}"`).join(", ");
+    return runner.provider === "github"
+        ? `jobs:\n  build:\n    runs-on: [self-hosted, ${list}]\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci && npm test`
+        : `build:\n  tags: [${list}]\n  script:\n    - npm ci && npm test`;
+}
 
 const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
     const t = useTranslation();
@@ -55,6 +67,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
         },
     );
     const changed = form.formState.isDirty;
+    const snippet = pipelineSnippet(runner);
 
     return (
         <Form form={form} onSubmit={handleSubmit}>
@@ -70,6 +83,13 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                     </Alert>
                 )}
                 <RootError />
+                {snippet && (
+                    <Section>
+                        <Heading level={4}>{t("form.snippet.heading")}</Heading>
+                        <Text>{t(`form.snippet.text.${runner.provider}`)}</Text>
+                        <CodeBlock code={snippet} language="yaml" copyable />
+                    </Section>
+                )}
             </Content>
             <ActionGroup>
                 <SubmitButton color="primary" isDisabled={!changed}>
