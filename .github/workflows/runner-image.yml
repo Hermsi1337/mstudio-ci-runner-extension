@@ -20,7 +20,7 @@ jobs:
           - provider: gitlab
             image: ghcr.io/hermsi1337/mstudio-ci-runner-gitlab
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Read the runner version from docker/runner/versions.json
         id: runner
         run: echo "version=$(jq -r '.${{ matrix.provider }}' docker/runner/versions.json)" >> "$GITHUB_OUTPUT"
