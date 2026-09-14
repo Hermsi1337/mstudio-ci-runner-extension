@@ -1,8 +1,3 @@
-import type { MittwaldAPIV2Client } from "@mittwald/api-client";
-import { createLogger } from "@/logger.ts";
-
-const log = createLogger("cache");
-
 /**
  * A persistent volume for package manager caches, independent of the provider.
  * Runners inherit these variables into every job, so caches survive jobs,
@@ -69,44 +64,4 @@ export function withCache(
         environment: { ...base.environment, ...cacheEnvironment },
         mounts: [...base.mounts, cacheMount],
     };
-}
-
-/**
- * mittwald keeps a volume as orphaned after the service stops mounting it, so
- * turning the cache off deletes it explicitly. 412 means the volume is still in
- * use, which happens while the redeclared service is being deployed; the volume
- * then stays orphaned in the stack and can be removed in mStudio.
- */
-export async function deleteCacheVolume(
-    client: MittwaldAPIV2Client,
-    stackId: string,
-): Promise<void> {
-    const listed = await client.container.listStackVolumes({ stackId });
-    if (listed.status !== 200) {
-        log.warn("cache volume lookup failed", {
-            stackId,
-            status: listed.status,
-        });
-        return;
-    }
-    const volume = listed.data.find((v) => v.name === CACHE_VOLUME);
-    if (!volume) {
-        return;
-    }
-    const deleted = await client.container.deleteVolume({
-        stackId,
-        volumeId: volume.id,
-    });
-    if (deleted.status !== 204) {
-        log.warn(
-            "cache volume deletion failed, it stays orphaned in the stack",
-            {
-                stackId,
-                volumeId: volume.id,
-                status: deleted.status,
-            },
-        );
-        return;
-    }
-    log.info("cache volume deleted", { stackId, volumeId: volume.id });
 }

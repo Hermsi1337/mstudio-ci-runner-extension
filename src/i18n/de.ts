@@ -13,7 +13,7 @@ export const de: Messages = {
     "runners.heading": "Runner",
     "runners.intro.heading": "So arbeiten Runner",
     "runners.intro":
-        "Jeder Runner ist ein eigener Container-Stack in diesem Projekt und registriert sich beim Start selbst bei GitHub oder GitLab. Jobs laufen direkt im Container. Leg so viele Runner an, wie du brauchst, für ein Repository oder für eine ganze Organisation oder Gruppe.",
+        "Runner desselben Repositorys, derselben Organisation oder GitLab-Instanz teilen sich einen Container-Stack in diesem Projekt; jeder Runner ist ein Container darin und registriert sich beim Start selbst. Jobs laufen direkt im Container. Leg so viele Runner an, wie du brauchst.",
     "runners.empty.heading": "Noch keine Runner",
     "runners.empty.text":
         'Lege über "Runner anlegen" den ersten CI-Runner in diesem Projekt an.',
@@ -61,11 +61,11 @@ export const de: Messages = {
         "Der Container wird mit Runner-Version {version} neu erstellt. Ein laufender Job bricht ab.",
     "runners.delete.heading": "{name} löschen?",
     "runners.delete.text.github.pat":
-        "Entfernt die Registrierung auf GitHub, den Container-Stack und seine Volumes inklusive Cache. Ein laufender Job bricht ab.",
+        "Entfernt die Registrierung auf GitHub, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab.",
     "runners.delete.text.github.registration":
-        "Entfernt den Container-Stack und seine Volumes inklusive Cache. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
+        "Entfernt den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
-        "Entfernt den Runner aus GitLab, den Container-Stack und seine Volumes inklusive Cache. Ein laufender Job bricht ab.",
+        "Entfernt den Runner aus GitLab, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab.",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty.heading": "Noch keine Ausgabe",
     "runners.logs.empty.text":
@@ -111,15 +111,17 @@ export const de: Messages = {
     "form.configure.warning.text":
         "Beim Speichern wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Volume tool-cache und seinen Cronjob.",
     "form.summary.heading": "Wird in diesem Projekt angelegt",
-    "form.summary.stack.label": "Stack: CI Runner ({provider}): {name}",
+    "form.summary.stack.label": "Stack: CI Runner: {target}",
     "form.summary.stack.text":
-        "Ein Container (Service runner), begrenzt auf {cpus} CPU und {memory} GB RAM.",
-    "form.summary.dataVolume.label": "Volume: runner-data",
+        "Ein Stack pro Repository, Organisation oder Instanz. Entsteht mit dem ersten Runner, die weiteren teilen ihn.",
+    "form.summary.service.label": "Container: {service}",
+    "form.summary.service.text": "Begrenzt auf {cpus} CPU und {memory} GB RAM.",
+    "form.summary.dataVolume.label": "Volume: {service}-runner-data",
     "form.summary.dataVolume.text.github":
         "Runner-Registrierung und Arbeitsverzeichnis: Checkouts, geladene Actions, Tool-Cache der setup-Actions.",
     "form.summary.dataVolume.text.gitlab":
         "Builds-Verzeichnis und der Speicher hinter dem cache:-Keyword in .gitlab-ci.yml.",
-    "form.summary.cacheVolume.label": "Volume: tool-cache",
+    "form.summary.cacheVolume.label": "Volume: {service}-tool-cache",
     "form.summary.cacheVolume.text":
         "Paketmanager-Cache. Die Belegung ist in mStudio separat sichtbar.",
     "form.summary.cronjob.label": "Cronjob: Cache aufräumen",

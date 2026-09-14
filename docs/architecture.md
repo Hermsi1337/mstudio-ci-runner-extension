@@ -47,16 +47,20 @@ Two Flow rules shape the components:
 3. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
    registration in the CI system where needed and returns image, environment, the
    `runner-data` volume and the credentials to store ([providers.md](providers.md)).
-4. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
-   requested ([providers.md](providers.md#package-manager-cache)), creates a stack
-   `CI Runner (<provider>): <name>` via `container.createStack` and declares the service
-   `runner` via `container.declareStack` with `restartPolicy: always` and the resource
+4. `src/domain/stack.ts` finds the stack of the registration target in `runner_stacks`
+   or creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
+   (extension instance, target URL) settles parallel creates: the loser deletes its
+   duplicate stack and uses the winner's.
+5. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
+   requested ([providers.md](providers.md#package-manager-cache)) and declares the
+   service `runner-<slug>` through `container.updateStack` (PATCH, so the other
+   runners of the stack stay untouched) with `restartPolicy: always` and the resource
    limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
-   `custom`).
-5. A row in `runners` links extension instance, provider, stack and service. The API
+   `custom`). Volumes carry the service name as prefix (`runner-<slug>-runner-data`).
+6. A row in `runners` links extension instance, provider, stack and service. The API
    derives `studioUrl` from them, the detail page of the container in mStudio, linked
-   from the runner name in the table.
-6. The container registers itself on start ([runner-image.md](runner-image.md)).
+   from the runner name in the list.
+7. The container registers itself on start ([runner-image.md](runner-image.md)).
 
 Other operations: list with live status (`container.getStack`), logs
 (`container.getServiceLogs`), restart (`container.restartService`), update to the
@@ -72,8 +76,8 @@ Tables in `src/db/schema.ts`:
 - `extension_instance`: managed by mitthooks (instance id, context, scopes, encrypted
   instance secret).
 - `runners`: one row per runner. Foreign key to `extension_instance` with
-  `ON DELETE CASCADE`. `provider`, `target`, `targetUrl` describe the registration
-  target. `credentials` is an encrypted column (`ENCRYPTION_MASTER_PASSWORD`,
+  `ON DELETE CASCADE`. `stackId` and `serviceName` locate the container; `provider`,
+  `target`, `targetUrl` describe the registration target. `credentials` is an encrypted column (`ENCRYPTION_MASTER_PASSWORD`,
   `ENCRYPTION_SALT`) holding provider-specific JSON, e.g. the GitLab runner token.
   `image` and `runnerVersion` record what the stack was declared with; `updateAvailable`
   in the API compares `image` with the image of the running extension release.
@@ -82,8 +86,10 @@ Tables in `src/db/schema.ts`:
   authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald
   cronjobs created for the runner (cache cleanup).
 
-One stack per runner, no shared stack. Deleting is a single `deleteStack` without
-touching other runners.
+One stack per registration target, one service per runner. Deleting removes the
+service (`updateStack` with `{}`) and its volumes, then the stack when no runner row
+points at it any more. Deleting the stack in mStudio removes every runner of that
+target; the list shows them as `missing`.
 
 ## Lifecycle webhooks
 

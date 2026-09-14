@@ -1,8 +1,4 @@
-import {
-    assertStatus,
-    type MittwaldAPIV2,
-    type MittwaldAPIV2Client,
-} from "@mittwald/api-client";
+import { assertStatus, type MittwaldAPIV2Client } from "@mittwald/api-client";
 import { desc, eq } from "drizzle-orm";
 import * as uuid from "uuid";
 import { getDatabase } from "@/db";
@@ -22,8 +18,8 @@ import {
 import { addLogContext, createLogger } from "@/logger.ts";
 import { runnerSizes } from "@/runner-sizes.ts";
 import {
+    CACHE_VOLUME,
     cacheTrimCronjob,
-    deleteCacheVolume,
     withCache,
     withoutCache,
 } from "./cache.ts";
@@ -32,13 +28,21 @@ import {
     getProviderById,
     type RunnerProvider,
 } from "./providers/index.ts";
+import {
+    declareService,
+    deleteStackIfEmpty,
+    deleteVolumes,
+    findOrCreateStack,
+    getStack,
+    prefixMounts,
+    removeService,
+    type ServiceResponse,
+    type StackResponse,
+    uniqueServiceName,
+    unprefixMounts,
+} from "./stack.ts";
 
 const log = createLogger("runner");
-
-type ServiceResponse =
-    MittwaldAPIV2.Components.Schemas.ContainerServiceResponse;
-type ServiceDeclaration =
-    MittwaldAPIV2.Components.Schemas.ContainerServiceDeclareRequest;
 
 export interface RunnerResources {
     size: RunnerSize;
@@ -75,7 +79,6 @@ function resourceLimits(resources: RunnerResources): {
     };
 }
 
-const SERVICE_KEY = "runner";
 const STUDIO_URL = "https://studio.mittwald.de";
 
 function studioUrl(row: RunnerRow, serviceId: string | null): string | null {
@@ -175,46 +178,6 @@ function withConcurrency(
     };
 }
 
-/**
- * Named mounts become stack volumes, bind mounts (leading slash) do not.
- */
-function volumeDeclarations(mounts: string[]) {
-    return Object.fromEntries(
-        mounts
-            .map((mount) => mount.split(":")[0])
-            .filter((name) => !name.startsWith("/"))
-            .map((name) => [name, { name }]),
-    );
-}
-
-async function declareService(
-    client: MittwaldAPIV2Client,
-    extensionInstanceId: string,
-    stackId: string,
-    serviceName: string,
-    service: ServiceDeclaration,
-): Promise<ServiceResponse | undefined> {
-    const declared = await client.container.declareStack({
-        stackId,
-        data: {
-            services: { [serviceName]: service },
-            volumes: volumeDeclarations(service.volumes ?? []),
-        },
-    });
-    if (declared.status === 403) {
-        throw new PermissionsInsufficientError(extensionInstanceId);
-    }
-    if (declared.status !== 200) {
-        throw new UpstreamError("error.upstream.stackDeclare", {
-            status: declared.status,
-        });
-    }
-    return (
-        declared.data.services?.find((s) => s.serviceName === serviceName) ??
-        declared.data.services?.[0]
-    );
-}
-
 async function createTrimCronjob(
     client: MittwaldAPIV2Client,
     row: Pick<NewRunnerRow, "projectId" | "stackId" | "name">,
@@ -290,21 +253,31 @@ async function findRunner(
     return row;
 }
 
+/**
+ * Null when the stack or the service is gone (deleted in mStudio), undefined
+ * when mittwald did not answer.
+ */
 async function fetchService(
     client: MittwaldAPIV2Client,
     row: RunnerRow,
 ): Promise<ServiceResponse | null | undefined> {
-    const response = await client.container.getStack({ stackId: row.stackId });
-    if ((response.status as number) === 404) {
-        return null;
+    const stack = await getStack(client, row.stackId);
+    if (!stack) {
+        return stack;
     }
-    if (response.status !== 200) {
-        return undefined;
-    }
+    return serviceOf(stack, row);
+}
+
+function serviceOf(
+    stack: StackResponse,
+    row: Pick<RunnerRow, "serviceId" | "serviceName">,
+): ServiceResponse | null {
     return (
-        response.data.services?.find((s) => s.serviceName === SERVICE_KEY) ??
-        response.data.services?.[0] ??
-        null
+        stack.services?.find(
+            (s) =>
+                s.serviceName === row.serviceName ||
+                (row.serviceId !== null && s.id === row.serviceId),
+        ) ?? null
     );
 }
 
@@ -318,9 +291,19 @@ export async function listRunners(
         .where(eq(runners.extensionInstanceId, extensionInstanceId))
         .orderBy(desc(runners.createdAt));
 
-    return Promise.all(
-        rows.map(async (row) => toView(row, await fetchService(client, row))),
+    const stacks = new Map(
+        await Promise.all(
+            [...new Set(rows.map((row) => row.stackId))].map(
+                async (stackId) =>
+                    [stackId, await getStack(client, stackId)] as const,
+            ),
+        ),
     );
+    return rows.map((row) => {
+        const stack = stacks.get(row.stackId);
+        const service = stack ? serviceOf(stack, row) : stack;
+        return toView(row, service);
+    });
 }
 
 export async function createRunner(
@@ -363,28 +346,36 @@ export async function createRunner(
         volumes: mounts,
     });
 
-    const created = await client.container.createStack({
-        projectId,
-        data: { description: `CI Runner (${provider.id}): ${input.name}` },
-    });
-    if (created.status === 403) {
+    let stackId: string;
+    try {
+        stackId = (
+            await findOrCreateStack(
+                client,
+                extensionInstanceId,
+                projectId,
+                prepared.targetUrl,
+                `CI Runner: ${prepared.target}`,
+            )
+        ).stackId;
+    } catch (error) {
         await provider.release(prepared.credentials).catch(() => undefined);
-        throw new PermissionsInsufficientError(extensionInstanceId);
+        throw error;
     }
-    if (created.status !== 201) {
-        await provider.release(prepared.credentials).catch(() => undefined);
-        throw new UpstreamError("error.upstream.stackCreate", {
-            status: created.status,
-        });
-    }
-    const stackId = created.data.id;
-    addLogContext({ stackId });
-    log.debug("stack created");
+    const serviceName = await uniqueServiceName(stackId, runnerName);
+    addLogContext({ stackId, serviceName });
 
     const cronjobIds: string[] = [];
     const rollback = async () => {
         await deleteCronjobs(client, cronjobIds);
-        await client.container.deleteStack({ stackId }).catch(() => undefined);
+        await removeService(
+            client,
+            extensionInstanceId,
+            stackId,
+            serviceName,
+        ).catch(() => undefined);
+        await deleteStackIfEmpty(client, extensionInstanceId, stackId).catch(
+            () => undefined,
+        );
         await provider.release(prepared.credentials).catch(() => undefined);
     };
 
@@ -394,7 +385,7 @@ export async function createRunner(
             client,
             extensionInstanceId,
             stackId,
-            SERVICE_KEY,
+            serviceName,
             {
                 description: `${provider.id} runner ${input.name}`,
                 image: prepared.image,
@@ -405,7 +396,7 @@ export async function createRunner(
                 ),
                 restartPolicy: "always",
                 deploy: { resources: { limits: resourceLimits(resources) } },
-                volumes: mounts,
+                volumes: prefixMounts(serviceName, mounts),
             },
         );
         if (cache && service) {
@@ -428,6 +419,7 @@ export async function createRunner(
         extensionInstanceId,
         projectId,
         stackId,
+        serviceName,
         serviceId: service?.id ?? null,
         provider: provider.id,
         name: input.name,
@@ -455,9 +447,12 @@ export async function createRunner(
             .values(row)
             .returning();
     } catch (error) {
-        log.error("runner row could not be stored, removing the stack again", {
-            error,
-        });
+        log.error(
+            "runner row could not be stored, removing the service again",
+            {
+                error,
+            },
+        );
         await rollback();
         throw error;
     }
@@ -549,7 +544,7 @@ export async function updateRunner(
         client,
         extensionInstanceId,
         row.stackId,
-        service.serviceName,
+        row.serviceName,
         {
             description: service.description,
             image,
@@ -613,15 +608,19 @@ export async function configureRunner(
         resourcesChanged
     ) {
         const state = service.pendingState ?? service.deployedState;
+        const plainMounts = unprefixMounts(
+            row.serviceName,
+            state.volumes ?? [],
+        );
         const { environment, mounts } = cache
-            ? withCache(state.envs ?? {}, state.volumes ?? [])
-            : withoutCache(state.envs ?? {}, state.volumes ?? []);
+            ? withCache(state.envs ?? {}, plainMounts)
+            : withoutCache(state.envs ?? {}, plainMounts);
         updatedService =
             (await declareService(
                 client,
                 extensionInstanceId,
                 row.stackId,
-                service.serviceName,
+                row.serviceName,
                 {
                     description: service.description,
                     image: state.image,
@@ -635,7 +634,7 @@ export async function configureRunner(
                         ...service.deploy,
                         resources: { limits: resourceLimits(resources) },
                     },
-                    volumes: mounts,
+                    volumes: prefixMounts(row.serviceName, mounts),
                     ports: state.ports,
                     command: state.command,
                     entrypoint: state.entrypoint,
@@ -668,7 +667,11 @@ export async function configureRunner(
     } else if (row.cache) {
         await deleteCronjobs(client, cronjobIds);
         cronjobIds = [];
-        await deleteCacheVolume(client, row.stackId);
+        await deleteVolumes(
+            client,
+            row.stackId,
+            (name) => name === `${row.serviceName}-${CACHE_VOLUME}`,
+        );
     }
 
     const [updated] = await getDatabase()
@@ -707,24 +710,28 @@ export async function deleteRunner(
 ): Promise<void> {
     const row = await findRunner(extensionInstanceId, runnerId);
     await deleteCronjobs(client, parseCronjobIds(row));
-    const response = await client.container.deleteStack({
-        stackId: row.stackId,
-    });
-    if (response.status === 403) {
-        throw new PermissionsInsufficientError(extensionInstanceId);
-    }
-    if (response.status !== 204 && response.status !== 404) {
-        throw new UpstreamError("error.upstream.stackDelete", {
-            status: response.status,
-        });
+    const stack = await getStack(client, row.stackId);
+    if (stack) {
+        await removeService(
+            client,
+            extensionInstanceId,
+            row.stackId,
+            row.serviceName,
+        );
     }
     await releaseProviderRegistration(row);
     await getDatabase().delete(runners).where(eq(runners.id, row.id));
+    const stackDeleted = await deleteStackIfEmpty(
+        client,
+        extensionInstanceId,
+        row.stackId,
+    );
     log.info("runner deleted", {
         runnerId,
         provider: row.provider,
         stackId: row.stackId,
-        stackStatus: response.status,
+        serviceName: row.serviceName,
+        stackDeleted,
     });
 }
 
@@ -750,15 +757,16 @@ export async function deleteAllRunnersOfInstance(
 ): Promise<void> {
     for (const row of rows) {
         await deleteCronjobs(client, parseCronjobIds(row));
+        await releaseProviderRegistration(row);
+    }
+    for (const stackId of new Set(rows.map((row) => row.stackId))) {
         try {
-            await client.container.deleteStack({ stackId: row.stackId });
+            await client.container.deleteStack({ stackId });
         } catch (error) {
             log.error("stack deletion failed during instance cleanup", {
-                runnerId: row.id,
-                stackId: row.stackId,
+                stackId,
                 error,
             });
         }
-        await releaseProviderRegistration(row);
     }
 }

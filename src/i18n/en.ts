@@ -11,7 +11,7 @@ export const en = {
     "runners.heading": "Runners",
     "runners.intro.heading": "How runners work",
     "runners.intro":
-        "Each runner is its own container stack in this project and registers itself with GitHub or GitLab on start. Jobs run directly in the container. Create as many runners as you need, for one repository or for a whole organization or group.",
+        "Runners of the same repository, organization or GitLab instance share one container stack in this project; every runner is a container in it and registers itself on start. Jobs run directly in the container. Create as many runners as you need.",
     "runners.empty.heading": "No runners yet",
     "runners.empty.text":
         'Use "Create runner" to add the first CI runner to this project.',
@@ -57,11 +57,11 @@ export const en = {
         "The container is recreated with runner version {version}. A running job is cancelled.",
     "runners.delete.heading": "Delete {name}?",
     "runners.delete.text.github.pat":
-        "Removes the registration on GitHub, the container stack and its volumes, including the cache. A running job is cancelled.",
+        "Removes the registration on GitHub, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled.",
     "runners.delete.text.github.registration":
-        "Removes the container stack and its volumes, including the cache. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
+        "Removes the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
-        "Removes the runner from GitLab, the container stack and its volumes, including the cache. A running job is cancelled.",
+        "Removes the runner from GitLab, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled.",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty.heading": "No output yet",
     "runners.logs.empty.text":
@@ -107,15 +107,17 @@ export const en = {
     "form.configure.warning.text":
         "Saving redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the tool-cache volume and its cronjob.",
     "form.summary.heading": "Created in this project",
-    "form.summary.stack.label": "Stack: CI Runner ({provider}): {name}",
+    "form.summary.stack.label": "Stack: CI Runner: {target}",
     "form.summary.stack.text":
-        "One container (service runner) limited to {cpus} CPU and {memory} GB RAM.",
-    "form.summary.dataVolume.label": "Volume: runner-data",
+        "One stack per repository, organization or instance. Created with the first runner, shared by the others.",
+    "form.summary.service.label": "Container: {service}",
+    "form.summary.service.text": "Limited to {cpus} CPU and {memory} GB RAM.",
+    "form.summary.dataVolume.label": "Volume: {service}-runner-data",
     "form.summary.dataVolume.text.github":
         "Runner registration and work directory: checkouts, downloaded actions, tool cache of the setup actions.",
     "form.summary.dataVolume.text.gitlab":
         "Builds directory and the storage behind the cache: keyword in .gitlab-ci.yml.",
-    "form.summary.cacheVolume.label": "Volume: tool-cache",
+    "form.summary.cacheVolume.label": "Volume: {service}-tool-cache",
     "form.summary.cacheVolume.text":
         "Package manager cache. Its usage shows separately in mStudio.",
     "form.summary.cronjob.label": "Cronjob: cache cleanup",

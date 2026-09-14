@@ -39,17 +39,19 @@ and reaches your databases and apps in the same project without a tunnel.
 ```mermaid
 flowchart LR
     U[You, in mStudio] -->|Create runner| E[Extension]
-    E -->|createStack + declareStack| M[mittwald Container Hosting]
+    E -->|one stack per repository, one service per runner| M[mittwald Container Hosting]
     M --> C[Runner container]
     C -->|registers itself| G[GitHub or GitLab]
     G -->|jobs| C
     C -.->|package cache volume| V[(tool-cache)]
 ```
 
-Every runner is one container stack in the project: a service `runner` with the CPU
-and memory limits of its size, a volume for its registration and work directory, and
-optionally a cache volume plus a cronjob that keeps it below its limit. Deleting a
-runner deletes the stack and, where a token allows it, the registration.
+Runners of one repository, organization or GitLab instance share a container stack
+in the project. Every runner is a service in it with the CPU and memory limits of its
+size, a volume for its registration and work directory, and optionally a cache volume
+plus a cronjob that keeps it below its limit. Deleting a runner removes its service
+and volumes, the last one takes the stack with it, and where a token allows it, the
+registration.
 
 ## Limitations
 
@@ -59,8 +61,7 @@ Rust, Bash, deploys via SSH/rsync) work. GitHub `container:`, `services:`,
 
 ## Quick start
 
-For users: install the extension from the mStudio marketplace in your project and
-open "CI Runners".
+For users: add the extension to your mStudio project and open "CI Runners".
 
 For developers:
 

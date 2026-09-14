@@ -3,6 +3,7 @@ import {
     Heading,
     IconContainer,
     IconCronjob,
+    IconProject,
     IconVolume,
     Label,
     LabeledValue,
@@ -17,6 +18,7 @@ import { runnerSizes, toMemoryGb } from "@/runner-sizes.ts";
 interface CreatedResourcesProps {
     provider: Provider;
     name: string;
+    target: string;
     size: RunnerSize;
     cpus: number;
     memoryGb: number;
@@ -26,11 +28,13 @@ interface CreatedResourcesProps {
 
 /**
  * mittwald volumes carry no description, so the create form explains every
- * resource the runner gets in the project before the user creates it.
+ * resource the runner gets in the project before the user creates it. The
+ * service name mirrors slugify() in the domain.
  */
 export const CreatedResources = ({
     provider,
     name,
+    target,
     size,
     cpus,
     memoryGb,
@@ -38,6 +42,13 @@ export const CreatedResources = ({
     cacheSizeGb,
 }: CreatedResourcesProps) => {
     const t = useTranslation();
+    const serviceName = `runner-${
+        name
+            .toLowerCase()
+            .replace(/[^a-z0-9-]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 40) || "…"
+    }`;
     const limits =
         size === "custom"
             ? { cpus, memoryGb }
@@ -53,12 +64,15 @@ export const CreatedResources = ({
     }[] = [
         {
             key: "stack",
+            icon: <IconProject />,
+            label: t("form.summary.stack.label", { target: target || "…" }),
+            text: t("form.summary.stack.text"),
+        },
+        {
+            key: "service",
             icon: <IconContainer />,
-            label: t("form.summary.stack.label", {
-                provider,
-                name: name || "…",
-            }),
-            text: t("form.summary.stack.text", {
+            label: t("form.summary.service.label", { service: serviceName }),
+            text: t("form.summary.service.text", {
                 cpus: limits.cpus,
                 memory: limits.memoryGb,
             }),
@@ -66,7 +80,7 @@ export const CreatedResources = ({
         {
             key: "runner-data",
             icon: <IconVolume />,
-            label: t("form.summary.dataVolume.label"),
+            label: t("form.summary.dataVolume.label", { service: serviceName }),
             text: t(`form.summary.dataVolume.text.${provider}`),
         },
         ...(cache
@@ -74,7 +88,9 @@ export const CreatedResources = ({
                   {
                       key: "tool-cache",
                       icon: <IconVolume />,
-                      label: t("form.summary.cacheVolume.label"),
+                      label: t("form.summary.cacheVolume.label", {
+                          service: serviceName,
+                      }),
                       text: t("form.summary.cacheVolume.text"),
                   },
                   {

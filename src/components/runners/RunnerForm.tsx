@@ -154,6 +154,14 @@ export const RunnerForm = () => {
     const runnerType = form.watch("runnerType");
     const instanceUrl = form.watch("instanceUrl").replace(/\/+$/, "");
     const configCommand = form.watch("configCommand");
+    const target = form.watch("target");
+    const parsedTarget =
+        tokenType === "registration"
+            ? parseConfigCommand(provider, configCommand)?.target
+            : undefined;
+    const summaryTarget = (
+        parsedTarget ?? (provider === "github" ? target : instanceUrl)
+    ).replace(/^https?:\/\//, "");
 
     useEffect(() => {
         if (provider !== "github" || tokenType !== "registration") {
@@ -691,6 +699,7 @@ export const RunnerForm = () => {
                     <CreatedResources
                         provider={provider}
                         name={name}
+                        target={summaryTarget}
                         size={size}
                         cpus={cpus}
                         memoryGb={memoryGb}

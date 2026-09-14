@@ -33,8 +33,14 @@ on import, so tests import them after the containers started via `await import(.
 | File | Verifies |
 |---|---|
 | `database.test.ts` | Migrations, encrypted column `credentials`, cascade delete |
-| `runner-lifecycle.test.ts` | Per provider case (GitHub repo, GitLab project, GitLab instance): `createRunner` → `listRunners` → logs/restart → `deleteRunner` against the Prism mocks; tenant isolation; input errors |
+| `runner-lifecycle.test.ts` | Per provider case (GitHub repo, GitLab project, GitLab instance): `createRunner` → `listRunners` → logs/restart → settings → `deleteRunner` against the Prism mocks; two runners sharing a stack; tenant isolation; input errors |
 | `runner-image.test.ts` | Per image: builds with `RUNNER_VERSION` from `docker/runner/versions.json`, entrypoint reaches registration with the configured values, runs as user `runner` |
+
+Prism answers with the static examples of the upstream spec: every `createStack` returns
+the same stack id and every stack reports the same example service. The domain matches
+a service by name or by the id it stored, and treats a stack with a single service as
+its own, so the lifecycle tests pass against the mock; a test with two different
+targets cannot exist here.
 
 Prism rejects requests that contradict the upstream spec. The request bodies of the
 extension are therefore checked against the real API contracts without the real APIs.

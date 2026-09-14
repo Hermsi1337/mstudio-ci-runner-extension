@@ -1,7 +1,7 @@
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { CreateRunnerRequest } from "@/generated/extension-api";
+import type { CreateRunnerRequest, Runner } from "@/generated/extension-api";
 import { zRunner, zRunnerList } from "@/generated/extension-api/zod.gen";
 import { setTestEnvironment } from "../helpers/env.ts";
 import { startPostgres } from "../helpers/postgres.ts";
@@ -20,6 +20,7 @@ let client: ReturnType<
     typeof import("@/mittwald/client.ts")["createMittwaldClient"]
 >;
 let db: ReturnType<typeof import("@/db/index.ts")["getDatabase"]>;
+let schema: typeof import("@/db/schema.ts");
 
 const extensionInstanceId = "11111111-1111-1111-1111-111111111111";
 const projectId = "22222222-2222-2222-2222-222222222222";
@@ -38,7 +39,7 @@ beforeAll(async () => {
         GITLAB_API_URL: gitlab.url,
     });
 
-    const schema = await import("@/db/schema.ts");
+    schema = await import("@/db/schema.ts");
     db = (await import("@/db/index.ts")).getDatabase();
     await db.insert(schema.extensionInstances).values({
         id: extensionInstanceId,
@@ -238,7 +239,7 @@ describe.each(cases)("runner lifecycle: $title", ({
     });
 
     it("updates a runner that runs an older image", async () => {
-        const schema = await import("@/db/schema.ts");
+        schema = await import("@/db/schema.ts");
         await db
             .update(schema.runners)
             .set({
@@ -341,6 +342,62 @@ describe.each(cases)("runner lifecycle: $title", ({
         await runner.deleteRunner(client, extensionInstanceId, runnerId);
         const list = await runner.listRunners(client, extensionInstanceId);
         expect(list.find((r) => r.id === runnerId)).toBeUndefined();
+    });
+});
+
+/**
+ * Prism answers every createStack with the same example id, so a second
+ * target cannot be told apart from the first here; only the shared case is
+ * covered.
+ */
+describe("shared stacks", () => {
+    const shared = {
+        provider: "github" as const,
+        target: "acme/shared",
+        tokenType: "registration" as const,
+        token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+    };
+    let first: Runner;
+    let second: Runner;
+
+    it("puts runners of the same target into one stack with distinct services", async () => {
+        first = await runner.createRunner(
+            client,
+            extensionInstanceId,
+            projectId,
+            userId,
+            { ...shared, name: "Build" },
+        );
+        second = await runner.createRunner(
+            client,
+            extensionInstanceId,
+            projectId,
+            userId,
+            { ...shared, name: "Build" },
+        );
+        expect(second.stackId).toBe(first.stackId);
+        const [a, b] = await db
+            .select({ serviceName: schema.runners.serviceName })
+            .from(schema.runners)
+            .where(eq(schema.runners.stackId, first.stackId));
+        expect(a?.serviceName).toBe("runner-build");
+        expect(b?.serviceName).toBe("runner-build-2");
+    });
+
+    it("keeps the stack while a runner remains and drops it with the last one", async () => {
+        await runner.deleteRunner(client, extensionInstanceId, first.id);
+        const [kept] = await db
+            .select()
+            .from(schema.runnerStacks)
+            .where(eq(schema.runnerStacks.stackId, first.stackId));
+        expect(kept).toBeDefined();
+
+        await runner.deleteRunner(client, extensionInstanceId, second.id);
+        const [gone] = await db
+            .select()
+            .from(schema.runnerStacks)
+            .where(eq(schema.runnerStacks.stackId, first.stackId));
+        expect(gone).toBeUndefined();
     });
 });
 

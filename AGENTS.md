@@ -122,7 +122,8 @@ scripts/slim-openapi.ts      produces openapi/upstream
 scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
 scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
-src/domain/runner.ts         provider-neutral domain logic (stack lifecycle)
+src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
+src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
 src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
 src/domain/providers/        one module per CI provider, registry in index.ts
 src/serverFunctions/         TanStack server functions: validation and delegation only

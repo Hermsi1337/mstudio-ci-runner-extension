@@ -9,6 +9,7 @@ import {
     real,
     text,
     timestamp,
+    unique,
     varchar,
 } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core/table";
@@ -24,6 +25,27 @@ const encryptedText = buildEncryptedTextColumn(
 
 export const extensionInstances = buildExtensionInstanceTable(encryptedText);
 
+/**
+ * One container stack per registration target and extension instance. Every
+ * runner of that target is a service inside it, so the stack list in mStudio
+ * mirrors the repositories, organizations and GitLab instances.
+ */
+export const runnerStacks = pgTable(
+    "runner_stacks",
+    {
+        stackId: varchar({ length: 36 }).primaryKey(),
+        extensionInstanceId: varchar({ length: 36 })
+            .notNull()
+            .references(() => extensionInstances.id, { onDelete: "cascade" }),
+        projectId: varchar({ length: 36 }).notNull(),
+        targetUrl: text().notNull(),
+        createdAt: timestamp().defaultNow().notNull(),
+    },
+    (table) => [unique().on(table.extensionInstanceId, table.targetUrl)],
+);
+
+export type RunnerStackRow = typeof runnerStacks.$inferSelect;
+
 export const runners = pgTable("runners", {
     id: varchar({ length: 36 }).primaryKey(),
     extensionInstanceId: varchar({ length: 36 })
@@ -31,6 +53,7 @@ export const runners = pgTable("runners", {
         .references(() => extensionInstances.id, { onDelete: "cascade" }),
     projectId: varchar({ length: 36 }).notNull(),
     stackId: varchar({ length: 36 }).notNull(),
+    serviceName: varchar({ length: 63 }).notNull().default("runner"),
     serviceId: varchar({ length: 64 }),
     provider: varchar({ length: 32 }).notNull(),
     name: varchar({ length: 64 }).notNull(),

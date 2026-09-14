@@ -18,9 +18,11 @@ deletion) is shared.
 
 Every provider returns `DATA_VOLUME_MOUNT` (`runner-data:/home/runner/data`) as its
 only volume; the images keep all persistent state below that directory
-([runner-image.md](runner-image.md#volumes)).
+([runner-image.md](runner-image.md#volumes)). The domain prefixes volume names with
+the service name before declaring them, so runners sharing a stack keep separate
+volumes.
 
-`updateRunner` in `src/domain/runner.ts` redeclares the stack with `currentImage()` and
+`updateRunner` in `src/domain/runner.ts` redeclares the service with `currentImage()` and
 the service state mittwald reports, so providers need no update hook. GitHub runners
 keep their registration in the `runner-data` volume, GitLab runners keep their runner token.
 
