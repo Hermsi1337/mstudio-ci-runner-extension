@@ -28,6 +28,8 @@ const sources: Source[] = [
             "/v2/stacks/{stackId}/services/{serviceId}",
             "/v2/stacks/{stackId}/services/{serviceId}/logs",
             "/v2/stacks/{stackId}/services/{serviceId}/actions/restart",
+            "/v2/projects/{projectId}/cronjobs",
+            "/v2/cronjobs/{cronjobId}",
             "/v2/extension-instances/{extensionInstanceId}/tokens",
             "/v2/authenticate-session-token",
             "/v2/public-keys/{serial}",

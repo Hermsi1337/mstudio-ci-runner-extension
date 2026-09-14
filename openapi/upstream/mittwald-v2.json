@@ -673,6 +673,359 @@
         ]
       }
     },
+    "/v2/projects/{projectId}/cronjobs": {
+      "post": {
+        "operationId": "cronjob-create-cronjob",
+        "parameters": [
+          {
+            "description": "ID of the Project you want to create a Cronjob for.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobRequest"
+              }
+            }
+          },
+          "description": "cronjob",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Create a Cronjob.",
+        "tags": [
+          "Cronjob"
+        ]
+      },
+      "get": {
+        "operationId": "cronjob-list-cronjobs",
+        "parameters": [
+          {
+            "description": "ID of the Project for which to list Cronjobs for.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to true if response should include service cronjobs",
+            "in": "query",
+            "name": "includeServiceCronjobs",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "ID of the Stack for which to list Cronjobs for. Requires includeServiceCronjobs=true.",
+            "in": "query",
+            "name": "stackId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The max count of resources to return in the list response.",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 0
+            },
+            "required": false
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of items to skip. Should be multiple of `limit`.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "required": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page to display. `skip` and `page` end up doing the same. If both `page` and `skip` are set, skip is used.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/de.mittwald.v1.cronjob.Cronjob"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-Pagination-Limit": {
+                "description": "The limit used to select the resources for the response",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Skip": {
+                "description": "The number of skipped items",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Pagination-Page": {
+                "description": "The calculate page of the list response. Refer to parameters to learn more.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Pagination-TotalCount": {
+                "description": "The total amount of items available in the remote ressource. Use this value in combination with the limit to calculate the available pages.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "List Cronjobs belonging to a Project.",
+        "tags": [
+          "Cronjob"
+        ]
+      }
+    },
+    "/v2/cronjobs/{cronjobId}": {
+      "delete": {
+        "operationId": "cronjob-delete-cronjob",
+        "parameters": [
+          {
+            "description": "ID of the Cronjob to delete.",
+            "in": "path",
+            "name": "cronjobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Delete a Cronjob.",
+        "tags": [
+          "Cronjob"
+        ]
+      },
+      "get": {
+        "operationId": "cronjob-get-cronjob",
+        "parameters": [
+          {
+            "description": "ID of the Cronjob to be retrieved.",
+            "in": "path",
+            "name": "cronjobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.cronjob.Cronjob"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get a Cronjob.",
+        "tags": [
+          "Cronjob"
+        ]
+      },
+      "patch": {
+        "operationId": "cronjob-update-cronjob",
+        "parameters": [
+          {
+            "description": "ID of the Cronjob to be updated.",
+            "in": "path",
+            "name": "cronjobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "concurrencyPolicy": {
+                    "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ConcurrencyPolicy"
+                  },
+                  "description": {
+                    "example": "i am a cronjob",
+                    "type": "string"
+                  },
+                  "destination": {
+                    "description": "deprecated, use target instead",
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobUrl"
+                      },
+                      {
+                        "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobCommand"
+                      }
+                    ]
+                  },
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "failedExecutionAlertThreshold": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "interval": {
+                    "example": "*/5 * * * *",
+                    "type": "string"
+                  },
+                  "target": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/de.mittwald.v1.cronjob.AppInstallationTarget"
+                      },
+                      {
+                        "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ServiceTarget"
+                      }
+                    ]
+                  },
+                  "timeZone": {
+                    "type": "string"
+                  },
+                  "timeout": {
+                    "maximum": 86400,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Update a Cronjob.",
+        "tags": [
+          "Cronjob"
+        ]
+      }
+    },
     "/v2/extension-instances/{extensionInstanceId}/tokens": {
       "post": {
         "operationId": "extension-authenticate-instance",
@@ -1288,6 +1641,269 @@
         ],
         "type": "object"
       },
+      "de.mittwald.v1.cronjob.CronjobRequest": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "appId": {
+            "deprecated": true,
+            "description": "DEPRECATED: Use 'target.AppInstallationTarget' instead. This field will be removed in a future version.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "appInstallationId": {
+            "description": "DEPRECATED: Use 'target.AppInstallationTarget' instead. This field will be removed in a future version.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "concurrencyPolicy": {
+            "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ConcurrencyPolicy"
+          },
+          "description": {
+            "example": "i am a cronjob",
+            "type": "string"
+          },
+          "destination": {
+            "description": "DEPRECATED: Use 'target.AppInstallationTarget' instead. This field will be removed in a future version.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobUrl"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobCommand"
+              }
+            ]
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "failedExecutionAlertThreshold": {
+            "maximum": 80,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "interval": {
+            "example": "*/5 * * * *",
+            "type": "string"
+          },
+          "target": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.AppInstallationTarget"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ServiceTarget"
+              }
+            ]
+          },
+          "timeZone": {
+            "example": "Europe/Berlin",
+            "type": "string"
+          },
+          "timeout": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "description",
+          "interval",
+          "active",
+          "timeout"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.Cronjob": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "appId": {
+            "deprecated": true,
+            "description": "DEPRECATED: Use 'appInstallationId' instead. This field will be removed in a future version.",
+            "type": "string"
+          },
+          "appInstallationId": {
+            "description": "DEPRECATED: Use 'target.appCronjob' instead. This field will be removed in a future version.",
+            "type": "string"
+          },
+          "concurrencyPolicy": {
+            "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ConcurrencyPolicy"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "example": "i am a cronjob",
+            "type": "string"
+          },
+          "destination": {
+            "description": "DEPRECATED: Use 'target.' instead. This field will be removed in a future version.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobUrl"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobCommand"
+              }
+            ]
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "failedExecutionAlertThreshold": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "interval": {
+            "example": "*/5 * * * *",
+            "type": "string"
+          },
+          "latestExecution": {
+            "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobExecution"
+          },
+          "nextExecutionTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shortId": {
+            "example": "cron-bd26li",
+            "type": "string"
+          },
+          "target": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.AppInstallationTarget"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.ServiceTargetResponse"
+              }
+            ]
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "timeout": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "appId",
+          "shortId",
+          "interval",
+          "active",
+          "createdAt",
+          "updatedAt",
+          "description",
+          "timeout",
+          "failedExecutionAlertThreshold"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.ConcurrencyPolicy": {
+        "enum": [
+          "allow",
+          "forbid",
+          "replace"
+        ],
+        "type": "string"
+      },
+      "de.mittwald.v1.cronjob.CronjobUrl": {
+        "properties": {
+          "url": {
+            "example": "https://mydomain.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.CronjobCommand": {
+        "properties": {
+          "interpreter": {
+            "example": "/usr/bin/bash",
+            "type": "string"
+          },
+          "parameters": {
+            "example": "--debug",
+            "type": "string"
+          },
+          "path": {
+            "example": "/html/my-wordpress/script.sh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "interpreter",
+          "path"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.AppInstallationTarget": {
+        "properties": {
+          "appInstallationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "destination": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobUrl"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.cronjob.CronjobCommand"
+              }
+            ]
+          }
+        },
+        "required": [
+          "appInstallationId",
+          "destination"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.ServiceTarget": {
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "serviceIdentifier": {
+            "type": "string"
+          },
+          "stackId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stackId",
+          "serviceIdentifier",
+          "command"
+        ],
+        "type": "object"
+      },
       "de.mittwald.v1.marketplace.PublicKey": {
         "properties": {
           "algorithm": {
@@ -1493,6 +2109,109 @@
           "stopping"
         ],
         "type": "string"
+      },
+      "de.mittwald.v1.cronjob.CronjobExecution": {
+        "properties": {
+          "abortedBy": {
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "cronjobId": {
+            "type": "string"
+          },
+          "durationInMilliseconds": {
+            "example": 12374,
+            "format": "int64",
+            "type": "integer"
+          },
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "executionEnd": {
+            "deprecated": true,
+            "format": "date-time",
+            "type": "string"
+          },
+          "executionStart": {
+            "deprecated": true,
+            "format": "date-time",
+            "type": "string"
+          },
+          "exitCode": {
+            "example": 0,
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "example": "cron-bd26li-28027320",
+            "type": "string"
+          },
+          "logPath": {
+            "example": "/var/log/cronjobs/cron-bd26li-28027320.log",
+            "type": "string"
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "Complete",
+              "Failed",
+              "AbortedBySystem",
+              "Pending",
+              "Running",
+              "AbortedByUser",
+              "TimedOut"
+            ],
+            "type": "string"
+          },
+          "successful": {
+            "type": "boolean"
+          },
+          "triggeredBy": {
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "successful",
+          "cronjobId"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.cronjob.ServiceTargetResponse": {
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "serviceShortId": {
+            "type": "string"
+          },
+          "stackId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stackId",
+          "serviceShortId",
+          "command"
+        ],
+        "type": "object"
       },
       "de.mittwald.v1.commons.ValidationErrorSchema": {
         "type": "object",

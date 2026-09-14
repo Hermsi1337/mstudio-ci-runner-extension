@@ -45,7 +45,13 @@ beforeAll(async () => {
         contextId: projectId,
         context: "project",
         active: true,
-        consentedScopes: ["stack:read", "stack:write", "stack:delete"],
+        consentedScopes: [
+            "stack:read",
+            "stack:write",
+            "stack:delete",
+            "cronjob:write",
+            "cronjob:delete",
+        ],
         secret: "instance-secret",
     });
 
@@ -80,6 +86,7 @@ const cases: {
             token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
             size: "small",
             cache: true,
+            cacheSizeGb: 20,
         },
         expect: {
             provider: "github",

@@ -32,8 +32,9 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && mkdir -p ${RUNNER_HOME}/.gitlab-runner ${RUNNER_HOME}/builds ${RUNNER_HOME}/cache \
     && chown -R runner:runner ${RUNNER_HOME}
 
-COPY --chown=runner:runner entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY --chown=runner:runner gitlab/entrypoint.sh /entrypoint.sh
+COPY --chown=runner:runner common/trim-cache.sh /usr/local/bin/trim-cache.sh
+RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh
 
 USER runner
 WORKDIR ${RUNNER_HOME}

@@ -135,6 +135,13 @@ export const de: Messages = {
     "form.cache.label": "Dauerhafter Cache für Paketmanager",
     "form.cache.help":
         "Legt ein Volume unter /home/runner/.cache an und richtet npm, pnpm, yarn, pip, Composer und Go darauf aus (XDG_CACHE_HOME plus die tool-eigenen Variablen). Downloads früherer Jobs werden wiederverwendet, Installationen laufen schneller. Das Volume übersteht Jobs, Neustarts und Updates und wächst, bis du den Runner löschst.",
+    "form.cacheSize.label": "Cache-Limit (GB)",
+    "form.cacheSize.description":
+        "Ein stündlicher Cronjob im Projekt löscht die ältesten Dateien oberhalb dieses Limits.",
+    "form.cacheSize.required": "Cache-Limit fehlt",
+    "form.cacheSize.range": "Gib einen Wert zwischen 1 und 500 GB an",
+    "form.cacheSize.help":
+        "mittwald-Volumes haben selbst kein Größenlimit, daher legt die Extension im Projekt einen Cronjob an, der stündlich im Runner-Container läuft. Er löscht die am längsten nicht geänderten Dateien, bis der Cache ins Limit passt. Der Cronjob wird mit dem Runner entfernt.",
     "form.size.help":
         "CPU- und Speicherlimit des Runner-Containers, zählt zu den Container-Hosting-Ressourcen dieses Projekts. Klein reicht für Skripte und Deployments, Mittel für Builds mit npm oder Composer, Groß für parallele Testsuiten.",
 
@@ -156,6 +163,8 @@ export const de: Messages = {
         "Die Logs konnten nicht geladen werden (Status {status}).",
     "error.upstream.stackDelete":
         "Der Stack konnte nicht gelöscht werden (Status {status}).",
+    "error.upstream.cronjobCreate":
+        "mittwald konnte den Aufräum-Cronjob für den Cache nicht anlegen (Status {status}). Die Extension braucht die Cronjob-Scopes.",
     "error.github.unreachable": "GitHub ist nicht erreichbar: {reason}",
     "error.github.tokenInvalid": "Das GitHub-Token ist ungültig.",
     "error.github.noAccessRepo":

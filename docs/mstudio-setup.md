@@ -12,12 +12,15 @@ Details: [mittwald developer portal, contributor](https://developer.mittwald.de/
 | Field | Value |
 |---|---|
 | Context | **Project** (stacks belong to a project) |
-| Scopes | `project:read`, `stack:read`, `stack:write`, `stack:delete` |
+| Scopes | `project:read`, `stack:read`, `stack:write`, `stack:delete`, `cronjob:write`, `cronjob:delete` |
 | Webhooks (all four) | `https://<extension-host>/api/webhooks/mittwald` |
 | Frontend fragment | Anchor *project menu* (or the anchor of your choice), URL `https://<extension-host>/` |
 
 There are no `container:*` scopes. The container endpoints are named `container-*`,
-the scope is called `stack`.
+the scope is called `stack`. The cronjob scopes cover the cache cleanup cronjob the
+extension creates per runner with a cache limit ([providers.md](providers.md)).
+Adding scopes to an existing extension requires every installed instance to consent
+again.
 
 After creation:
 

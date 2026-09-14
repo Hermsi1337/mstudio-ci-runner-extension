@@ -69,6 +69,32 @@ function slugify(name: string): string {
         .slice(0, 40);
 }
 
+function parseCronjobIds(row: RunnerRow): string[] {
+    try {
+        const parsed = JSON.parse(row.cronjobIds) as unknown;
+        return Array.isArray(parsed) ? parsed.filter(isString) : [];
+    } catch {
+        return [];
+    }
+}
+
+function isString(value: unknown): value is string {
+    return typeof value === "string";
+}
+
+async function deleteCronjobs(
+    client: MittwaldAPIV2Client,
+    cronjobIds: string[],
+): Promise<void> {
+    for (const cronjobId of cronjobIds) {
+        try {
+            await client.cronjob.deleteCronjob({ cronjobId });
+        } catch (error) {
+            log.warn("cronjob deletion failed", { cronjobId, error });
+        }
+    }
+}
+
 function parseCredentials(row: RunnerRow): Record<string, string> {
     try {
         return JSON.parse(row.credentials) as Record<string, string>;
@@ -205,6 +231,44 @@ export async function createRunner(
         declared.data.services?.find((s) => s.serviceName === SERVICE_KEY) ??
         declared.data.services?.[0];
 
+    const cronjobIds: string[] = [];
+    const rollback = async () => {
+        await deleteCronjobs(client, cronjobIds);
+        await client.container.deleteStack({ stackId }).catch(() => undefined);
+        await provider.release(prepared.credentials).catch(() => undefined);
+    };
+    for (const cronjob of prepared.cronjobs) {
+        if (!service) {
+            break;
+        }
+        const created = await client.cronjob.createCronjob({
+            projectId,
+            data: {
+                description: `${cronjob.description} (${input.name})`,
+                interval: cronjob.interval,
+                active: true,
+                timeout: cronjob.timeoutSeconds,
+                concurrencyPolicy: "forbid",
+                target: {
+                    stackId,
+                    serviceIdentifier: service.id,
+                    command: cronjob.command,
+                },
+            },
+        });
+        if (created.status !== 201) {
+            await rollback();
+            throw new UpstreamError("error.upstream.cronjobCreate", {
+                status: created.status,
+            });
+        }
+        cronjobIds.push(created.data.id);
+        log.debug("cronjob created", {
+            cronjobId: created.data.id,
+            interval: cronjob.interval,
+        });
+    }
+
     const row: NewRunnerRow = {
         id: uuid.v4(),
         extensionInstanceId,
@@ -221,12 +285,22 @@ export async function createRunner(
         size,
         image: prepared.image,
         runnerVersion: prepared.runnerVersion,
+        cronjobIds: JSON.stringify(cronjobIds),
         createdBy: userId,
     };
-    const [inserted] = await getDatabase()
-        .insert(runners)
-        .values(row)
-        .returning();
+    let inserted: RunnerRow;
+    try {
+        [inserted] = await getDatabase()
+            .insert(runners)
+            .values(row)
+            .returning();
+    } catch (error) {
+        log.error("runner row could not be stored, removing the stack again", {
+            error,
+        });
+        await rollback();
+        throw error;
+    }
     log.info("runner created", {
         runnerId: inserted.id,
         target: prepared.target,
@@ -370,6 +444,7 @@ export async function deleteRunner(
     runnerId: string,
 ): Promise<void> {
     const row = await findRunner(extensionInstanceId, runnerId);
+    await deleteCronjobs(client, parseCronjobIds(row));
     const response = await client.container.deleteStack({
         stackId: row.stackId,
     });
@@ -412,6 +487,7 @@ export async function deleteAllRunnersOfInstance(
     rows: RunnerRow[],
 ): Promise<void> {
     for (const row of rows) {
+        await deleteCronjobs(client, parseCronjobIds(row));
         try {
             await client.container.deleteStack({ stackId: row.stackId });
         } catch (error) {

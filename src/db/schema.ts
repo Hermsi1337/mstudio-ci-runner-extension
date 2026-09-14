@@ -35,6 +35,7 @@ export const runners = pgTable("runners", {
     size: varchar({ length: 16 }).notNull().default("medium"),
     image: text(),
     runnerVersion: varchar({ length: 32 }),
+    cronjobIds: text().notNull().default("[]"),
     createdBy: varchar({ length: 36 }).notNull(),
     createdAt: timestamp().defaultNow().notNull(),
 });

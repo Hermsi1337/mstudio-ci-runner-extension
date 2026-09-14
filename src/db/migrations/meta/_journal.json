@@ -15,6 +15,13 @@
       "when": 1789391904157,
       "tag": "0001_runner_image_version",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789393460773,
+      "tag": "0002_runner_cronjobs",
+      "breakpoints": true
     }
   ]
 }

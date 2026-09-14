@@ -10,7 +10,7 @@ import { ProviderError } from "@/global-errors.ts";
 import type { MessageKey } from "@/i18n/index.ts";
 import { createLogger } from "@/logger.ts";
 import runnerVersions from "../../../docker/runner/versions.json";
-import { cacheEnvironment, cacheVolume } from "./cache.ts";
+import { cacheEnvironment, cacheTrimCronjob, cacheVolume } from "./cache.ts";
 import type {
     PreparedRunner,
     ProviderRequest,
@@ -177,6 +177,9 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
                 "cache:/home/runner/cache",
                 ...(input.cache ? [cacheVolume] : []),
             ],
+            cronjobs: input.cache
+                ? [cacheTrimCronjob(input.cacheSizeGb ?? 10)]
+                : [],
             ephemeral: false,
         };
     },

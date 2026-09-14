@@ -4,7 +4,7 @@ import { getEnvironmentVariables } from "@/env.ts";
 import { ProviderError } from "@/global-errors.ts";
 import { createLogger } from "@/logger.ts";
 import runnerVersions from "../../../docker/runner/versions.json";
-import { cacheEnvironment, cacheVolume } from "./cache.ts";
+import { cacheEnvironment, cacheTrimCronjob, cacheVolume } from "./cache.ts";
 import type { ProviderRequest, RunnerProvider } from "./types.ts";
 
 const log = createLogger("github");
@@ -153,6 +153,9 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
                 "config:/home/runner/_config",
                 ...(input.cache ? [cacheVolume] : []),
             ],
+            cronjobs: input.cache
+                ? [cacheTrimCronjob(input.cacheSizeGb ?? 10)]
+                : [],
             ephemeral,
         };
     },

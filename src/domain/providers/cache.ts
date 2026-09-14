@@ -1,8 +1,12 @@
+import type { RunnerCronjob } from "./types.ts";
+
 /**
  * A persistent volume for package manager caches. Runners inherit these
  * variables into every job, so caches survive jobs, restarts and updates
  * without provider-specific cache features. Tools that follow XDG pick up
- * XDG_CACHE_HOME; the others get their own variable.
+ * XDG_CACHE_HOME; the others get their own variable. mittwald volumes have no
+ * size limit, so an hourly cronjob inside the container trims the directory
+ * with docker/runner/common/trim-cache.sh.
  */
 const CACHE_DIR = "/home/runner/.cache";
 
@@ -18,3 +22,12 @@ export const cacheEnvironment: Record<string, string> = {
     GOCACHE: `${CACHE_DIR}/go-build`,
     GOMODCACHE: `${CACHE_DIR}/go-mod`,
 };
+
+export function cacheTrimCronjob(sizeGb: number): RunnerCronjob {
+    return {
+        description: `Trim runner cache to ${sizeGb} GB`,
+        interval: "0 * * * *",
+        command: `/usr/local/bin/trim-cache.sh ${CACHE_DIR} ${sizeGb}`,
+        timeoutSeconds: 600,
+    };
+}

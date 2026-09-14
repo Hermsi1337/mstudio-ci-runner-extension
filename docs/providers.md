@@ -12,14 +12,18 @@ deletion) is shared.
 |---|---|
 | `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` |
 | `currentImage()` | Image this extension release creates runners with (`RUNNER_IMAGE_<PROVIDER>`) |
-| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes and the credentials to store |
+| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes, cronjobs and the credentials to store |
 | `release(credentials)` | Remove the provider-side registration; must tolerate runners that are already gone |
 
 `cache: true` on any request adds the volume and environment from
 `src/domain/providers/cache.ts` (`tool-cache:/home/runner/.cache`, `XDG_CACHE_HOME` and
 the variables of npm, pnpm, yarn, pip, Composer and Go). It is provider-neutral: the
 runner process inherits the variables into every job, so no provider cache feature is
-involved. Providers add it to their own volumes and environment in `prepare`.
+involved. Providers add it to their own volumes and environment in `prepare`, plus the
+cronjob from `cacheTrimCronjob(sizeGb)`: `runner.ts` creates every cronjob a provider
+returns as a mittwald service cronjob (stack, service, command) after the stack is
+declared, stores the ids in `runners.cronjobIds` and deletes them with the runner. The
+cache one runs `/usr/local/bin/trim-cache.sh` hourly inside the container.
 
 `updateRunner` in `src/domain/runner.ts` redeclares the stack with `currentImage()` and
 the service state mittwald reports, so providers need no update hook. GitHub runners

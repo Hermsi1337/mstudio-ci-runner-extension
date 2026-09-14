@@ -61,6 +61,10 @@ export type RunnerBase = {
      * Adds a persistent volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
      */
     cache?: boolean;
+    /**
+     * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
+     */
+    cacheSizeGb?: number;
     size?: RunnerSize;
 };
 

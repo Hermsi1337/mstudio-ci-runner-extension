@@ -39,8 +39,9 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && mkdir -p ${RUNNER_HOME}/_work ${RUNNER_HOME}/_config \
     && chown -R runner:runner ${RUNNER_HOME}
 
-COPY --chown=runner:runner entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY --chown=runner:runner github/entrypoint.sh /entrypoint.sh
+COPY --chown=runner:runner common/trim-cache.sh /usr/local/bin/trim-cache.sh
+RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh
 
 USER runner
 

@@ -28,7 +28,7 @@
     "db:generate-migrations": "drizzle-kit generate --config config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config config/drizzle.config.ts",
     "db:studio": "drizzle-kit studio --port 8081 --config config/drizzle.config.ts",
-    "runner:build": "docker build --build-arg RUNNER_VERSION=$(jq -r .github docker/runner/versions.json) -t mstudio-ci-runner-github:local docker/runner/github && docker build --build-arg RUNNER_VERSION=$(jq -r .gitlab docker/runner/versions.json) -t mstudio-ci-runner-gitlab:local docker/runner/gitlab",
+    "runner:build": "docker build -f docker/runner/github/Dockerfile --build-arg RUNNER_VERSION=$(jq -r .github docker/runner/versions.json) -t mstudio-ci-runner-github:local docker/runner && docker build -f docker/runner/gitlab/Dockerfile --build-arg RUNNER_VERSION=$(jq -r .gitlab docker/runner/versions.json) -t mstudio-ci-runner-gitlab:local docker/runner",
     "image:build": "docker build -f docker/extension/Dockerfile -t mstudio-ci-runner-extension:local ."
   },
   "dependencies": {

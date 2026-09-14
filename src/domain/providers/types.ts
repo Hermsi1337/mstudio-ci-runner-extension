@@ -1,5 +1,12 @@
 import type { CreateRunnerRequest, Provider } from "@/generated/extension-api";
 
+export interface RunnerCronjob {
+    description: string;
+    interval: string;
+    command: string;
+    timeoutSeconds: number;
+}
+
 export interface PreparedRunner {
     target: string;
     targetUrl: string;
@@ -8,6 +15,7 @@ export interface PreparedRunner {
     environment: Record<string, string>;
     credentials: Record<string, string>;
     volumes: string[];
+    cronjobs: RunnerCronjob[];
     ephemeral: boolean;
 }
 

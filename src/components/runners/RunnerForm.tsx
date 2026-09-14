@@ -4,6 +4,7 @@ import {
     FieldDescription,
     Flex,
     Label,
+    NumberField,
     Option,
     Section,
     Select,
@@ -41,6 +42,7 @@ interface FormValues {
     size: RunnerSize;
     ephemeral: boolean;
     cache: boolean;
+    cacheSizeGb: number;
     tokenType: GitHubTokenType;
     configCommand: string;
     token: string;
@@ -57,6 +59,7 @@ function toRequest(values: FormValues): CreateRunnerRequest {
         labels: values.labels,
         size: values.size,
         cache: values.cache,
+        cacheSizeGb: values.cacheSizeGb,
     };
     if (values.provider === "gitlab") {
         return {
@@ -98,6 +101,7 @@ export const RunnerForm = () => {
             size: "medium",
             ephemeral: false,
             cache: false,
+            cacheSizeGb: 10,
             tokenType: "registration",
             configCommand: "",
             token: "",
@@ -111,6 +115,7 @@ export const RunnerForm = () => {
     const Field = typedField(form);
     const provider = form.watch("provider");
     const tokenType = form.watch("tokenType");
+    const cache = form.watch("cache");
     const runnerType = form.watch("runnerType");
     const instanceUrl = form.watch("instanceUrl").replace(/\/+$/, "");
 
@@ -466,6 +471,35 @@ export const RunnerForm = () => {
                         text={t("form.cache.help")}
                     />
                 </Flex>
+                {cache && (
+                    <Field
+                        name="cacheSizeGb"
+                        rules={{
+                            required: t("form.cacheSize.required"),
+                            min: {
+                                value: 1,
+                                message: t("form.cacheSize.range"),
+                            },
+                            max: {
+                                value: 500,
+                                message: t("form.cacheSize.range"),
+                            },
+                        }}
+                    >
+                        <NumberField minValue={1} maxValue={500} step={1}>
+                            <Label>
+                                {t("form.cacheSize.label")}
+                                <FieldHelp
+                                    subject={t("form.cacheSize.label")}
+                                    text={t("form.cacheSize.help")}
+                                />
+                            </Label>
+                            <FieldDescription>
+                                {t("form.cacheSize.description")}
+                            </FieldDescription>
+                        </NumberField>
+                    </Field>
+                )}
 
                 <RootError />
 

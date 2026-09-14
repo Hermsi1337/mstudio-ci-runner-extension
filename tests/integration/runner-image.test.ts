@@ -49,7 +49,8 @@ describe.each(images)("runner image: $provider", (image) => {
 
     it("builds and starts the registration flow", async () => {
         const built = await GenericContainer.fromDockerfile(
-            `docker/runner/${image.provider}`,
+            "docker/runner",
+            `${image.provider}/Dockerfile`,
         )
             .withBuildArgs({
                 RUNNER_VERSION:
@@ -85,6 +86,13 @@ describe.each(images)("runner image: $provider", (image) => {
             expect(whoami.output.trim()).toBe("runner");
             const version = await container.exec(image.versionCommand);
             expect(version.exitCode).toBe(0);
+            const trim = await container.exec([
+                "bash",
+                "-c",
+                "mkdir -p /tmp/cache && dd if=/dev/zero of=/tmp/cache/old bs=1M count=2 status=none && sleep 1 && dd if=/dev/zero of=/tmp/cache/new bs=1M count=2 status=none && trim-cache.sh /tmp/cache 0 && ls /tmp/cache | wc -l",
+            ]);
+            expect(trim.exitCode).toBe(0);
+            expect(trim.output.trim().split("\n").at(-1)).toBe("0");
         } finally {
             await container.stop();
         }

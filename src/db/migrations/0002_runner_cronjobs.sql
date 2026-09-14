@@ -1,0 +1,1 @@
+ALTER TABLE "runners" ADD COLUMN "cronjobIds" text DEFAULT '[]' NOT NULL;

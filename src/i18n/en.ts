@@ -133,6 +133,13 @@ export const en = {
     "form.cache.label": "Persistent cache for package managers",
     "form.cache.help":
         "Adds a volume at /home/runner/.cache and points npm, pnpm, yarn, pip, Composer and Go at it (XDG_CACHE_HOME plus the tool specific variables). Downloads from earlier jobs are reused, which speeds up installs. The volume survives jobs, restarts and updates and grows until you delete the runner.",
+    "form.cacheSize.label": "Cache limit (GB)",
+    "form.cacheSize.description":
+        "An hourly cronjob in the project deletes the oldest files above this limit.",
+    "form.cacheSize.required": "Cache limit is required",
+    "form.cacheSize.range": "Enter a value between 1 and 500 GB",
+    "form.cacheSize.help":
+        "mittwald volumes have no size limit of their own, so the extension creates a cronjob in the project that runs every hour inside the runner container. It deletes the least recently modified files until the cache fits the limit. The cronjob is removed with the runner.",
     "form.size.help":
         "CPU and memory limits of the runner container, counted against the container hosting resources of this project. Small fits scripts and deployments, medium builds with npm or composer, large parallel test suites.",
 
@@ -152,6 +159,8 @@ export const en = {
     "error.upstream.logs": "Logs could not be loaded (status {status}).",
     "error.upstream.stackDelete":
         "The stack could not be deleted (status {status}).",
+    "error.upstream.cronjobCreate":
+        "mittwald could not create the cleanup cronjob for the cache (status {status}). The extension needs the cronjob scopes.",
     "error.github.unreachable": "GitHub is unreachable: {reason}",
     "error.github.tokenInvalid": "The GitHub token is invalid.",
     "error.github.noAccessRepo":
