@@ -117,6 +117,7 @@ export const zRunner = z.object({
     cacheSizeGb: z.int(),
     stackId: z.uuid(),
     serviceId: z.string().nullable(),
+    studioUrl: z.url().nullable(),
     status: zRunnerStatus,
     statusMessage: z.string().nullable(),
     image: z.string().nullable(),

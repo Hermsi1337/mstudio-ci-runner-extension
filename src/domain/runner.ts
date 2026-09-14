@@ -43,11 +43,19 @@ export const runnerSizes: Record<RunnerSize, { cpus: string; memory: string }> =
     };
 
 const SERVICE_KEY = "runner";
+const STUDIO_URL = "https://studio.mittwald.de";
+
+function studioUrl(row: RunnerRow, serviceId: string | null): string | null {
+    return serviceId
+        ? `${STUDIO_URL}/projects/${row.projectId}/container/stacks/${row.stackId}/container/${serviceId}/general`
+        : null;
+}
 
 function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
     const provider = getProviderById(row.provider);
     const image = row.image ?? service?.deployedState.image ?? null;
     const currentImage = provider?.currentImage() ?? null;
+    const serviceId = row.serviceId ?? service?.id ?? null;
     return {
         id: row.id,
         provider: row.provider as Provider,
@@ -60,7 +68,8 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         cache: row.cache,
         cacheSizeGb: row.cacheSizeGb,
         stackId: row.stackId,
-        serviceId: row.serviceId,
+        serviceId,
+        studioUrl: studioUrl(row, serviceId),
         status: service === null ? "missing" : (service?.status ?? "unknown"),
         statusMessage: service?.message ?? null,
         image,

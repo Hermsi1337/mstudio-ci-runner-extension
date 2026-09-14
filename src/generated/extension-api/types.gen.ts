@@ -163,6 +163,10 @@ export type Runner = {
     cacheSizeGb: number;
     stackId: string;
     serviceId: string | null;
+    /**
+     * Detail page of the runner container in mStudio. Null while the service id is unknown.
+     */
+    studioUrl: string | null;
     status: RunnerStatus;
     statusMessage: string | null;
     /**

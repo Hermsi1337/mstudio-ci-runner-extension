@@ -73,7 +73,13 @@ export const RunnerTable = () => {
                 {runners.map((runner) => (
                     <TableRow key={runner.id}>
                         <TableCell>
-                            {runner.name}
+                            {runner.studioUrl ? (
+                                <Link href={runner.studioUrl} target="_blank">
+                                    {runner.name}
+                                </Link>
+                            ) : (
+                                runner.name
+                            )}
                             {runner.ephemeral
                                 ? ` ${t("runners.ephemeralSuffix")}`
                                 : ""}

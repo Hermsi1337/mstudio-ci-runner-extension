@@ -31,7 +31,9 @@ Stack and structure follow the [mittwald reference extension](https://github.com
    `CI Runner (<provider>): <name>` via `container.createStack` and declares the service
    `runner` via `container.declareStack` with `restartPolicy: always` and resource limits
    by size.
-5. A row in `runners` links extension instance, provider, stack and service.
+5. A row in `runners` links extension instance, provider, stack and service. The API
+   derives `studioUrl` from them, the detail page of the container in mStudio, linked
+   from the runner name in the table.
 6. The container registers itself on start ([runner-image.md](runner-image.md)).
 
 Other operations: list with live status (`container.getStack`), logs

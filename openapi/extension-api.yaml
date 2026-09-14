@@ -160,7 +160,7 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, cache, cacheSizeGb, stackId, serviceId, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, cache, cacheSizeGb, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
       properties:
         id:
           type: string
@@ -193,6 +193,10 @@ components:
           format: uuid
         serviceId:
           type: [string, 'null']
+        studioUrl:
+          type: [string, 'null']
+          format: uri
+          description: Detail page of the runner container in mStudio. Null while the service id is unknown.
         status:
           $ref: '#/components/schemas/RunnerStatus'
         statusMessage:
