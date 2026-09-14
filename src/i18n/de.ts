@@ -58,7 +58,7 @@ export const de: Messages = {
     "form.github.token.description":
         'Fine-grained PAT mit "Administration: Read and write" (Repository) oder "Self-hosted runners: Read and write" (Organisation). Wird verschlüsselt gespeichert und dem Container als Umgebungsvariable übergeben.',
     "form.github.token.required": "GitHub-Token fehlt",
-    "form.github.runnerGroup.label": "Runner-Gruppe (optional)",
+    "form.github.runnerGroup.label": "Runner-Gruppe",
     "form.github.ephemeral.label": "Ephemeral (neue Registrierung pro Job)",
     "form.gitlab.instanceUrl.label": "GitLab-Instanz",
     "form.gitlab.instanceUrl.description":

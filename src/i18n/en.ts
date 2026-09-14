@@ -56,7 +56,7 @@ export const en = {
     "form.github.token.description":
         'Fine-grained PAT with "Administration: Read and write" (repository) or "Self-hosted runners: Read and write" (organization). Stored encrypted and passed to the container as an environment variable.',
     "form.github.token.required": "GitHub token is required",
-    "form.github.runnerGroup.label": "Runner group (optional)",
+    "form.github.runnerGroup.label": "Runner group",
     "form.github.ephemeral.label": "Ephemeral (fresh registration per job)",
     "form.gitlab.instanceUrl.label": "GitLab instance",
     "form.gitlab.instanceUrl.description":
