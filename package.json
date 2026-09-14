@@ -7,7 +7,7 @@
     "init:encryption": "node scripts/generate-encryption-secrets.js",
     "dev": "dotenv -- vite dev --host --config config/vite.config.ts",
     "dev:all": "scripts/dev.sh",
-    "dev:expose": "dotenv -- bash -c 'zrok share reserved $ZROK_RESERVED_TOKEN'",
+    "dev:expose": "dotenv -- bash -c 'zrok share public -n $ZROK_SHARE_NAME ${PORT:-3000}'",
     "build": "vite build --config config/vite.config.ts",
     "serve": "vite preview --config config/vite.config.ts",
     "codegen": "openapi-ts -f config/openapi-ts.config.ts",

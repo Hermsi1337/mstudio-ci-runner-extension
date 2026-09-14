@@ -11,7 +11,7 @@ export const getEnvironmentVariables = () =>
         POSTGRES_USE_SSL: bool({ default: false }),
         EXTENSION_ID: str(),
         EXTENSION_SECRET: str(),
-        ZROK_RESERVED_TOKEN: str({ default: undefined }),
+        ZROK_SHARE_NAME: str({ default: undefined }),
         ENCRYPTION_MASTER_PASSWORD: str(),
         ENCRYPTION_SALT: str(),
         RUN_MIGRATIONS_ON_STARTUP: bool({ default: true }),

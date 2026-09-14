@@ -14,7 +14,7 @@ pnpm install
 cp .env.example .env            # fill in values
 pnpm run init:encryption        # fills ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
 pnpm run dev:all                # PostgreSQL plus dev server, Ctrl+C stops both
-pnpm run dev:expose             # zrok tunnel (ZROK_RESERVED_TOKEN in .env), separate terminal
+pnpm run dev:expose             # zrok tunnel (ZROK_SHARE_NAME in .env), separate terminal
 ```
 
 Separately: `pnpm run db:start` (PostgreSQL on port 5433, `scripts/dev-db.sh`) and
@@ -71,7 +71,7 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `MITTWALD_API_URL` | Default `https://api.mittwald.de/`; the Prism mock in tests |
 | `GITHUB_API_URL` | Default `https://api.github.com`; the Prism mock in tests; also passed to the runner container as `GITHUB_API` |
 | `GITLAB_API_URL` | No default; overrides the GitLab instance URL for API calls (tests only) |
-| `ZROK_RESERVED_TOKEN` | Only for `pnpm run dev:expose` |
+| `ZROK_SHARE_NAME` | Only for `pnpm run dev:expose`, the zrok share name (`public:<name>`) |
 | `LOCAL_API_TOKEN`, `LOCAL_PROJECT_ID` | Local mode on `/local`, development only (see above) |
 
 The build (`pnpm run build`) needs none of these. They are read at runtime only.
