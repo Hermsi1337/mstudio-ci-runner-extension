@@ -20,6 +20,9 @@ updates:
       # the image runs the current Node LTS; majors are bumped by hand together with the Dockerfile
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # @hey-api/openapi-ts needs the TypeScript 5 compiler API
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
@@ -39,7 +42,7 @@ updates:
       # Node LTS and Ubuntu LTS are bumped by hand, see docs/operations.md
       - dependency-name: node
         update-types: ["version-update:semver-major"]
+      # only LTS releases; interim releases like 24.10 leave support after nine months
       - dependency-name: ubuntu
-        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"

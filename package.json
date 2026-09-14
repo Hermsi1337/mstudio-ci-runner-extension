@@ -71,7 +71,7 @@
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "testcontainers": "^12.1.0",
-    "typescript": "^7.0.2",
+    "typescript": "^5.9.3",
     "vite": "^8.3.0",
     "vitest": "^5.0.0",
     "yaml": "^2.9.1"
