@@ -27,6 +27,7 @@ describe("logger", () => {
     beforeEach(() => {
         stdout = [];
         stderr = [];
+        vi.stubEnv("NO_COLOR", "1");
         vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
             stdout.push(String(chunk));
             return true;
@@ -40,6 +41,17 @@ describe("logger", () => {
     afterEach(() => {
         vi.restoreAllMocks();
         vi.unstubAllEnvs();
+    });
+
+    it("colors text output unless NO_COLOR is set", async () => {
+        vi.unstubAllEnvs();
+        const { createLogger } = await loadLogger({
+            LOG_LEVEL: "info",
+            LOG_FORMAT: "text",
+        });
+        createLogger("test").info("painted");
+        expect(stdout[0]).toContain("\x1b[32mINFO \x1b[0m");
+        expect(stdout[0]).toContain("\x1b[36m[test]\x1b[0m");
     });
 
     it("drops entries below the configured level", async () => {
