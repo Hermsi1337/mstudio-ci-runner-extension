@@ -38,6 +38,10 @@ components:
           type: boolean
           default: false
           description: One job per registration. GitHub only and only with tokenType pat; ignored by other providers.
+        cache:
+          type: boolean
+          default: false
+          description: Adds a persistent volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
         size:
           $ref: '#/components/schemas/RunnerSize'
     GitHubTarget:

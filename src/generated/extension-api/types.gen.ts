@@ -57,6 +57,10 @@ export type RunnerBase = {
      * One job per registration. GitHub only and only with tokenType pat; ignored by other providers.
      */
     ephemeral?: boolean;
+    /**
+     * Adds a persistent volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+     */
+    cache?: boolean;
     size?: RunnerSize;
 };
 

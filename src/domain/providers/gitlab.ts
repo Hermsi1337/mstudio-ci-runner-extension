@@ -10,6 +10,7 @@ import { ProviderError } from "@/global-errors.ts";
 import type { MessageKey } from "@/i18n/index.ts";
 import { createLogger } from "@/logger.ts";
 import runnerVersions from "../../../docker/runner/versions.json";
+import { cacheEnvironment, cacheVolume } from "./cache.ts";
 import type {
     PreparedRunner,
     ProviderRequest,
@@ -164,13 +165,18 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
                 CI_SERVER_URL: instanceUrl,
                 CI_SERVER_TOKEN: created.data.token,
                 RUNNER_NAME: runnerName,
+                ...(input.cache ? cacheEnvironment : {}),
             },
             credentials: {
                 instanceUrl,
                 runnerId: created.data.id,
                 runnerToken: created.data.token,
             },
-            volumes: ["builds:/home/runner/builds", "cache:/home/runner/cache"],
+            volumes: [
+                "builds:/home/runner/builds",
+                "cache:/home/runner/cache",
+                ...(input.cache ? [cacheVolume] : []),
+            ],
             ephemeral: false,
         };
     },

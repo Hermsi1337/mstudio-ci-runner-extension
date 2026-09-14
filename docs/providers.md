@@ -15,6 +15,12 @@ deletion) is shared.
 | `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes and the credentials to store |
 | `release(credentials)` | Remove the provider-side registration; must tolerate runners that are already gone |
 
+`cache: true` on any request adds the volume and environment from
+`src/domain/providers/cache.ts` (`tool-cache:/home/runner/.cache`, `XDG_CACHE_HOME` and
+the variables of npm, pnpm, yarn, pip, Composer and Go). It is provider-neutral: the
+runner process inherits the variables into every job, so no provider cache feature is
+involved. Providers add it to their own volumes and environment in `prepare`.
+
 `updateRunner` in `src/domain/runner.ts` redeclares the stack with `currentImage()` and
 the service state mittwald reports, so providers need no update hook. GitHub runners
 keep their registration in the `config` volume, GitLab runners keep their runner token.

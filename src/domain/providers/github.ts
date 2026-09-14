@@ -4,6 +4,7 @@ import { getEnvironmentVariables } from "@/env.ts";
 import { ProviderError } from "@/global-errors.ts";
 import { createLogger } from "@/logger.ts";
 import runnerVersions from "../../../docker/runner/versions.json";
+import { cacheEnvironment, cacheVolume } from "./cache.ts";
 import type { ProviderRequest, RunnerProvider } from "./types.ts";
 
 const log = createLogger("github");
@@ -133,6 +134,9 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
         if (input.runnerGroup) {
             environment.RUNNER_GROUP = input.runnerGroup;
         }
+        if (input.cache) {
+            Object.assign(environment, cacheEnvironment);
+        }
 
         const credentials: Record<string, string> =
             tokenType === "pat" ? { token: input.token } : {};
@@ -144,7 +148,11 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
             runnerVersion: runnerVersions.github,
             environment,
             credentials,
-            volumes: ["work:/home/runner/_work", "config:/home/runner/_config"],
+            volumes: [
+                "work:/home/runner/_work",
+                "config:/home/runner/_config",
+                ...(input.cache ? [cacheVolume] : []),
+            ],
             ephemeral,
         };
     },

@@ -49,7 +49,8 @@ update in the UI; *Update* redeclares its stack with the current image.
 | `RUNNER_CONFIG_DIR` | Keeps the registration across restarts | `/home/runner/_config` |
 | `DISABLE_AUTO_UPDATE` | `true` = `--disableupdate` | `false` |
 
-Volumes: `work:/home/runner/_work`, `config:/home/runner/_config`.
+Volumes: `work:/home/runner/_work`, `config:/home/runner/_config`, optionally
+`tool-cache:/home/runner/.cache` ([providers.md](providers.md)).
 
 ## GitLab (`docker/runner/gitlab/`)
 
@@ -72,7 +73,9 @@ Volumes: `work:/home/runner/_work`, `config:/home/runner/_config`.
 | `RUNNER_UNREGISTER_ON_EXIT` | `true` = unregister on stop | `false` |
 
 Tags and `run_untagged` are set by the extension via the API when creating the runner,
-not inside the container. Volumes: `builds:/home/runner/builds`, `cache:/home/runner/cache`.
+not inside the container. Volumes: `builds:/home/runner/builds`, `cache:/home/runner/cache`
+(the `cache:` keyword of GitLab CI), optionally `tool-cache:/home/runner/.cache`
+([providers.md](providers.md)).
 
 ## Building and testing
 

@@ -34,6 +34,7 @@ export const zRunnerBase = z.object({
     name: z.string().min(2).max(64),
     labels: z.string().max(500).optional().default('mittwald'),
     ephemeral: z.boolean().optional().default(false),
+    cache: z.boolean().optional().default(false),
     size: zRunnerSize.optional()
 });
 

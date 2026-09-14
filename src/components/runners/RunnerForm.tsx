@@ -54,6 +54,7 @@ interface FormValues {
     labels: string;
     size: RunnerSize;
     ephemeral: boolean;
+    cache: boolean;
     tokenType: GitHubTokenType;
     token: string;
     target: string;
@@ -68,6 +69,7 @@ function toRequest(values: FormValues): CreateRunnerRequest {
         name: values.name,
         labels: values.labels,
         size: values.size,
+        cache: values.cache,
     };
     if (values.provider === "gitlab") {
         return {
@@ -104,6 +106,7 @@ export const RunnerForm = () => {
             labels: "mittwald",
             size: "medium",
             ephemeral: false,
+            cache: false,
             tokenType: "registration",
             token: "",
             target: "",
@@ -447,6 +450,16 @@ export const RunnerForm = () => {
                         <Option value="large">{t("form.size.large")}</Option>
                     </Select>
                 </Field>
+
+                <Flex align="center" gap="xs">
+                    <Field name="cache">
+                        <Switch>{t("form.cache.label")}</Switch>
+                    </Field>
+                    <FieldHelp
+                        subject={t("form.cache.label")}
+                        text={t("form.cache.help")}
+                    />
+                </Flex>
 
                 <RootError />
 

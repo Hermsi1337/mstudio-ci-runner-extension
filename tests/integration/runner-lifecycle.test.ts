@@ -79,6 +79,7 @@ const cases: {
             tokenType: "registration",
             token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
             size: "small",
+            cache: true,
         },
         expect: {
             provider: "github",
