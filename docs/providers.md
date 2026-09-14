@@ -20,7 +20,7 @@ from `input.provider` and knows no provider details beyond that.
 
 | Provider | Inputs | Registration | Credentials in the container | Cleanup |
 |---|---|---|---|---|
-| `github` | `target` (owner or owner/repo), `token` (PAT), `runnerGroup`, `ephemeral` | Access verified via `GET .../actions/runners` (Octokit); the container fetches a registration token with the PAT on start | PAT (`GITHUB_TOKEN`) | The container deregisters itself on SIGTERM |
+| `github` | `target` (owner or owner/repo), `tokenType` (`registration`, default, or `pat`), `token`, `runnerGroup`, `ephemeral` (PAT only) | `registration`: no API call, the container registers with the token from the "New self-hosted runner" page and keeps the registration in the `config` volume. `pat`: access verified via `GET .../actions/runners` (Octokit); the container fetches a registration token with the PAT on start | `registration`: the registration token (`RUNNER_TOKEN`), useless after one hour. `pat`: the PAT (`GITHUB_TOKEN`) | The container deregisters itself on SIGTERM. With an expired registration token the runner stays offline in GitHub until GitHub removes it after 14 days |
 | `gitlab` | `instanceUrl`, `runnerType` (project/group/instance), `target` (path), `token` (PAT), `runUntagged` | `POST /api/v4/user/runners` with the PAT returns a runner token `glrt-...` | Runner token only (`CI_SERVER_TOKEN`), never the PAT | `DELETE /api/v4/runners?token=` |
 
 GitLab client: generated from `openapi/upstream/gitlab.json` ([codegen.md](codegen.md)).

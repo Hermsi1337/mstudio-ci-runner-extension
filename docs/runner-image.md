@@ -14,26 +14,33 @@ daemon.
 
 `entrypoint.sh`:
 
-1. Derives the API path from `GITHUB_URL` (`repos/<owner>/<repo>` or `orgs/<owner>`)
-2. Fetches a registration token with `GITHUB_TOKEN` (or uses `RUNNER_TOKEN`)
-3. `config.sh --unattended --replace ...`
-4. `run.sh`; with `RUNNER_EPHEMERAL=true` re-registers after every job
-5. On `SIGTERM`/`SIGINT`: removes the runner from GitHub (`config.sh remove`)
+1. Restores a persisted registration (`.runner`, `.credentials*`) from `RUNNER_CONFIG_DIR`
+   and skips registration when one exists
+2. Otherwise derives the API path from `GITHUB_URL` (`repos/<owner>/<repo>` or
+   `orgs/<owner>`), takes `RUNNER_TOKEN` or fetches a registration token with `GITHUB_TOKEN`
+3. `config.sh --unattended --replace ...`, then persists the registration to
+   `RUNNER_CONFIG_DIR` (not for ephemeral runners)
+4. `run.sh`; with `RUNNER_EPHEMERAL=true` re-registers after every job, which needs
+   `GITHUB_TOKEN` because a registration token expires after one hour
+5. On `SIGTERM`/`SIGINT`: removes the runner from GitHub (`config.sh remove` with a
+   removal token from `GITHUB_TOKEN`, or with `RUNNER_TOKEN` while it is still valid)
+   and clears the persisted registration
 
 | Variable | Meaning | Default |
 |---|---|---|
 | `GITHUB_URL` | `https://github.com/<owner>` or `https://github.com/<owner>/<repo>` | required |
-| `GITHUB_TOKEN` | PAT for registration/removal tokens | |
-| `RUNNER_TOKEN` | Ready registration token, alternative to `GITHUB_TOKEN` | |
+| `RUNNER_TOKEN` | Registration token from the "New self-hosted runner" page, valid for one hour | |
+| `GITHUB_TOKEN` | PAT for registration/removal tokens, alternative to `RUNNER_TOKEN`, required for ephemeral runners | |
 | `GITHUB_API` | API base URL | `https://api.github.com` |
 | `RUNNER_NAME` | Runner name | hostname |
 | `RUNNER_LABELS` | Comma separated labels | `mittwald` |
 | `RUNNER_GROUP` | Runner group | `Default` |
 | `RUNNER_EPHEMERAL` | `true` = one job per registration | `false` |
 | `RUNNER_WORKDIR` | Working directory | `/home/runner/_work` |
+| `RUNNER_CONFIG_DIR` | Keeps the registration across restarts | `/home/runner/_config` |
 | `DISABLE_AUTO_UPDATE` | `true` = `--disableupdate` | `false` |
 
-Volume: `work:/home/runner/_work`.
+Volumes: `work:/home/runner/_work`, `config:/home/runner/_config`.
 
 ## GitLab (`docker/runner/gitlab/`)
 
@@ -62,6 +69,7 @@ not inside the container. Volumes: `builds:/home/runner/builds`, `cache:/home/ru
 
 ```bash
 pnpm run runner:build     # both images locally as mstudio-ci-runner-<provider>:local
+docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e RUNNER_TOKEN=AEBI... mstudio-ci-runner-github:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e GITHUB_TOKEN=github_pat_... mstudio-ci-runner-github:local
 docker run --rm -e CI_SERVER_URL=https://gitlab.com -e CI_SERVER_TOKEN=glrt-... mstudio-ci-runner-gitlab:local
 ```

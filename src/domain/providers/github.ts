@@ -91,37 +91,57 @@ export async function assertGitHubRunnerAccess(
 }
 
 /**
- * The container fetches a registration token with the PAT on every start and
- * deregisters itself on shutdown, so there is no provider-side cleanup.
+ * With a registration token the container registers once and keeps its runner
+ * credentials in the config volume, so restarts do not need a new token. With a
+ * PAT the container fetches registration and removal tokens itself. Neither
+ * mode needs provider-side cleanup.
  */
 export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
     id: "github",
 
     async prepare(input, runnerName) {
         const target = parseGitHubTarget(input.target);
-        await assertGitHubRunnerAccess(input.token, target);
+        const tokenType = input.tokenType ?? "registration";
+        const ephemeral = input.ephemeral ?? false;
+        if (tokenType === "registration" && ephemeral) {
+            throw new ProviderError(
+                "error.github.ephemeralNeedsPat",
+                {},
+                "ephemeral",
+            );
+        }
+        if (tokenType === "pat") {
+            await assertGitHubRunnerAccess(input.token, target);
+        }
         const env = getEnvironmentVariables();
 
         const environment: Record<string, string> = {
             GITHUB_URL: target.url,
             GITHUB_API: env.GITHUB_API_URL,
-            GITHUB_TOKEN: input.token,
             RUNNER_NAME: runnerName,
             RUNNER_LABELS: input.labels ?? "mittwald",
-            RUNNER_EPHEMERAL: input.ephemeral ? "true" : "false",
+            RUNNER_EPHEMERAL: ephemeral ? "true" : "false",
         };
+        if (tokenType === "pat") {
+            environment.GITHUB_TOKEN = input.token;
+        } else {
+            environment.RUNNER_TOKEN = input.token;
+        }
         if (input.runnerGroup) {
             environment.RUNNER_GROUP = input.runnerGroup;
         }
+
+        const credentials: Record<string, string> =
+            tokenType === "pat" ? { token: input.token } : {};
 
         return {
             target: target.url.replace(GITHUB_HOST, ""),
             targetUrl: target.url,
             image: env.RUNNER_IMAGE_GITHUB,
             environment,
-            credentials: { token: input.token },
-            volumes: ["work:/home/runner/_work"],
-            ephemeral: input.ephemeral ?? false,
+            credentials,
+            volumes: ["work:/home/runner/_work", "config:/home/runner/_config"],
+            ephemeral,
         };
     },
 

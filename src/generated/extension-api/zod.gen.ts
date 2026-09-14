@@ -45,6 +45,7 @@ export const zGitHubTarget = z.string().min(1).max(200).regex(/^(https:\/\/githu
 export const zGitHubRunnerRequest = zRunnerBase.and(z.object({
     provider: z.enum(['github']),
     target: zGitHubTarget,
+    tokenType: z.enum(['registration', 'pat']).optional().default('registration'),
     token: z.string().min(10).max(500),
     runnerGroup: z.string().max(128).optional()
 }));

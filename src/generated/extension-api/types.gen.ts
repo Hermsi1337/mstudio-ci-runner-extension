@@ -54,7 +54,7 @@ export type RunnerBase = {
      */
     labels?: string;
     /**
-     * One job per registration. GitHub only; ignored by other providers.
+     * One job per registration. GitHub only and only with tokenType pat; ignored by other providers.
      */
     ephemeral?: boolean;
     size?: RunnerSize;
@@ -69,7 +69,14 @@ export type GitHubRunnerRequest = RunnerBase & {
     provider: 'github';
     target: GitHubTarget;
     /**
-     * Fine-grained PAT allowed to manage self-hosted runners for the target.
+     * `registration`: the token from the "New self-hosted runner" page on GitHub, valid for one hour
+     * and used once to register the container. `pat`: a fine-grained personal access token that
+     * may manage self-hosted runners; the container fetches registration and removal tokens with it.
+     *
+     */
+    tokenType?: 'registration' | 'pat';
+    /**
+     * Registration token or PAT, depending on `tokenType`.
      */
     token: string;
     runnerGroup?: string;

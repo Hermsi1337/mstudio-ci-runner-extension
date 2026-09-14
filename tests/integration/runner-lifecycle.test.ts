@@ -70,11 +70,31 @@ const cases: {
     expect: Partial<Record<string, unknown>>;
 }[] = [
     {
-        title: "GitHub repository runner",
+        title: "GitHub repository runner with a registration token",
+        input: {
+            provider: "github",
+            name: "Repo Runner",
+            target: "acme/app",
+            tokenType: "registration",
+            token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+            size: "small",
+        },
+        expect: {
+            provider: "github",
+            target: "acme/app",
+            targetUrl: "https://github.com/acme/app",
+            labels: ["mittwald"],
+            ephemeral: false,
+            size: "small",
+        },
+    },
+    {
+        title: "GitHub organization runner with a PAT",
         input: {
             provider: "github",
             name: "CI Runner",
-            target: "acme/app",
+            target: "acme",
+            tokenType: "pat",
             token: "github_pat_0123456789",
             labels: "mittwald, ci",
             ephemeral: true,
@@ -82,8 +102,8 @@ const cases: {
         },
         expect: {
             provider: "github",
-            target: "acme/app",
-            targetUrl: "https://github.com/acme/app",
+            target: "acme",
+            targetUrl: "https://github.com/acme",
             labels: ["mittwald", "ci"],
             ephemeral: true,
             size: "small",
@@ -184,6 +204,26 @@ describe.each(cases)("runner lifecycle: $title", ({
 });
 
 describe("input validation", () => {
+    it("rejects an ephemeral GitHub runner with a registration token", async () => {
+        await expect(
+            runner.createRunner(
+                client,
+                extensionInstanceId,
+                projectId,
+                userId,
+                {
+                    provider: "github",
+                    name: "broken",
+                    target: "acme/app",
+                    token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+                    ephemeral: true,
+                },
+            ),
+        ).rejects.toMatchObject({
+            messageKey: "error.github.ephemeralNeedsPat",
+        });
+    });
+
     it("rejects a GitLab project runner without a path", async () => {
         await expect(
             runner.createRunner(

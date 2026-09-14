@@ -65,7 +65,10 @@ answer within 6 seconds.
 ## Security
 
 - Session tokens are verified server side; access tokens never reach the client.
-- GitHub: the PAT is stored encrypted and passed to the runner container as
+- GitHub with a registration token (default): the token reaches the container as
+  `RUNNER_TOKEN`, is worthless after one hour and is not stored in the database. The
+  runner credentials live in the `config` volume of the stack.
+- GitHub with a PAT: the PAT is stored encrypted and passed to the runner container as
   `GITHUB_TOKEN`. Project members with container access can read it there. Use
   fine-grained PATs with minimal scope.
 - GitLab: the PAT is used once to create the runner and is not stored. The container

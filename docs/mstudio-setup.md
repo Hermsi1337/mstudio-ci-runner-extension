@@ -31,7 +31,12 @@ After creation:
 
 ### GitHub
 
-Fine-grained personal access token:
+Default: the registration token from GitHub. Open *Settings → Actions → Runners → New
+self-hosted runner* for the repository or organization and copy the token from the
+`config.sh` command. It expires after one hour and is used once; the container keeps
+the registration in a volume. Ephemeral runners are not possible with it.
+
+Alternative for ephemeral runners: a fine-grained personal access token:
 
 | Target | Permission |
 |---|---|

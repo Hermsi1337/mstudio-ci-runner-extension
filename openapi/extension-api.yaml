@@ -37,7 +37,7 @@ components:
         ephemeral:
           type: boolean
           default: false
-          description: One job per registration. GitHub only; ignored by other providers.
+          description: One job per registration. GitHub only and only with tokenType pat; ignored by other providers.
         size:
           $ref: '#/components/schemas/RunnerSize'
     GitHubTarget:
@@ -57,11 +57,19 @@ components:
               enum: [github]
             target:
               $ref: '#/components/schemas/GitHubTarget'
+            tokenType:
+              type: string
+              enum: [registration, pat]
+              default: registration
+              description: |
+                `registration`: the token from the "New self-hosted runner" page on GitHub, valid for one hour
+                and used once to register the container. `pat`: a fine-grained personal access token that
+                may manage self-hosted runners; the container fetches registration and removal tokens with it.
             token:
               type: string
               minLength: 10
               maxLength: 500
-              description: Fine-grained PAT allowed to manage self-hosted runners for the target.
+              description: Registration token or PAT, depending on `tokenType`.
             runnerGroup:
               type: string
               maxLength: 128
