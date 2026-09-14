@@ -5,10 +5,19 @@ One image per provider under `docker/runner/<provider>/`, built by
 see [operations.md](operations.md)). All images: Ubuntu 24.04, user `runner`, no Docker
 daemon.
 
-| Provider | Image | Base | Version (build arg `RUNNER_VERSION`) |
-|---|---|---|---|
-| github | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | [actions/runner](https://github.com/actions/runner) release | 2.337.0 |
-| gitlab | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | [gitlab-runner](https://gitlab.com/gitlab-org/gitlab-runner) binary, executor `shell` | 19.3.1 |
+| Provider | Image | Base |
+|---|---|---|
+| github | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | [actions/runner](https://github.com/actions/runner) release |
+| gitlab | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | [gitlab-runner](https://gitlab.com/gitlab-org/gitlab-runner) binary, executor `shell` |
+
+The runner software version per provider lives in `docker/runner/versions.json`. It is
+the only place to bump it: the workflow, `pnpm run runner:build`, the image test and the
+extension (shown as runner version in the UI, `runnerVersion` on the provider) read it.
+The Dockerfiles take it as build arg `RUNNER_VERSION` without a default.
+
+The extension creates runners from `ghcr.io/hermsi1337/mstudio-ci-runner-<provider>:<EXTENSION_VERSION>`,
+the same release as the extension itself. A runner created by an older release shows an
+update in the UI; *Update* redeclares its stack with the current image.
 
 ## GitHub (`docker/runner/github/`)
 

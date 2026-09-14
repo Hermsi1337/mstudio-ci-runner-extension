@@ -9,6 +9,7 @@ import { createClient } from "@/generated/gitlab/client";
 import { ProviderError } from "@/global-errors.ts";
 import type { MessageKey } from "@/i18n/index.ts";
 import { createLogger } from "@/logger.ts";
+import runnerVersions from "../../../docker/runner/versions.json";
 import type {
     PreparedRunner,
     ProviderRequest,
@@ -70,6 +71,8 @@ function describeError(
  */
 export const gitlabProvider: RunnerProvider<GitLabRequest> = {
     id: "gitlab",
+    runnerVersion: runnerVersions.gitlab,
+    currentImage: () => getEnvironmentVariables().RUNNER_IMAGE_GITLAB,
 
     async prepare(input, runnerName): Promise<PreparedRunner> {
         const env = getEnvironmentVariables();
@@ -156,6 +159,7 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
             target,
             targetUrl,
             image: env.RUNNER_IMAGE_GITLAB,
+            runnerVersion: runnerVersions.gitlab,
             environment: {
                 CI_SERVER_URL: instanceUrl,
                 CI_SERVER_TOKEN: created.data.token,

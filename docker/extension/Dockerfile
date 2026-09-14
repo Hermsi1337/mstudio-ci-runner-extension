@@ -15,12 +15,14 @@ COPY . .
 RUN pnpm run build
 
 FROM node:20-alpine AS runner
+ARG EXTENSION_VERSION
 WORKDIR /app
 
 LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-runner-extension"
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV EXTENSION_VERSION=${EXTENSION_VERSION}
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 tanstack

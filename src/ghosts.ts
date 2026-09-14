@@ -4,12 +4,14 @@ import { deleteRunnerServerFunction } from "@/serverFunctions/runners/delete-run
 import { getRunnerLogsServerFunction } from "@/serverFunctions/runners/get-runner-logs.ts";
 import { listRunnersServerFunction } from "@/serverFunctions/runners/list-runners.ts";
 import { restartRunnerServerFunction } from "@/serverFunctions/runners/restart-runner.ts";
+import { updateRunnerServerFunction } from "@/serverFunctions/runners/update-runner.ts";
 
 const runnerClient = {
     listRunners: listRunnersServerFunction,
     createRunner: createRunnerServerFunction,
     getRunnerLogs: getRunnerLogsServerFunction,
     restartRunner: restartRunnerServerFunction,
+    updateRunner: updateRunnerServerFunction,
     deleteRunner: deleteRunnerServerFunction,
 };
 

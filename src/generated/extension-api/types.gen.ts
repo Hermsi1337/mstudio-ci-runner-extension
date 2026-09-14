@@ -139,7 +139,22 @@ export type Runner = {
     serviceId: string | null;
     status: RunnerStatus;
     statusMessage: string | null;
+    /**
+     * Image the runner container was declared with.
+     */
     image: string | null;
+    /**
+     * Version of the runner software inside the image, e.g. `2.337.0` for actions/runner. Null for runners created before this field existed.
+     */
+    runnerVersion: string | null;
+    /**
+     * Runner software version shipped with this extension release.
+     */
+    latestRunnerVersion: string;
+    /**
+     * True when the runner runs an older image than the one this extension release ships.
+     */
+    updateAvailable: boolean;
     createdAt: string;
 };
 

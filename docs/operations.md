@@ -22,6 +22,11 @@ The tag triggers `extension-image.yml` and `runner-image.yml`. Both use
 `workflow_dispatch` builds an image with a `sha-<commit>` tag and without `latest`,
 e.g. to try a branch.
 
+The extension image receives the version as build arg `EXTENSION_VERSION` (baked in as
+environment variable). The extension derives its default runner images from it, so
+nothing runs on `latest`. The runner software versions come from
+`docker/runner/versions.json` ([runner-image.md](runner-image.md)).
+
 ## Images
 
 | Image | Source | Visibility |
@@ -65,8 +70,8 @@ Target:
   until `runner-image.yml` for the same tag has succeeded, then deploys that version.
 - Manually via *Actions → Deploy → Run workflow* with a version such as `0.1.0`.
 
-The version is written into the image tags of the extension and both runner images, so
-a deployment pins all three to the same release. `postgres` is excluded from the
+`EXTENSION_VERSION` selects the extension image and, inside the extension, the runner
+images, so a deployment pins all three to the same release. `postgres` is excluded from the
 restart (`skip_recreation`); the extension runs its migrations on start.
 
 ### One-time setup

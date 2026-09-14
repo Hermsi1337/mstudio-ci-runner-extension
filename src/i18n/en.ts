@@ -19,11 +19,15 @@ export const en = {
     "runners.column.target": "Target",
     "runners.column.labels": "Labels",
     "runners.column.size": "Size",
+    "runners.column.version": "Runner version",
     "runners.column.status": "Status",
     "runners.column.actions": "Actions",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Restart",
+    "runners.action.update": "Update",
     "runners.action.delete": "Delete",
+    "runners.version.unknown": "unknown",
+    "runners.version.updateAvailable": "Update to {version}",
     "runners.ephemeralSuffix": "(ephemeral)",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty": "(no logs yet)",
@@ -99,7 +103,7 @@ export const en = {
     "form.github.target.help":
         "For an organization enter its name, for example my-org. For a single repository enter owner/repo, for example my-org/my-repo. An organization runner serves every repository its runner group allows.",
     "form.github.tokenType.help":
-        "Registration token: open the runner settings of the repository or organization on GitHub, click New self-hosted runner and copy the token from the config command. The runner registers once and keeps its registration across restarts. No PAT is stored. Ephemeral runners are not possible because the token expires after one hour.\nPersonal access token: the container fetches registration and removal tokens itself. Needed for ephemeral runners. The PAT is stored encrypted and lives in the container.",
+        "Registration token: open the runner settings of the repository or organization on GitHub, click New self-hosted runner and copy the token from the config command. The token expires after one hour, so the runner registers once and stores the resulting credentials (a few small files) in the config volume of its stack. Restarts and updates reuse them without a new token. No PAT is stored. Ephemeral runners are not possible because every job would need a fresh registration.\nPersonal access token: the container fetches registration and removal tokens itself on every start, so it needs no stored registration. Needed for ephemeral runners. The PAT is stored encrypted and lives in the container.",
     "form.github.registrationToken.help":
         "On GitHub open Settings, Actions, Runners, New self-hosted runner for the repository or organization entered above. Copy the token from the config.sh command, it looks like AEBIHM56SBF3SULYYYY3BH3KU333M. The token expires after one hour, so create the runner right away. The runner keeps its registration in a volume and survives restarts. When you delete the runner, it deregisters as long as the token is still valid; otherwise GitHub removes the offline runner after 14 days.",
     "form.github.registrationToken.link":

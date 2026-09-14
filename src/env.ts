@@ -1,7 +1,12 @@
 import { bool, cleanEnv, num, str, url } from "envalid";
+import packageJson from "../package.json";
 
-export const getEnvironmentVariables = () =>
-    cleanEnv(process.env, {
+const RUNNER_IMAGE_REPOSITORY = "ghcr.io/hermsi1337/mstudio-ci-runner";
+
+export const getEnvironmentVariables = () => {
+    const extensionVersion =
+        process.env.EXTENSION_VERSION || packageJson.version;
+    return cleanEnv(process.env, {
         PORT: num({ default: 3000 }),
         POSTGRES_USER: str(),
         POSTGRES_PASSWORD: str(),
@@ -15,11 +20,12 @@ export const getEnvironmentVariables = () =>
         ENCRYPTION_MASTER_PASSWORD: str(),
         ENCRYPTION_SALT: str(),
         RUN_MIGRATIONS_ON_STARTUP: bool({ default: true }),
+        EXTENSION_VERSION: str({ default: extensionVersion }),
         RUNNER_IMAGE_GITHUB: str({
-            default: "ghcr.io/hermsi1337/mstudio-ci-runner-github:latest",
+            default: `${RUNNER_IMAGE_REPOSITORY}-github:${extensionVersion}`,
         }),
         RUNNER_IMAGE_GITLAB: str({
-            default: "ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:latest",
+            default: `${RUNNER_IMAGE_REPOSITORY}-gitlab:${extensionVersion}`,
         }),
         MITTWALD_API_URL: url({ default: "https://api.mittwald.de/" }),
         GITHUB_API_URL: url({ default: "https://api.github.com" }),
@@ -35,3 +41,4 @@ export const getEnvironmentVariables = () =>
         LOCAL_API_TOKEN: str({ default: undefined }),
         LOCAL_PROJECT_ID: str({ default: undefined }),
     });
+};

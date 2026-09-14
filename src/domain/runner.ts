@@ -36,6 +36,9 @@ export const runnerSizes: Record<RunnerSize, { cpus: string; memory: string }> =
 const SERVICE_KEY = "runner";
 
 function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
+    const provider = getProviderById(row.provider);
+    const image = row.image ?? service?.deployedState.image ?? null;
+    const currentImage = provider?.currentImage() ?? null;
     return {
         id: row.id,
         provider: row.provider as Provider,
@@ -49,7 +52,11 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         serviceId: row.serviceId,
         status: service === null ? "missing" : (service?.status ?? "unknown"),
         statusMessage: service?.message ?? null,
-        image: service?.deployedState.image ?? null,
+        image,
+        runnerVersion: row.runnerVersion ?? null,
+        latestRunnerVersion: provider?.runnerVersion ?? "",
+        updateAvailable:
+            image !== null && currentImage !== null && image !== currentImage,
         createdAt: row.createdAt.toISOString(),
     };
 }
@@ -212,6 +219,8 @@ export async function createRunner(
         labels,
         ephemeral: prepared.ephemeral,
         size,
+        image: prepared.image,
+        runnerVersion: prepared.runnerVersion,
         createdBy: userId,
     };
     const [inserted] = await getDatabase()
@@ -281,6 +290,78 @@ export async function restartRunner(
     }
     assertStatus(response, 204);
     log.info("runner restarted", { runnerId, stackId: row.stackId, serviceId });
+}
+
+/**
+ * Redeclares the stack with the image of this extension release and the
+ * service state mittwald reports, so environment and volumes stay untouched.
+ * mittwald recreates the container; GitHub runners keep their registration in
+ * the config volume, GitLab runners keep their runner token.
+ */
+export async function updateRunner(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    runnerId: string,
+): Promise<Runner> {
+    const row = await findRunner(extensionInstanceId, runnerId);
+    const provider = getProviderById(row.provider);
+    const service = await fetchService(client, row);
+    if (!provider || !service) {
+        throw new NotFoundError("runnerContainer");
+    }
+    const state = service.pendingState ?? service.deployedState;
+    const image = provider.currentImage();
+    const mounts = state.volumes ?? [];
+    const volumes = Object.fromEntries(
+        mounts
+            .map((mount) => mount.split(":")[0])
+            .filter((name) => !name.startsWith("/"))
+            .map((name) => [name, { name }]),
+    );
+
+    const declared = await client.container.declareStack({
+        stackId: row.stackId,
+        data: {
+            services: {
+                [service.serviceName]: {
+                    description: service.description,
+                    image,
+                    environment: state.envs,
+                    restartPolicy: service.restartPolicy,
+                    deploy: service.deploy,
+                    volumes: mounts,
+                    ports: state.ports,
+                    command: state.command,
+                    entrypoint: state.entrypoint,
+                },
+            },
+            volumes,
+        },
+    });
+    if (declared.status === 403) {
+        throw new PermissionsInsufficientError(extensionInstanceId);
+    }
+    if (declared.status !== 200) {
+        throw new UpstreamError("error.upstream.stackDeclare", {
+            status: declared.status,
+        });
+    }
+    const [updated] = await getDatabase()
+        .update(runners)
+        .set({ image, runnerVersion: provider.runnerVersion })
+        .where(eq(runners.id, row.id))
+        .returning();
+    log.info("runner updated", {
+        runnerId,
+        stackId: row.stackId,
+        from: row.image,
+        to: image,
+    });
+    const updatedService =
+        declared.data.services?.find(
+            (s) => s.serviceName === service.serviceName,
+        ) ?? service;
+    return toView(updated, updatedService);
 }
 
 export async function deleteRunner(

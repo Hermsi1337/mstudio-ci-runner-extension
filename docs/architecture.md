@@ -48,6 +48,8 @@ Tables in `src/db/schema.ts`:
   `ON DELETE CASCADE`. `provider`, `target`, `targetUrl` describe the registration
   target. `credentials` is an encrypted column (`ENCRYPTION_MASTER_PASSWORD`,
   `ENCRYPTION_SALT`) holding provider-specific JSON, e.g. the GitLab runner token.
+  `image` and `runnerVersion` record what the stack was declared with; `updateAvailable`
+  in the API compares `image` with the image of the running extension release.
 
 One stack per runner, no shared stack. Deleting is a single `deleteStack` without
 touching other runners.

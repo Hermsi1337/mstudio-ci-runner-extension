@@ -1,5 +1,6 @@
 import { GenericContainer, Wait } from "testcontainers";
 import { describe, expect, it } from "vitest";
+import runnerVersions from "../../docker/runner/versions.json";
 
 /**
  * Registration itself is expected to fail because the CI server URLs point to
@@ -49,7 +50,14 @@ describe.each(images)("runner image: $provider", (image) => {
     it("builds and starts the registration flow", async () => {
         const built = await GenericContainer.fromDockerfile(
             `docker/runner/${image.provider}`,
-        ).build(tag, { deleteOnExit: false });
+        )
+            .withBuildArgs({
+                RUNNER_VERSION:
+                    runnerVersions[
+                        image.provider as keyof typeof runnerVersions
+                    ],
+            })
+            .build(tag, { deleteOnExit: false });
 
         const logs: string[] = [];
         const container = await built

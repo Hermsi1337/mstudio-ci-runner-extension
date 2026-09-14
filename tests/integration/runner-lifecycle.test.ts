@@ -1,4 +1,5 @@
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CreateRunnerRequest } from "@/generated/extension-api";
 import { zRunner, zRunnerList } from "@/generated/extension-api/zod.gen";
@@ -184,6 +185,37 @@ describe.each(cases)("runner lifecycle: $title", ({
         await expect(
             runner.restartRunner(client, extensionInstanceId, runnerId),
         ).resolves.toBeUndefined();
+    });
+
+    it("reports the runner version and no pending update", async () => {
+        const list = await runner.listRunners(client, extensionInstanceId);
+        const found = list.find((r) => r.id === runnerId);
+        expect(found?.runnerVersion).toBe(found?.latestRunnerVersion);
+        expect(found?.updateAvailable).toBe(false);
+    });
+
+    it("updates a runner that runs an older image", async () => {
+        const schema = await import("@/db/schema.ts");
+        await db
+            .update(schema.runners)
+            .set({
+                image: "ghcr.io/hermsi1337/outdated:0.0.1",
+                runnerVersion: "0.0.1",
+            })
+            .where(eq(schema.runners.id, runnerId));
+        const outdated = (
+            await runner.listRunners(client, extensionInstanceId)
+        ).find((r) => r.id === runnerId);
+        expect(outdated?.updateAvailable).toBe(true);
+
+        const updated = await runner.updateRunner(
+            client,
+            extensionInstanceId,
+            runnerId,
+        );
+        expect(zRunner.parse(updated)).toEqual(updated);
+        expect(updated.updateAvailable).toBe(false);
+        expect(updated.runnerVersion).toBe(updated.latestRunnerVersion);
     });
 
     it("refuses access from other extension instances", async () => {

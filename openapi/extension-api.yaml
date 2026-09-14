@@ -134,7 +134,7 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, stackId, serviceId, status, statusMessage, image, createdAt]
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, size, stackId, serviceId, status, statusMessage, image, runnerVersion, latestRunnerVersion, updateAvailable, createdAt]
       properties:
         id:
           type: string
@@ -168,6 +168,16 @@ components:
           type: [string, 'null']
         image:
           type: [string, 'null']
+          description: Image the runner container was declared with.
+        runnerVersion:
+          type: [string, 'null']
+          description: Version of the runner software inside the image, e.g. `2.337.0` for actions/runner. Null for runners created before this field existed.
+        latestRunnerVersion:
+          type: string
+          description: Runner software version shipped with this extension release.
+        updateAvailable:
+          type: boolean
+          description: True when the runner runs an older image than the one this extension release ships.
         createdAt:
           type: string
           format: date-time

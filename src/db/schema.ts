@@ -33,6 +33,8 @@ export const runners = pgTable("runners", {
     labels: text().notNull(),
     ephemeral: boolean().notNull().default(false),
     size: varchar({ length: 16 }).notNull().default("medium"),
+    image: text(),
+    runnerVersion: varchar({ length: 32 }),
     createdBy: varchar({ length: 36 }).notNull(),
     createdAt: timestamp().defaultNow().notNull(),
 });

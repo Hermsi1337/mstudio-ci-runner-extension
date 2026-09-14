@@ -10,8 +10,14 @@ deletion) is shared.
 
 | Method | Responsibility |
 |---|---|
-| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, environment variables, volumes and the credentials to store |
+| `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` |
+| `currentImage()` | Image this extension release creates runners with (`RUNNER_IMAGE_<PROVIDER>`) |
+| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes and the credentials to store |
 | `release(credentials)` | Remove the provider-side registration; must tolerate runners that are already gone |
+
+`updateRunner` in `src/domain/runner.ts` redeclares the stack with `currentImage()` and
+the service state mittwald reports, so providers need no update hook. GitHub runners
+keep their registration in the `config` volume, GitLab runners keep their runner token.
 
 Registry in `src/domain/providers/index.ts`. `src/domain/runner.ts` picks the provider
 from `input.provider` and knows no provider details beyond that.
@@ -37,7 +43,8 @@ Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
    `pnpm run spec:update`, add a job to `config/openapi-ts.config.ts`, run `pnpm run codegen`.
 3. `src/domain/providers/<name>.ts` implementing `RunnerProvider<ProviderRequest<"<name>">>`,
    registered in `index.ts`.
-4. `RUNNER_IMAGE_<NAME>` in `src/env.ts`, `.env.example`, `tests/helpers/env.ts`.
+4. `RUNNER_IMAGE_<NAME>` in `src/env.ts`, `tests/helpers/env.ts`; runner version in
+   `docker/runner/versions.json`.
 5. Image under `docker/runner/<name>/` ([runner-image.md](runner-image.md)), matrix entry
    in `.github/workflows/runner-image.yml`.
 6. Form fields in `src/components/runners/RunnerForm.tsx`, label in `RunnerTable.tsx`.

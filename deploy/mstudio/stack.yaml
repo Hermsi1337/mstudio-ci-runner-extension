@@ -16,12 +16,11 @@ services:
       RUN_MIGRATIONS_ON_STARTUP: "true"
       LOG_LEVEL: info
       LOG_FORMAT: json
+      EXTENSION_VERSION: "{{ .Env.EXTENSION_VERSION }}"
       EXTENSION_ID: "{{ .Env.EXTENSION_ID }}"
       EXTENSION_SECRET: "{{ .Env.EXTENSION_SECRET }}"
       ENCRYPTION_MASTER_PASSWORD: "{{ .Env.ENCRYPTION_MASTER_PASSWORD }}"
       ENCRYPTION_SALT: "{{ .Env.ENCRYPTION_SALT }}"
-      RUNNER_IMAGE_GITHUB: "ghcr.io/hermsi1337/mstudio-ci-runner-github:{{ .Env.EXTENSION_VERSION }}"
-      RUNNER_IMAGE_GITLAB: "ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:{{ .Env.EXTENSION_VERSION }}"
 
   postgres:
     image: "postgres:17-alpine"

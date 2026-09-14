@@ -21,11 +21,15 @@ export const de: Messages = {
     "runners.column.target": "Ziel",
     "runners.column.labels": "Labels",
     "runners.column.size": "Größe",
+    "runners.column.version": "Runner-Version",
     "runners.column.status": "Status",
     "runners.column.actions": "Aktionen",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Neustart",
+    "runners.action.update": "Aktualisieren",
     "runners.action.delete": "Löschen",
+    "runners.version.unknown": "unbekannt",
+    "runners.version.updateAvailable": "Update auf {version}",
     "runners.ephemeralSuffix": "(ephemeral)",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty": "(noch keine Logs)",
@@ -101,7 +105,7 @@ export const de: Messages = {
     "form.github.target.help":
         "Für eine Organisation gibst du ihren Namen an, zum Beispiel meine-org. Für ein einzelnes Repository owner/repo, zum Beispiel meine-org/mein-repo. Ein Organisations-Runner bedient alle Repositorys, die seine Runner-Gruppe erlaubt.",
     "form.github.tokenType.help":
-        "Registrierungs-Token: Öffne auf GitHub die Runner-Einstellungen des Repositorys oder der Organisation, klicke New self-hosted runner und kopiere das Token aus dem config-Befehl. Der Runner registriert sich einmal und behält die Registrierung über Neustarts. Es wird kein PAT gespeichert. Ephemerale Runner gehen damit nicht, weil das Token nach einer Stunde abläuft.\nPersonal Access Token: Der Container holt sich Registrierungs- und Entfernungs-Token selbst. Nötig für ephemerale Runner. Das PAT wird verschlüsselt gespeichert und liegt im Container.",
+        "Registrierungs-Token: Öffne auf GitHub die Runner-Einstellungen des Repositorys oder der Organisation, klicke New self-hosted runner und kopiere das Token aus dem config-Befehl. Das Token läuft nach einer Stunde ab, daher registriert sich der Runner einmal und legt die entstehenden Zugangsdaten (ein paar kleine Dateien) im Config-Volume seines Stacks ab. Neustarts und Updates nutzen sie ohne neues Token. Es wird kein PAT gespeichert. Ephemerale Runner gehen damit nicht, weil jeder Job eine frische Registrierung bräuchte.\nPersonal Access Token: Der Container holt sich Registrierungs- und Entfernungs-Token bei jedem Start selbst und braucht keine gespeicherte Registrierung. Nötig für ephemerale Runner. Das PAT wird verschlüsselt gespeichert und liegt im Container.",
     "form.github.registrationToken.help":
         "Öffne auf GitHub Settings, Actions, Runners, New self-hosted runner für das oben eingetragene Repository oder die Organisation. Kopiere das Token aus dem config.sh-Befehl, es sieht aus wie AEBIHM56SBF3SULYYYY3BH3KU333M. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Der Runner behält seine Registrierung in einem Volume und übersteht Neustarts. Beim Löschen meldet er sich ab, solange das Token noch gültig ist; sonst entfernt GitHub den Offline-Runner nach 14 Tagen.",
     "form.github.registrationToken.link":

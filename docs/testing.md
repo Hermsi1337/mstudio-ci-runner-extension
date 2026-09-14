@@ -34,7 +34,7 @@ on import, so tests import them after the containers started via `await import(.
 |---|---|
 | `database.test.ts` | Migrations, encrypted column `credentials`, cascade delete |
 | `runner-lifecycle.test.ts` | Per provider case (GitHub repo, GitLab project, GitLab instance): `createRunner` → `listRunners` → logs/restart → `deleteRunner` against the Prism mocks; tenant isolation; input errors |
-| `runner-image.test.ts` | Per image: builds, entrypoint reaches registration with the configured values, runs as user `runner` |
+| `runner-image.test.ts` | Per image: builds with `RUNNER_VERSION` from `docker/runner/versions.json`, entrypoint reaches registration with the configured values, runs as user `runner` |
 
 Prism rejects requests that contradict the upstream spec. The request bodies of the
 extension are therefore checked against the real API contracts without the real APIs.

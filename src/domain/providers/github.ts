@@ -3,6 +3,7 @@ import { Octokit } from "@octokit/rest";
 import { getEnvironmentVariables } from "@/env.ts";
 import { ProviderError } from "@/global-errors.ts";
 import { createLogger } from "@/logger.ts";
+import runnerVersions from "../../../docker/runner/versions.json";
 import type { ProviderRequest, RunnerProvider } from "./types.ts";
 
 const log = createLogger("github");
@@ -98,6 +99,8 @@ export async function assertGitHubRunnerAccess(
  */
 export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
     id: "github",
+    runnerVersion: runnerVersions.github,
+    currentImage: () => getEnvironmentVariables().RUNNER_IMAGE_GITHUB,
 
     async prepare(input, runnerName) {
         const target = parseGitHubTarget(input.target);
@@ -138,6 +141,7 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
             target: target.url.replace(GITHUB_HOST, ""),
             targetUrl: target.url,
             image: env.RUNNER_IMAGE_GITHUB,
+            runnerVersion: runnerVersions.github,
             environment,
             credentials,
             volumes: ["work:/home/runner/_work", "config:/home/runner/_config"],

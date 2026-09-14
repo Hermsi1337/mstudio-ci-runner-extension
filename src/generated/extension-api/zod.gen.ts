@@ -97,6 +97,9 @@ export const zRunner = z.object({
     status: zRunnerStatus,
     statusMessage: z.string().nullable(),
     image: z.string().nullable(),
+    runnerVersion: z.string().nullable(),
+    latestRunnerVersion: z.string(),
+    updateAvailable: z.boolean(),
     createdAt: z.iso.datetime()
 });
 

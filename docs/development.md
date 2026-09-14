@@ -66,8 +66,9 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `RUN_MIGRATIONS_ON_STARTUP` | Default `true` |
 | `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error` ([operations.md](operations.md#logging)) |
 | `LOG_FORMAT` | `text` (default) or `json` (default when `NODE_ENV=production`) |
-| `RUNNER_IMAGE_GITHUB` | Image for GitHub runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-github:latest` |
-| `RUNNER_IMAGE_GITLAB` | Image for GitLab runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:latest` |
+| `EXTENSION_VERSION` | Release of the extension, default the version in `package.json`; set by the image build |
+| `RUNNER_IMAGE_GITHUB` | Image for GitHub runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-github:<EXTENSION_VERSION>` |
+| `RUNNER_IMAGE_GITLAB` | Image for GitLab runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:<EXTENSION_VERSION>` |
 | `MITTWALD_API_URL` | Default `https://api.mittwald.de/`; the Prism mock in tests |
 | `GITHUB_API_URL` | Default `https://api.github.com`; the Prism mock in tests; also passed to the runner container as `GITHUB_API` |
 | `GITLAB_API_URL` | No default; overrides the GitLab instance URL for API calls (tests only) |

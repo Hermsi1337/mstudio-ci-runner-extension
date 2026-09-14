@@ -36,6 +36,8 @@ jobs:
           context: .
           file: docker/extension/Dockerfile
           push: true
+          build-args: |
+            EXTENSION_VERSION=${{ steps.meta.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

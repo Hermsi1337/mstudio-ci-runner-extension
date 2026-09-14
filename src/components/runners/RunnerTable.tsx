@@ -1,5 +1,6 @@
 import {
     ActionGroup,
+    Badge,
     Button,
     Heading,
     IconSearch,
@@ -62,6 +63,7 @@ export const RunnerTable = () => {
                 <TableColumn>{t("runners.column.target")}</TableColumn>
                 <TableColumn>{t("runners.column.labels")}</TableColumn>
                 <TableColumn>{t("runners.column.size")}</TableColumn>
+                <TableColumn>{t("runners.column.version")}</TableColumn>
                 <TableColumn>{t("runners.column.status")}</TableColumn>
                 <TableColumn>{t("runners.column.actions")}</TableColumn>
             </TableHeader>
@@ -84,6 +86,20 @@ export const RunnerTable = () => {
                         </TableCell>
                         <TableCell>{runner.labels.join(", ")}</TableCell>
                         <TableCell>{t(`form.size.${runner.size}`)}</TableCell>
+                        <TableCell>
+                            {runner.runnerVersion ??
+                                t("runners.version.unknown")}
+                            {runner.updateAvailable && (
+                                <>
+                                    {" "}
+                                    <Badge color="blue">
+                                        {t("runners.version.updateAvailable", {
+                                            version: runner.latestRunnerVersion,
+                                        })}
+                                    </Badge>
+                                </>
+                            )}
+                        </TableCell>
                         <TableCell>
                             <StatusBadge status={runner.status} />
                         </TableCell>
@@ -108,6 +124,25 @@ export const RunnerTable = () => {
                                 >
                                     {t("runners.action.restart")}
                                 </Button>
+                                {runner.updateAvailable && (
+                                    <Button
+                                        color="primary"
+                                        variant="soft"
+                                        size="s"
+                                        isDisabled={busy === runner.id}
+                                        onPress={() =>
+                                            run(runner.id, () =>
+                                                RunnerClientGhost.updateRunner({
+                                                    data: {
+                                                        runnerId: runner.id,
+                                                    },
+                                                }),
+                                            )
+                                        }
+                                    >
+                                        {t("runners.action.update")}
+                                    </Button>
+                                )}
                                 <Button
                                     color="danger"
                                     variant="soft"
