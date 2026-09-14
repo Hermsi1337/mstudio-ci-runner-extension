@@ -5,6 +5,7 @@ describe("parseConfigCommand", () => {
     it("reads url and token from the Linux command", () => {
         expect(
             parseConfigCommand(
+                "github",
                 "./config.sh --url https://github.com/acme/app --token AEBIHM56SBF3SULYYYY3BH3KU333M",
             ),
         ).toEqual({
@@ -16,6 +17,7 @@ describe("parseConfigCommand", () => {
     it("accepts the Windows command, organizations and extra flags", () => {
         expect(
             parseConfigCommand(
+                "github",
                 './config.cmd --url "https://github.com/acme/" --token AEBIHM56SBF3SULYYYY3BH3KU333M --name x',
             ),
         ).toEqual({
@@ -25,9 +27,32 @@ describe("parseConfigCommand", () => {
     });
 
     it("rejects input without url or token", () => {
-        expect(parseConfigCommand("AEBIHM56SBF3SULYYYY3BH3KU333M")).toBeNull();
         expect(
-            parseConfigCommand("./config.sh --url https://github.com/acme/app"),
+            parseConfigCommand("github", "AEBIHM56SBF3SULYYYY3BH3KU333M"),
+        ).toBeNull();
+        expect(
+            parseConfigCommand(
+                "github",
+                "./config.sh --url https://github.com/acme/app",
+            ),
+        ).toBeNull();
+    });
+
+    it("reads instance url and runner token from the GitLab command", () => {
+        expect(
+            parseConfigCommand(
+                "gitlab",
+                "gitlab-runner register  --url https://gitlab.example.com/  --token glrt-t1_AbCdEfGhIjKlMnOpQrSt",
+            ),
+        ).toEqual({
+            target: "https://gitlab.example.com",
+            token: "glrt-t1_AbCdEfGhIjKlMnOpQrSt",
+        });
+        expect(
+            parseConfigCommand(
+                "gitlab",
+                "gitlab-runner register --url https://gitlab.com --token glpat-notarunnertoken",
+            ),
         ).toBeNull();
     });
 });

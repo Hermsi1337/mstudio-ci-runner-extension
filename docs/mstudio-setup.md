@@ -54,9 +54,15 @@ the runner container ([architecture.md](architecture.md#security)).
 
 ### GitLab
 
-Personal access token with the scopes `create_runner` and `api`. Role maintainer
-(project) or owner (group); instance runners require an admin. The PAT is used only to
-create the runner and is not stored.
+Default: the register command from GitLab. Create the runner under *Settings → CI/CD →
+Runners → New project runner* (or group or instance runner), set tags there and paste
+the `gitlab-runner register --url ... --token glrt-...` line from the next page into the
+form. The runner token is stored encrypted and used to delete the runner later. No PAT
+is needed.
+
+Alternative: a personal access token with the scopes `create_runner` and `api`. Role
+maintainer (project) or owner (group); instance runners require an admin. The extension
+creates the runner via the API; the PAT is used once and is not stored.
 
 ## Testing a local extension
 

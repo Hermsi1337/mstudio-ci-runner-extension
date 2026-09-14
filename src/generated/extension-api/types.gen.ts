@@ -114,15 +114,26 @@ export type GitLabRunnerRequest = RunnerBase & {
      * Base URL of the GitLab instance.
      */
     instanceUrl: string;
-    runnerType: GitLabRunnerType;
     /**
-     * Project path (`group/project`) or group path for project/group runners. Empty for instance runners.
+     * `registration`: the runner authentication token (`glrt-...`) from the "New runner" page on GitLab.
+     * The runner, its tags and its scope already exist there; the container registers with the token.
+     * `pat`: a personal access token; the extension creates the runner via the API from `runnerType`,
+     * `target`, `labels` and `runUntagged`.
+     *
+     */
+    tokenType?: 'registration' | 'pat';
+    runnerType?: GitLabRunnerType;
+    /**
+     * Project path (`group/project`) or group path for project/group runners. Empty for instance runners. Only with tokenType pat.
      */
     target?: string;
     /**
-     * Personal access token with `create_runner` scope (plus `api` for path lookups).
+     * Runner authentication token or PAT, depending on `tokenType`.
      */
     token: string;
+    /**
+     * Only with tokenType pat.
+     */
     runUntagged?: boolean;
 };
 

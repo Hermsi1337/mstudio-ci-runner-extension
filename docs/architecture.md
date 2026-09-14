@@ -80,8 +80,10 @@ answer within 6 seconds.
 - GitHub with a PAT: the PAT is stored encrypted and passed to the runner container as
   `GITHUB_TOKEN`. Project members with container access can read it there. Use
   fine-grained PATs with minimal scope.
-- GitLab: the PAT is used once to create the runner and is not stored. The container
-  only receives the runner token (`CI_SERVER_TOKEN`).
+- GitLab: with a runner token from GitLab nothing else is involved. With a PAT it is
+  used once to create the runner and is not stored. In both modes the container only
+  receives the runner token (`CI_SERVER_TOKEN`), which is also stored encrypted for
+  deleting the runner.
 - Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
 - Errors reach the client only through `PublicError` subclasses (`src/global-errors.ts`);
   they carry message keys that the middleware renders in the request language.

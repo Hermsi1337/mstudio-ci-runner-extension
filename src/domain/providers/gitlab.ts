@@ -3,6 +3,7 @@ import {
     deleteApiV4Runners,
     getApiV4GroupsId,
     getApiV4ProjectsId,
+    postApiV4RunnersVerify,
     postApiV4UserRunners,
 } from "@/generated/gitlab";
 import { createClient } from "@/generated/gitlab/client";
@@ -65,10 +66,148 @@ function describeError(
     return new ProviderError("error.gitlab.status", { status: status ?? "?" });
 }
 
+interface Registration {
+    target: string;
+    targetUrl: string;
+    runnerId: string;
+    runnerToken: string;
+    tags: string;
+}
+
 /**
- * The runner is created through the API with the user's PAT. The container
- * only receives the resulting runner authentication token, never the PAT.
- * On removal the runner is deleted with that token.
+ * The runner token from the "New runner" page already belongs to a runner
+ * whose scope and tags live in GitLab. Verifying it needs no PAT and yields
+ * the runner id; scope and tags are not readable with the runner token.
+ */
+async function verifyRunnerToken(
+    instanceUrl: string,
+    token: string,
+): Promise<Registration> {
+    const verified = await postApiV4RunnersVerify({
+        client: gitlabClient(instanceUrl),
+        body: { token },
+    });
+    if (!verified.data) {
+        log.debug("runner token verification failed", {
+            instanceUrl,
+            status: verified.response?.status,
+        });
+        throw new ProviderError(
+            "error.gitlab.runnerTokenInvalid",
+            {},
+            "configCommand",
+        );
+    }
+    log.info("runner token verified", {
+        instanceUrl,
+        runnerId: verified.data.id,
+    });
+    return {
+        target: instanceUrl.replace(/^https?:\/\//, ""),
+        targetUrl: instanceUrl,
+        runnerId: String(verified.data.id),
+        runnerToken: token,
+        tags: "",
+    };
+}
+
+async function createRunnerWithPat(
+    input: GitLabRequest,
+    instanceUrl: string,
+    runnerName: string,
+): Promise<Registration> {
+    const path = normalizePath(input.target);
+    const client = gitlabClient(instanceUrl, input.token);
+    const runnerType = input.runnerType ?? "project_type";
+    const tags = (input.labels ?? "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+    let projectId: number | undefined;
+    let groupId: number | undefined;
+    let target = instanceUrl.replace(/^https?:\/\//, "");
+    let targetUrl = instanceUrl;
+
+    if (runnerType === "project_type") {
+        if (!path) {
+            throw new ProviderError(
+                "error.gitlab.projectPathRequired",
+                {},
+                "target",
+            );
+        }
+        const project = await getApiV4ProjectsId({
+            client,
+            path: { id: path },
+        });
+        if (!project.data) {
+            throw describeError(project.response?.status, "project", path);
+        }
+        projectId = project.data.id;
+        log.debug("project resolved", { instanceUrl, path, projectId });
+        target = `${target} ${project.data.path_with_namespace ?? path}`;
+        targetUrl = project.data.web_url ?? `${instanceUrl}/${path}`;
+    } else if (runnerType === "group_type") {
+        if (!path) {
+            throw new ProviderError(
+                "error.gitlab.groupPathRequired",
+                {},
+                "target",
+            );
+        }
+        const group = await getApiV4GroupsId({
+            client,
+            path: { id: path },
+        });
+        if (!group.data) {
+            throw describeError(group.response?.status, "group", path);
+        }
+        groupId = group.data.id;
+        log.debug("group resolved", { instanceUrl, path, groupId });
+        target = `${target} ${group.data.full_path ?? path}`;
+        targetUrl = group.data.web_url ?? `${instanceUrl}/groups/${path}`;
+    }
+
+    const created = await postApiV4UserRunners({
+        client,
+        body: {
+            runner_type: runnerType,
+            project_id: projectId,
+            group_id: groupId,
+            description: runnerName,
+            tag_list: tags,
+            run_untagged: input.runUntagged ?? true,
+        },
+    });
+    if (!created.data) {
+        log.debug("runner registration failed", {
+            instanceUrl,
+            runnerType,
+            status: created.response?.status,
+        });
+        throw describeError(created.response?.status, "runner");
+    }
+    log.info("runner registered", {
+        instanceUrl,
+        runnerType,
+        runnerId: created.data.id,
+        tags,
+    });
+    return {
+        target,
+        targetUrl,
+        runnerId: String(created.data.id),
+        runnerToken: created.data.token,
+        tags: tags.join(","),
+    };
+}
+
+/**
+ * With a runner token the container registers with a runner that already
+ * exists in GitLab. With a PAT the runner is created through the API and the
+ * container only receives the resulting runner token, never the PAT. On
+ * removal the runner is deleted with the runner token in both modes.
  */
 export const gitlabProvider: RunnerProvider<GitLabRequest> = {
     id: "gitlab",
@@ -79,100 +218,28 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
     async prepare(input, runnerName): Promise<PreparedRunner> {
         const env = getEnvironmentVariables();
         const instanceUrl = normalizeInstanceUrl(input.instanceUrl);
-        const path = normalizePath(input.target);
-        const client = gitlabClient(instanceUrl, input.token);
-        const tags = (input.labels ?? "")
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean);
-
-        let projectId: number | undefined;
-        let groupId: number | undefined;
-        let target = instanceUrl.replace(/^https?:\/\//, "");
-        let targetUrl = instanceUrl;
-
-        if (input.runnerType === "project_type") {
-            if (!path) {
-                throw new ProviderError(
-                    "error.gitlab.projectPathRequired",
-                    {},
-                    "target",
-                );
-            }
-            const project = await getApiV4ProjectsId({
-                client,
-                path: { id: path },
-            });
-            if (!project.data) {
-                throw describeError(project.response?.status, "project", path);
-            }
-            projectId = project.data.id;
-            log.debug("project resolved", { instanceUrl, path, projectId });
-            target = `${target} ${project.data.path_with_namespace ?? path}`;
-            targetUrl = project.data.web_url ?? `${instanceUrl}/${path}`;
-        } else if (input.runnerType === "group_type") {
-            if (!path) {
-                throw new ProviderError(
-                    "error.gitlab.groupPathRequired",
-                    {},
-                    "target",
-                );
-            }
-            const group = await getApiV4GroupsId({
-                client,
-                path: { id: path },
-            });
-            if (!group.data) {
-                throw describeError(group.response?.status, "group", path);
-            }
-            groupId = group.data.id;
-            log.debug("group resolved", { instanceUrl, path, groupId });
-            target = `${target} ${group.data.full_path ?? path}`;
-            targetUrl = group.data.web_url ?? `${instanceUrl}/groups/${path}`;
-        }
-
-        const created = await postApiV4UserRunners({
-            client,
-            body: {
-                runner_type: input.runnerType,
-                project_id: projectId,
-                group_id: groupId,
-                description: runnerName,
-                tag_list: tags,
-                run_untagged: input.runUntagged ?? true,
-            },
-        });
-        if (!created.data) {
-            log.debug("runner registration failed", {
-                instanceUrl,
-                runnerType: input.runnerType,
-                status: created.response?.status,
-            });
-            throw describeError(created.response?.status, "runner");
-        }
-        log.info("runner registered", {
-            instanceUrl,
-            runnerType: input.runnerType,
-            runnerId: created.data.id,
-            tags,
-        });
+        const registration =
+            (input.tokenType ?? "registration") === "pat"
+                ? await createRunnerWithPat(input, instanceUrl, runnerName)
+                : await verifyRunnerToken(instanceUrl, input.token);
 
         return {
-            target,
-            targetUrl,
+            target: registration.target,
+            targetUrl: registration.targetUrl,
             image: env.RUNNER_IMAGE_GITLAB,
             runnerVersion: runnerVersions.gitlab,
             environment: {
                 CI_SERVER_URL: instanceUrl,
-                CI_SERVER_TOKEN: created.data.token,
+                CI_SERVER_TOKEN: registration.runnerToken,
                 RUNNER_NAME: runnerName,
             },
             credentials: {
                 instanceUrl,
-                runnerId: created.data.id,
-                runnerToken: created.data.token,
+                runnerId: registration.runnerId,
+                runnerToken: registration.runnerToken,
             },
             volumes: [DATA_VOLUME_MOUNT],
+            labels: registration.tags,
             ephemeral: false,
         };
     },

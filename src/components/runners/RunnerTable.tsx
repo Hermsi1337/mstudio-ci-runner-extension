@@ -92,7 +92,11 @@ export const RunnerTable = () => {
                                 {runner.target}
                             </Link>
                         </TableCell>
-                        <TableCell>{runner.labels.join(", ")}</TableCell>
+                        <TableCell>
+                            {runner.labels.length > 0
+                                ? runner.labels.join(", ")
+                                : t("runners.labels.inCiSystem")}
+                        </TableCell>
                         <TableCell>
                             {t(`form.size.${runner.size}`)}
                             {runner.concurrency > 1

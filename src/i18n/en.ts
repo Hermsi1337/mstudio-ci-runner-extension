@@ -32,6 +32,7 @@ export const en = {
     "runners.version.updateAvailable": "Update to {version}",
     "runners.ephemeralSuffix": "(ephemeral)",
     "runners.concurrencySuffix": "({jobs} jobs at once)",
+    "runners.labels.inCiSystem": "set in GitLab",
     "runners.cache.off": "off",
     "runners.cache.limit": "{size} GB",
     "runners.logs.heading": "Logs: {name}",
@@ -91,6 +92,15 @@ export const en = {
     "form.github.token.required": "GitHub token is required",
     "form.github.runnerGroup.label": "Runner group",
     "form.github.ephemeral.label": "Ephemeral (fresh registration per job)",
+    "form.gitlab.tokenType.label": "Authentication",
+    "form.gitlab.tokenType.registration": "Runner token from GitLab",
+    "form.gitlab.tokenType.pat": "Personal access token (PAT)",
+    "form.gitlab.configCommand.label": "Register command from GitLab",
+    "form.gitlab.configCommand.description":
+        "Paste the gitlab-runner register command from the New runner page. Instance URL and runner token are read from it; tags and scope were set on that page.",
+    "form.gitlab.configCommand.required": "Register command is required",
+    "form.gitlab.configCommand.invalid":
+        "Paste the full command with --url https://... and --token glrt-...",
     "form.gitlab.instanceUrl.label": "GitLab instance",
     "form.gitlab.instanceUrl.description":
         "https://gitlab.com or the URL of your own instance.",
@@ -135,6 +145,10 @@ export const en = {
         "Only for organizations. Runner groups control which repositories may use the runner. Leave empty for the group Default.",
     "form.github.ephemeral.help":
         "An ephemeral runner takes exactly one job, deregisters and registers again with a clean work directory. Safer for untrusted code, slower per job because every job starts on a fresh registration.",
+    "form.gitlab.tokenType.help":
+        "Runner token: create the runner on GitLab under Settings, CI/CD, Runners, New project runner (or group or instance runner), choose its tags there and copy the gitlab-runner register command from the next page. The runner exists in GitLab already, the container registers with its token. No PAT is needed and the token is stored encrypted for deleting the runner later.\nPersonal access token: the extension creates the runner via the API with the scope, path, tags and untagged setting from this form. The PAT is used once and not stored.",
+    "form.gitlab.configCommand.help":
+        "On GitLab open the project or group, then Settings, CI/CD, Runners, New project runner. Set tags and whether untagged jobs run, click Create runner and copy the gitlab-runner register line from step 1. Only --url and --token are used. The token belongs to that runner; deleting the runner here removes it from GitLab.",
     "form.gitlab.instanceUrl.help":
         "https://gitlab.com for the hosted service, or the base URL of your self-managed instance, for example https://gitlab.example.com.",
     "form.gitlab.runnerType.help":
@@ -206,6 +220,8 @@ export const en = {
     "error.github.ephemeralNeedsPat":
         "Ephemeral runners need a personal access token. A registration token expires after one hour and cannot re-register the runner.",
     "error.gitlab.tokenInvalid": "The GitLab token is invalid.",
+    "error.gitlab.runnerTokenInvalid":
+        "GitLab does not accept the runner token. Paste the full register command from the New runner page; the token starts with glrt-.",
     "error.gitlab.noAccessProject":
         "The token cannot manage project {path}. Required scopes: create_runner and api (maintainer).",
     "error.gitlab.noAccessGroup":

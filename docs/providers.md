@@ -13,7 +13,7 @@ deletion) is shared.
 | `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` |
 | `currentImage()` | Image this extension release creates runners with (`RUNNER_IMAGE_<PROVIDER>`) |
 | `concurrencyVariable` | Optional. Environment variable for the number of jobs the runner takes at once (`RUNNER_CONCURRENT` for GitLab). Without it the runner takes one job at a time and `concurrency` is stored as 1 |
-| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes and the credentials to store |
+| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes, the labels to show and the credentials to store |
 | `release(credentials)` | Remove the provider-side registration; must tolerate runners that are already gone |
 
 Every provider returns `DATA_VOLUME_MOUNT` (`runner-data:/home/runner/data`) as its
@@ -51,7 +51,7 @@ from `input.provider` and knows no provider details beyond that.
 | Provider | Inputs | Registration | Credentials in the container | Cleanup |
 |---|---|---|---|---|
 | `github` | `target` (owner or owner/repo), `tokenType` (`registration`, default, or `pat`), `token`, `runnerGroup`, `ephemeral` (PAT only) | `registration`: no API call, the container registers with the token from the "New self-hosted runner" page and keeps the registration in the `config` volume. `pat`: access verified via `GET .../actions/runners` (Octokit); the container fetches a registration token with the PAT on start | `registration`: the registration token (`RUNNER_TOKEN`), useless after one hour. `pat`: the PAT (`GITHUB_TOKEN`) | The container deregisters itself on SIGTERM. With an expired registration token the runner stays offline in GitHub until GitHub removes it after 14 days |
-| `gitlab` | `instanceUrl`, `runnerType` (project/group/instance), `target` (path), `token` (PAT), `runUntagged` | `POST /api/v4/user/runners` with the PAT returns a runner token `glrt-...` | Runner token only (`CI_SERVER_TOKEN`), never the PAT | `DELETE /api/v4/runners?token=` |
+| `gitlab` | `instanceUrl`, `tokenType` (`registration`, default, or `pat`), `token`, and with `pat`: `runnerType` (project/group/instance), `target` (path), `runUntagged` | `registration`: the runner token `glrt-...` from the "New runner" page is checked with `POST /api/v4/runners/verify`; scope and tags live in GitLab, `labels` is stored empty. `pat`: `POST /api/v4/user/runners` with the PAT creates the runner and returns its token | Runner token only (`CI_SERVER_TOKEN`), never the PAT | `DELETE /api/v4/runners?token=` in both modes |
 
 GitLab client: generated from `openapi/upstream/gitlab.json` ([codegen.md](codegen.md)).
 Project and group ids are resolved via `GET /projects/{path}` and `GET /groups/{path}`.
@@ -72,6 +72,8 @@ Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
 5. Image under `docker/runner/<name>/` ([runner-image.md](runner-image.md)), matrix entry
    in `.github/workflows/runner-image.yml`.
 6. Form fields in `src/components/runners/RunnerForm.tsx`, label in `RunnerTable.tsx`.
+   A provider that shows a setup command on its "new runner" page gets a pattern in
+   `parseConfigCommand.ts`.
 7. Test case in `tests/integration/runner-lifecycle.test.ts` (Prism mock) and
    `runner-image.test.ts`.
 8. This file, [runner-image.md](runner-image.md), [mstudio-setup.md](mstudio-setup.md).

@@ -148,6 +148,7 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
             environment,
             credentials,
             volumes: [DATA_VOLUME_MOUNT],
+            labels: input.labels ?? "mittwald",
             ephemeral,
         };
     },

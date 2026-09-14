@@ -16,6 +16,8 @@ export interface PreparedRunner {
     environment: Record<string, string>;
     credentials: Record<string, string>;
     volumes: string[];
+    /** Comma separated labels or tags to show; empty when they live in the CI system only. */
+    labels: string;
     ephemeral: boolean;
 }
 

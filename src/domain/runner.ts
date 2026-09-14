@@ -395,7 +395,7 @@ export async function createRunner(
         target: prepared.target,
         targetUrl: prepared.targetUrl,
         credentials: JSON.stringify(prepared.credentials),
-        labels,
+        labels: prepared.labels,
         ephemeral: prepared.ephemeral,
         size,
         image: prepared.image,

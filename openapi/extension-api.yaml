@@ -98,11 +98,12 @@ components:
     GitLabRunnerType:
       type: string
       enum: [project_type, group_type, instance_type]
+      default: project_type
     GitLabRunnerRequest:
       allOf:
         - $ref: '#/components/schemas/RunnerBase'
         - type: object
-          required: [provider, instanceUrl, runnerType, token]
+          required: [provider, instanceUrl, token]
           properties:
             provider:
               type: string
@@ -112,20 +113,30 @@ components:
               format: uri
               default: https://gitlab.com
               description: Base URL of the GitLab instance.
+            tokenType:
+              type: string
+              enum: [registration, pat]
+              default: registration
+              description: |
+                `registration`: the runner authentication token (`glrt-...`) from the "New runner" page on GitLab.
+                The runner, its tags and its scope already exist there; the container registers with the token.
+                `pat`: a personal access token; the extension creates the runner via the API from `runnerType`,
+                `target`, `labels` and `runUntagged`.
             runnerType:
               $ref: '#/components/schemas/GitLabRunnerType'
             target:
               type: string
               maxLength: 300
-              description: Project path (`group/project`) or group path for project/group runners. Empty for instance runners.
+              description: Project path (`group/project`) or group path for project/group runners. Empty for instance runners. Only with tokenType pat.
             token:
               type: string
               minLength: 10
               maxLength: 500
-              description: Personal access token with `create_runner` scope (plus `api` for path lookups).
+              description: Runner authentication token or PAT, depending on `tokenType`.
             runUntagged:
               type: boolean
               default: true
+              description: Only with tokenType pat.
     CreateRunnerRequest:
       oneOf:
         - $ref: '#/components/schemas/GitHubRunnerRequest'

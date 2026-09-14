@@ -72,12 +72,13 @@ export const zGitLabRunnerType = z.enum([
     'project_type',
     'group_type',
     'instance_type'
-]);
+]).default('project_type');
 
 export const zGitLabRunnerRequest = zRunnerBase.and(z.object({
     provider: z.enum(['gitlab']),
     instanceUrl: z.url().default('https://gitlab.com'),
-    runnerType: zGitLabRunnerType,
+    tokenType: z.enum(['registration', 'pat']).optional().default('registration'),
+    runnerType: zGitLabRunnerType.optional(),
     target: z.string().max(300).optional(),
     token: z.string().min(10).max(500),
     runUntagged: z.boolean().optional().default(true)
