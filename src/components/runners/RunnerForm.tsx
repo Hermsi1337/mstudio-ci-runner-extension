@@ -161,7 +161,7 @@ export const RunnerForm = () => {
             : undefined;
     const summaryTarget = (
         parsedTarget ?? (provider === "github" ? target : instanceUrl)
-    ).replace(/^https?:\/\//, "");
+    ).replace(/^https?:\/\/(github\.com\/)?/, "");
 
     useEffect(() => {
         if (provider !== "github" || tokenType !== "registration") {
@@ -713,7 +713,11 @@ export const RunnerForm = () => {
                 <SubmitButton color="primary">
                     {t("form.create.button")}
                 </SubmitButton>
-                <Button color="secondary" variant="soft" onPress={modal.close}>
+                <Button
+                    color="secondary"
+                    variant="soft"
+                    onPress={() => modal.close()}
+                >
                     {t("form.cancel")}
                 </Button>
             </ActionGroup>

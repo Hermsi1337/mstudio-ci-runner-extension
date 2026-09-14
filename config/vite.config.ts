@@ -20,9 +20,7 @@ const config = defineConfig({
         tanstackStart(),
         nitro({
             preset: "node-server",
-            externals: {
-                exportConditions: ["node", "import", "module", "default"],
-            },
+            exportConditions: ["node", "import", "module", "default"],
             scanDirs: ["src/server"],
         }),
         react(),

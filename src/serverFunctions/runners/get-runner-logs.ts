@@ -5,7 +5,7 @@ import { authenticationMiddlewareWithAccessToken } from "@/middleware/auth.ts";
 
 export const getRunnerLogsServerFunction = createServerFn({ method: "GET" })
     .middleware([authenticationMiddlewareWithAccessToken])
-    .inputValidator(zRunnerLogsRequest)
+    .validator(zRunnerLogsRequest)
     .handler(
         async ({ context: { mittwaldClient, extensionInstanceId }, data }) =>
             getRunnerLogs(

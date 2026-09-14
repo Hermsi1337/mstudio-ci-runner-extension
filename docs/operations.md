@@ -63,7 +63,11 @@ title as commit subject. Dependabot updates arrive under `dependabot` and are ex
 
 `.github/dependabot.yml` opens weekly pull requests for npm packages (grouped:
 `@mittwald/*`, `@tanstack/*`, dev dependencies), GitHub Actions and the base images of
-the three Dockerfiles.
+the three Dockerfiles. Bumped by hand, not by Dependabot: the Node LTS of the extension
+image (`docker/extension/Dockerfile`, `@types/node`, `node-version` in `ci.yml`), the
+Ubuntu LTS of the runner images, `nitro` (pinned to the last alpha whose build output
+`server/index.mjs` the Dockerfile starts) and `drizzle-orm` (held at 0.44 by
+`@weissaufschwarz/mitthooks-drizzle`).
 
 ## Deployment to mittwald Container Hosting
 

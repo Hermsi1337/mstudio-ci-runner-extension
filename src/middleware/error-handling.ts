@@ -8,27 +8,11 @@ import { localeHeader } from "./locale.ts";
 
 const log = createLogger("server-function");
 
-/**
- * In development the function id is base64 JSON with the export name; production
- * builds use an opaque hash, of which a prefix is enough to group lines.
- */
-function functionName(functionId: string): string {
-    try {
-        const decoded = JSON.parse(
-            Buffer.from(functionId, "base64").toString("utf8"),
-        );
-        if (typeof decoded.export === "string") {
-            return decoded.export.replace(/_createServerFn_handler$/, "");
-        }
-    } catch {}
-    return functionId.slice(0, 12);
-}
-
 export const handleServerErrors = createMiddleware({
     type: "function",
-}).server(({ next, functionId, method }) =>
+}).server(({ next, serverFnMeta, method }) =>
     withLogContext(
-        { requestId: newRequestId(), fn: functionName(functionId) },
+        { requestId: newRequestId(), fn: serverFnMeta.name },
         async () => {
             const started = Date.now();
             log.debug("request started", { method });

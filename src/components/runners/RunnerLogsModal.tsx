@@ -55,7 +55,7 @@ const Logs = ({
             </IllustratedMessage>
         );
     }
-    return <CodeBlock code={logs} copyable wrapLongLines />;
+    return <CodeBlock code={logs} copyable />;
 };
 
 export const RunnerLogsModal = ({

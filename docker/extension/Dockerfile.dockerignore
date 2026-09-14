@@ -25,4 +25,5 @@ coverage
 README.md
 CLAUDE.md
 docker
+!docker/runner/versions.json
 .github

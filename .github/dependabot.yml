@@ -11,6 +11,15 @@ updates:
         patterns: ["@tanstack/*"]
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # nitro 3 betas change the build output; pinned until the stable release
+      - dependency-name: nitro
+      # @weissaufschwarz/mitthooks-drizzle needs drizzle-orm 0.44
+      - dependency-name: drizzle-orm
+        update-types: ["version-update:semver-minor"]
+      # the image runs the current Node LTS; majors are bumped by hand together with the Dockerfile
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
@@ -26,5 +35,11 @@ updates:
       - /docker/runner/gitlab
     schedule:
       interval: weekly
+    ignore:
+      # Node LTS and Ubuntu LTS are bumped by hand, see docs/operations.md
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+      - dependency-name: ubuntu
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"

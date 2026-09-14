@@ -59,7 +59,7 @@ export const ConfirmModal = ({
                     color="secondary"
                     variant="soft"
                     isDisabled={pending}
-                    onPress={controller.close}
+                    onPress={() => controller.close()}
                 >
                     {t("form.cancel")}
                 </Button>

@@ -8,7 +8,7 @@ import { authenticationMiddlewareWithAccessToken } from "@/middleware/auth.ts";
 
 export const configureRunnerServerFunction = createServerFn({ method: "POST" })
     .middleware([authenticationMiddlewareWithAccessToken])
-    .inputValidator(zConfigureRunnerRequest)
+    .validator(zConfigureRunnerRequest)
     .handler(
         async ({ context: { mittwaldClient, extensionInstanceId }, data }) =>
             zRunner.parse(

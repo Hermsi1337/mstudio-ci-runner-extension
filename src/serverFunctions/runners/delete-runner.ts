@@ -5,7 +5,7 @@ import { authenticationMiddlewareWithAccessToken } from "@/middleware/auth.ts";
 
 export const deleteRunnerServerFunction = createServerFn({ method: "POST" })
     .middleware([authenticationMiddlewareWithAccessToken])
-    .inputValidator(zRunnerIdRequest)
+    .validator(zRunnerIdRequest)
     .handler(
         async ({ context: { mittwaldClient, extensionInstanceId }, data }) =>
             deleteRunner(mittwaldClient, extensionInstanceId, data.runnerId),

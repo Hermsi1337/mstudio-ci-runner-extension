@@ -192,158 +192,160 @@ const cases: {
     },
 ];
 
-describe.each(cases)("runner lifecycle: $title", ({
-    input,
-    expect: expected,
-}) => {
-    let runnerId: string;
+describe.each(cases)(
+    "runner lifecycle: $title",
+    ({ input, expect: expected }) => {
+        let runnerId: string;
 
-    it("creates a runner stack that conforms to the API specs", async () => {
-        const created = await runner.createRunner(
-            client,
-            extensionInstanceId,
-            projectId,
-            userId,
-            input,
-        );
-        expect(zRunner.parse(created)).toEqual(created);
-        expect(created).toMatchObject(expected);
-        runnerId = created.id;
-    });
+        it("creates a runner stack that conforms to the API specs", async () => {
+            const created = await runner.createRunner(
+                client,
+                extensionInstanceId,
+                projectId,
+                userId,
+                input,
+            );
+            expect(zRunner.parse(created)).toEqual(created);
+            expect(created).toMatchObject(expected);
+            runnerId = created.id;
+        });
 
-    it("lists the runner with its live status", async () => {
-        const list = await runner.listRunners(client, extensionInstanceId);
-        const found = zRunnerList.parse(list).find((r) => r.id === runnerId);
-        expect(found).toBeDefined();
-        expect(found?.status).not.toBe("missing");
-    });
+        it("lists the runner with its live status", async () => {
+            const list = await runner.listRunners(client, extensionInstanceId);
+            const found = zRunnerList
+                .parse(list)
+                .find((r) => r.id === runnerId);
+            expect(found).toBeDefined();
+            expect(found?.status).not.toBe("missing");
+        });
 
-    it("reads logs and restarts the service", async () => {
-        const logs = await runner.getRunnerLogs(
-            client,
-            extensionInstanceId,
-            runnerId,
-            50,
-        );
-        expect(typeof logs).toBe("string");
-        await expect(
-            runner.restartRunner(client, extensionInstanceId, runnerId),
-        ).resolves.toBeUndefined();
-    });
-
-    it("reports the runner version and no pending update", async () => {
-        const list = await runner.listRunners(client, extensionInstanceId);
-        const found = list.find((r) => r.id === runnerId);
-        expect(found?.runnerVersion).toBe(found?.latestRunnerVersion);
-        expect(found?.updateAvailable).toBe(false);
-    });
-
-    it("updates a runner that runs an older image", async () => {
-        schema = await import("@/db/schema.ts");
-        await db
-            .update(schema.runners)
-            .set({
-                image: "ghcr.io/hermsi1337/outdated:0.0.1",
-                runnerVersion: "0.0.1",
-            })
-            .where(eq(schema.runners.id, runnerId));
-        const outdated = (
-            await runner.listRunners(client, extensionInstanceId)
-        ).find((r) => r.id === runnerId);
-        expect(outdated?.updateAvailable).toBe(true);
-
-        const updated = await runner.updateRunner(
-            client,
-            extensionInstanceId,
-            runnerId,
-        );
-        expect(zRunner.parse(updated)).toEqual(updated);
-        expect(updated.updateAvailable).toBe(false);
-        expect(updated.runnerVersion).toBe(updated.latestRunnerVersion);
-    });
-
-    it("turns the cache on, changes its limit and turns it off", async () => {
-        const enabled = await runner.configureRunner(
-            client,
-            extensionInstanceId,
-            { runnerId, cache: true, cacheSizeGb: 5 },
-        );
-        expect(zRunner.parse(enabled)).toEqual(enabled);
-        expect(enabled).toMatchObject({ cache: true, cacheSizeGb: 5 });
-
-        const resized = await runner.configureRunner(
-            client,
-            extensionInstanceId,
-            { runnerId, cache: true, cacheSizeGb: 7 },
-        );
-        expect(resized).toMatchObject({ cache: true, cacheSizeGb: 7 });
-
-        const disabled = await runner.configureRunner(
-            client,
-            extensionInstanceId,
-            { runnerId, cache: false },
-        );
-        expect(disabled).toMatchObject({ cache: false, cacheSizeGb: 7 });
-    });
-
-    it("switches between a preset and custom limits", async () => {
-        const custom = await runner.configureRunner(
-            client,
-            extensionInstanceId,
-            {
+        it("reads logs and restarts the service", async () => {
+            const logs = await runner.getRunnerLogs(
+                client,
+                extensionInstanceId,
                 runnerId,
-                cache: false,
+                50,
+            );
+            expect(typeof logs).toBe("string");
+            await expect(
+                runner.restartRunner(client, extensionInstanceId, runnerId),
+            ).resolves.toBeUndefined();
+        });
+
+        it("reports the runner version and no pending update", async () => {
+            const list = await runner.listRunners(client, extensionInstanceId);
+            const found = list.find((r) => r.id === runnerId);
+            expect(found?.runnerVersion).toBe(found?.latestRunnerVersion);
+            expect(found?.updateAvailable).toBe(false);
+        });
+
+        it("updates a runner that runs an older image", async () => {
+            schema = await import("@/db/schema.ts");
+            await db
+                .update(schema.runners)
+                .set({
+                    image: "ghcr.io/hermsi1337/outdated:0.0.1",
+                    runnerVersion: "0.0.1",
+                })
+                .where(eq(schema.runners.id, runnerId));
+            const outdated = (
+                await runner.listRunners(client, extensionInstanceId)
+            ).find((r) => r.id === runnerId);
+            expect(outdated?.updateAvailable).toBe(true);
+
+            const updated = await runner.updateRunner(
+                client,
+                extensionInstanceId,
+                runnerId,
+            );
+            expect(zRunner.parse(updated)).toEqual(updated);
+            expect(updated.updateAvailable).toBe(false);
+            expect(updated.runnerVersion).toBe(updated.latestRunnerVersion);
+        });
+
+        it("turns the cache on, changes its limit and turns it off", async () => {
+            const enabled = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId, cache: true, cacheSizeGb: 5 },
+            );
+            expect(zRunner.parse(enabled)).toEqual(enabled);
+            expect(enabled).toMatchObject({ cache: true, cacheSizeGb: 5 });
+
+            const resized = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId, cache: true, cacheSizeGb: 7 },
+            );
+            expect(resized).toMatchObject({ cache: true, cacheSizeGb: 7 });
+
+            const disabled = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId, cache: false },
+            );
+            expect(disabled).toMatchObject({ cache: false, cacheSizeGb: 7 });
+        });
+
+        it("switches between a preset and custom limits", async () => {
+            const custom = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                {
+                    runnerId,
+                    cache: false,
+                    size: "custom",
+                    cpus: 1.5,
+                    memoryMb: 3072,
+                },
+            );
+            expect(zRunner.parse(custom)).toEqual(custom);
+            expect(custom).toMatchObject({
                 size: "custom",
                 cpus: 1.5,
                 memoryMb: 3072,
-            },
-        );
-        expect(zRunner.parse(custom)).toEqual(custom);
-        expect(custom).toMatchObject({
-            size: "custom",
-            cpus: 1.5,
-            memoryMb: 3072,
-        });
+            });
 
-        const preset = await runner.configureRunner(
-            client,
-            extensionInstanceId,
-            { runnerId, cache: false, size: "large" },
-        );
-        expect(preset).toMatchObject({
-            size: "large",
-            cpus: 2,
-            memoryMb: 4096,
-        });
-    });
-
-    it("changes the concurrency only where the provider supports it", async () => {
-        const configured = await runner.configureRunner(
-            client,
-            extensionInstanceId,
-            { runnerId, cache: false, concurrency: 3 },
-        );
-        expect(configured.concurrency).toBe(
-            input.provider === "gitlab" ? 3 : 1,
-        );
-    });
-
-    it("refuses access from other extension instances", async () => {
-        await expect(
-            runner.deleteRunner(
+            const preset = await runner.configureRunner(
                 client,
-                "99999999-9999-9999-9999-999999999999",
-                runnerId,
-            ),
-        ).rejects.toMatchObject({ messageKey: "error.notFound.runner" });
-    });
+                extensionInstanceId,
+                { runnerId, cache: false, size: "large" },
+            );
+            expect(preset).toMatchObject({
+                size: "large",
+                cpus: 2,
+                memoryMb: 4096,
+            });
+        });
 
-    it("deletes the runner, its registration and its database row", async () => {
-        await runner.deleteRunner(client, extensionInstanceId, runnerId);
-        const list = await runner.listRunners(client, extensionInstanceId);
-        expect(list.find((r) => r.id === runnerId)).toBeUndefined();
-    });
-});
+        it("changes the concurrency only where the provider supports it", async () => {
+            const configured = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId, cache: false, concurrency: 3 },
+            );
+            expect(configured.concurrency).toBe(
+                input.provider === "gitlab" ? 3 : 1,
+            );
+        });
+
+        it("refuses access from other extension instances", async () => {
+            await expect(
+                runner.deleteRunner(
+                    client,
+                    "99999999-9999-9999-9999-999999999999",
+                    runnerId,
+                ),
+            ).rejects.toMatchObject({ messageKey: "error.notFound.runner" });
+        });
+
+        it("deletes the runner, its registration and its database row", async () => {
+            await runner.deleteRunner(client, extensionInstanceId, runnerId);
+            const list = await runner.listRunners(client, extensionInstanceId);
+            expect(list.find((r) => r.id === runnerId)).toBeUndefined();
+        });
+    },
+);
 
 /**
  * Prism answers every createStack with the same example id, so a second

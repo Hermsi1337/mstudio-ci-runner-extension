@@ -68,7 +68,7 @@ export const FeedbackCard = () => {
                 <Text>{t("feedback.text")}</Text>
                 <ColumnLayout s={[1]} m={[1, 1, 1]}>
                     {tiles.map((tile) => (
-                        <AccentBox key={tile.key} color={tile.color}>
+                        <AccentBox key={tile.key} backgroundColor={tile.color}>
                             {tile.icon}
                             <Flex direction="column" gap="s">
                                 <Heading level={4}>{tile.heading}</Heading>

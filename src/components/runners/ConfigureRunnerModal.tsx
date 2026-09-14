@@ -128,7 +128,11 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                 <SubmitButton color="primary" isDisabled={!changed}>
                     {t("form.configure.button")}
                 </SubmitButton>
-                <Button color="secondary" variant="soft" onPress={modal.close}>
+                <Button
+                    color="secondary"
+                    variant="soft"
+                    onPress={() => modal.close()}
+                >
                     {t("form.cancel")}
                 </Button>
             </ActionGroup>
