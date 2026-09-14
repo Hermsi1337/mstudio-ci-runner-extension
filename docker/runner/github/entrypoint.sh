@@ -27,6 +27,13 @@ RUNNER_LABELS="${RUNNER_LABELS:-mittwald}"
 RUNNER_GROUP="${RUNNER_GROUP:-Default}"
 RUNNER_EPHEMERAL="${RUNNER_EPHEMERAL:-false}"
 RUNNER_DATA_DIR="${RUNNER_DATA_DIR:-/home/runner/data}"
+# Runners created before the runner-data volume mount work and config volumes
+# at these paths. The image no longer creates them, so their presence means
+# such a volume is mounted and the registration lives there.
+if [[ -d /home/runner/_config ]]; then
+    RUNNER_WORKDIR="${RUNNER_WORKDIR:-/home/runner/_work}"
+    RUNNER_CONFIG_DIR="${RUNNER_CONFIG_DIR:-/home/runner/_config}"
+fi
 RUNNER_WORKDIR="${RUNNER_WORKDIR:-${RUNNER_DATA_DIR}/work}"
 RUNNER_CONFIG_DIR="${RUNNER_CONFIG_DIR:-${RUNNER_DATA_DIR}/config}"
 DISABLE_AUTO_UPDATE="${DISABLE_AUTO_UPDATE:-false}"

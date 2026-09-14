@@ -17,6 +17,13 @@ set -euo pipefail
 : "${CI_SERVER_TOKEN:?CI_SERVER_TOKEN is required}"
 RUNNER_NAME="${RUNNER_NAME:-$(hostname)}"
 RUNNER_DATA_DIR="${RUNNER_DATA_DIR:-/home/runner/data}"
+# Runners created before the runner-data volume mount builds and cache volumes
+# at these paths. The image no longer creates them, so their presence means
+# such a volume is mounted.
+if [[ -d /home/runner/builds ]]; then
+    RUNNER_BUILDS_DIR="${RUNNER_BUILDS_DIR:-/home/runner/builds}"
+    RUNNER_CACHE_DIR="${RUNNER_CACHE_DIR:-/home/runner/cache}"
+fi
 RUNNER_BUILDS_DIR="${RUNNER_BUILDS_DIR:-${RUNNER_DATA_DIR}/builds}"
 RUNNER_CACHE_DIR="${RUNNER_CACHE_DIR:-${RUNNER_DATA_DIR}/cache}"
 RUNNER_CONCURRENT="${RUNNER_CONCURRENT:-1}"
