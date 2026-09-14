@@ -17,7 +17,6 @@ export const de: Messages = {
     "runners.empty.text":
         'Lege über "Runner anlegen" den ersten CI-Runner in diesem Projekt an.',
     "runners.column.name": "Name",
-    "runners.column.provider": "CI-System",
     "runners.column.target": "Ziel",
     "runners.column.labels": "Labels",
     "runners.column.size": "Größe",
@@ -30,15 +29,40 @@ export const de: Messages = {
     "runners.action.update": "Aktualisieren",
     "runners.action.configure": "Einstellungen",
     "runners.action.delete": "Löschen",
-    "runners.version.unknown": "unbekannt",
+    "runners.version.unknown": "Unbekannt",
     "runners.version.updateAvailable": "Update auf {version}",
-    "runners.ephemeralSuffix": "(ephemeral)",
-    "runners.concurrencySuffix": "({jobs} Jobs gleichzeitig)",
-    "runners.labels.inCiSystem": "in GitLab festgelegt",
-    "runners.cache.off": "aus",
+    "runners.ephemeral": "ephemeral",
+    "runners.concurrency": "{jobs} Jobs gleichzeitig",
+    "runners.labels.inCiSystem": "In GitLab festgelegt",
+    "runners.cache.off": "Aus",
     "runners.cache.limit": "{size} GB",
+    "runners.notice.created": "Runner {name} angelegt",
+    "runners.notice.createdText":
+        "Der Container startet jetzt und registriert sich innerhalb einer Minute.",
+    "runners.notice.configured": "Einstellungen von {name} gespeichert",
+    "runners.notice.restarted": "Runner {name} startet neu",
+    "runners.notice.restartFailed":
+        "Runner {name} konnte nicht neu gestartet werden",
+    "runners.notice.updated": "Runner {name} wird aktualisiert",
+    "runners.notice.updateFailed":
+        "Runner {name} konnte nicht aktualisiert werden",
+    "runners.notice.deleted": "Runner {name} gelöscht",
+    "runners.notice.deleteFailed": "Runner {name} konnte nicht gelöscht werden",
+    "runners.update.heading": "{name} aktualisieren?",
+    "runners.update.text":
+        "Der Container wird mit Runner-Version {version} neu erstellt. Ein laufender Job bricht ab.",
+    "runners.delete.heading": "{name} löschen?",
+    "runners.delete.text.github":
+        "Entfernt die Registrierung auf GitHub, den Container-Stack und seine Volumes inklusive Cache. Ein laufender Job bricht ab.",
+    "runners.delete.text.gitlab":
+        "Entfernt den Runner aus GitLab, den Container-Stack und seine Volumes inklusive Cache. Ein laufender Job bricht ab.",
     "runners.logs.heading": "Logs: {name}",
-    "runners.logs.empty": "(noch keine Logs)",
+    "runners.logs.empty.heading": "Noch keine Ausgabe",
+    "runners.logs.empty.text":
+        "Der Container startet noch. Folgen ist an, die Ansicht lädt alle 5 Sekunden neu.",
+    "runners.logs.tail": "Zeilen",
+    "runners.logs.lines": "Letzte {lines} Zeilen",
+    "runners.logs.follow": "Folgen",
 
     "provider.github": "GitHub Actions",
     "provider.gitlab": "GitLab CI",
@@ -57,22 +81,27 @@ export const de: Messages = {
     "form.cancel": "Abbrechen",
     "form.configure.heading": "Einstellungen: {name}",
     "form.configure.button": "Speichern",
-    "form.configure.text":
-        "Änderst du eine Einstellung, wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Volume tool-cache und seinen Cronjob.",
+    "form.configure.warning.heading": "Der Container wird neu erstellt",
+    "form.configure.warning.text":
+        "Beim Speichern wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Volume tool-cache und seinen Cronjob.",
     "form.summary.heading": "Wird in diesem Projekt angelegt",
     "form.summary.stack.label": "Stack: CI Runner ({provider}): {name}",
     "form.summary.stack.text":
-        "Ein Container, Service runner, mit den Limits der gewählten Größe.",
+        "Ein Container (Service runner) mit den CPU- und Speicherlimits der gewählten Größe.",
     "form.summary.dataVolume.label": "Volume: runner-data",
     "form.summary.dataVolume.text.github":
         "Runner-Registrierung und Arbeitsverzeichnis: Checkouts, geladene Actions, Tool-Cache der setup-Actions.",
     "form.summary.dataVolume.text.gitlab":
-        "Builds-Verzeichnis und das Verzeichnis für das cache:-Keyword von GitLab CI.",
+        "Builds-Verzeichnis und der Speicher hinter dem cache:-Keyword in .gitlab-ci.yml.",
     "form.summary.cacheVolume.label": "Volume: tool-cache",
     "form.summary.cacheVolume.text":
-        "Paketmanager-Cache, Belegung in mStudio separat sichtbar.",
+        "Paketmanager-Cache. Die Belegung ist in mStudio separat sichtbar.",
     "form.summary.cronjob.label": "Cronjob: Cache aufräumen",
     "form.summary.cronjob.text": "Kürzt tool-cache stündlich auf {size} GB.",
+    "form.section.ciSystem": "CI-System",
+    "form.section.runner": "Runner",
+    "form.section.resources": "Ressourcen",
+    "form.configCommand.parsed": "Registriert bei {target}, Token {token}",
     "form.provider.label": "CI-System",
     "form.name.label": "Name",
     "form.name.description": "Wird als Runner-Name im CI-System verwendet.",
@@ -126,8 +155,12 @@ export const de: Messages = {
     "form.labels.label": "Labels",
     "form.tags.label": "Tags",
     "form.labels.description":
-        "Kommagetrennt. GitHub: runs-on: [self-hosted, mittwald], GitLab: tags: [mittwald].",
+        "Kommagetrennt. Referenziere sie mit runs-on: [self-hosted, mittwald].",
+    "form.tags.description":
+        "Kommagetrennt. Referenziere sie mit tags: [mittwald].",
     "form.size.label": "Größe",
+    "form.size.description":
+        "Alle Jobs dieses Runners teilen sich diese Limits.",
     "form.size.small": "Klein (0,5 CPU, 1 GB RAM)",
     "form.size.medium": "Mittel (1 CPU, 2 GB RAM)",
     "form.size.large": "Groß (2 CPU, 4 GB RAM)",
@@ -195,8 +228,9 @@ export const de: Messages = {
     "form.size.help":
         "CPU- und Speicherlimit des Runner-Containers, zählt zu den Container-Hosting-Ressourcen dieses Projekts. Klein reicht für Skripte und Deployments, Mittel für Builds mit npm oder Composer, Groß für parallele Testsuiten.",
 
-    "error.generic": "Da ist etwas schiefgelaufen",
-    "error.fallback.heading": "Ups.",
+    "error.generic":
+        "Da ist etwas schiefgelaufen. Versuch es noch einmal oder schau in die Runner-Logs.",
+    "error.fallback.heading": "Laden fehlgeschlagen",
     "error.fallback.text": "Hier ist etwas schiefgelaufen.",
     "error.fallback.retry": "Erneut versuchen",
     "error.unexpected": "Ein unerwarteter Fehler ist aufgetreten",

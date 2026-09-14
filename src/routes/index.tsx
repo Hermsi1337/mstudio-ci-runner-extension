@@ -1,8 +1,6 @@
 import {
-    Alert,
-    Heading,
     LayoutCard,
-    Markdown,
+    NotificationProvider,
     Section,
 } from "@mittwald/flow-remote-react-components";
 import RemoteRoot from "@mittwald/flow-remote-react-components/RemoteRoot";
@@ -33,13 +31,11 @@ function App() {
                 )}
             >
                 <Title>{t("app.title")}</Title>
-                <Section>
-                    <Alert status="info">
-                        <Heading>{t("app.dockerNotice.title")}</Heading>
-                        <Markdown>{t("app.dockerNotice.text")}</Markdown>
-                    </Alert>
-                    <RunnersCard />
-                </Section>
+                <NotificationProvider>
+                    <Section>
+                        <RunnersCard />
+                    </Section>
+                </NotificationProvider>
             </ErrorBoundary>
         </RemoteRoot>
     );

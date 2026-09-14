@@ -11,7 +11,7 @@ const colors: Partial<Record<RunnerStatus, BadgeColor>> = {
     stopping: "orange",
     stopped: "neutral",
     error: "red",
-    missing: "red",
+    missing: "orange",
 };
 
 export const StatusBadge = ({ status }: { status: RunnerStatus }) => {

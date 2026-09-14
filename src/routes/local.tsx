@@ -5,7 +5,7 @@ import {
     Alert,
     Heading,
     LayoutCard,
-    Markdown,
+    NotificationProvider,
     Section,
     Text,
 } from "@mittwald/flow-react-components";
@@ -33,18 +33,16 @@ function LocalApp() {
                 </LayoutCard>
             )}
         >
-            <Section>
-                <Heading level={1}>{t("app.title")}</Heading>
-                <Alert status="warning">
-                    <Heading>{t("local.heading")}</Heading>
-                    <Text>{t("local.text")}</Text>
-                </Alert>
-                <Alert status="info">
-                    <Heading>{t("app.dockerNotice.title")}</Heading>
-                    <Markdown>{t("app.dockerNotice.text")}</Markdown>
-                </Alert>
-                <RunnersCard />
-            </Section>
+            <NotificationProvider>
+                <Section>
+                    <Heading level={1}>{t("app.title")}</Heading>
+                    <Alert status="warning">
+                        <Heading>{t("local.heading")}</Heading>
+                        <Text>{t("local.text")}</Text>
+                    </Alert>
+                    <RunnersCard />
+                </Section>
+            </NotificationProvider>
         </ErrorBoundary>
     );
 }

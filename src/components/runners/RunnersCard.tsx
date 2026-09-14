@@ -1,7 +1,10 @@
 import {
+    Accordion,
+    Content,
     Header,
     Heading,
     LayoutCard,
+    Markdown,
     Section,
     SkeletonText,
     Text,
@@ -23,6 +26,12 @@ export const RunnersCard = () => {
                     <CreateRunnerModal />
                 </Header>
                 <Text>{t("runners.intro")}</Text>
+                <Accordion>
+                    <Heading>{t("app.dockerNotice.title")}</Heading>
+                    <Content>
+                        <Markdown>{t("app.dockerNotice.text")}</Markdown>
+                    </Content>
+                </Accordion>
                 <ErrorBoundary FallbackComponent={ErrorFallback}>
                     <Suspense fallback={<SkeletonText />}>
                         <RunnerTable />

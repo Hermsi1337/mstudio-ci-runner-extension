@@ -2,8 +2,9 @@ import {
     ActionGroup,
     Badge,
     Button,
+    Flex,
     Heading,
-    IconSearch,
+    IconContainer,
     IllustratedMessage,
     Link,
     Table,
@@ -15,29 +16,54 @@ import {
     Text,
 } from "@mittwald/flow-remote-react-components";
 import { useEffect, useState } from "react";
+import { ConfirmButton } from "@/components/ConfirmButton.tsx";
+import type { Runner } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
+import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { ConfigureRunnerModal } from "./ConfigureRunnerModal.tsx";
+import { CreateRunnerModal } from "./CreateRunnerModal.tsx";
 import { RunnerLogsModal } from "./RunnerLogsModal.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
 const REFRESH_INTERVAL_MS = 15_000;
+const BUSY_REFRESH_INTERVAL_MS = 5_000;
+const transientStatuses: Runner["status"][] = [
+    "creating",
+    "starting",
+    "stopping",
+];
 
 export const RunnerTable = () => {
     const t = useTranslation();
+    const { notify, failure } = useNotify();
     const { value: runners, invalidate } =
         RunnerClientGhost.listRunners().useGhost();
     const [busy, setBusy] = useState<string | null>(null);
+    const anyTransient = runners.some((r) =>
+        transientStatuses.includes(r.status),
+    );
 
     useEffect(() => {
-        const timer = setInterval(() => void invalidate(), REFRESH_INTERVAL_MS);
+        const timer = setInterval(
+            () => void invalidate(),
+            anyTransient ? BUSY_REFRESH_INTERVAL_MS : REFRESH_INTERVAL_MS,
+        );
         return () => clearInterval(timer);
-    }, [invalidate]);
+    }, [invalidate, anyTransient]);
 
-    const run = async (runnerId: string, action: () => Promise<unknown>) => {
-        setBusy(runnerId);
+    const run = async (
+        runner: Runner,
+        action: () => Promise<unknown>,
+        done: string,
+        failed: string,
+    ) => {
+        setBusy(runner.id);
         try {
             await action();
+            notify("success", done);
+        } catch (error) {
+            failure(failed, error);
         } finally {
             setBusy(null);
             void invalidate();
@@ -47,9 +73,10 @@ export const RunnerTable = () => {
     if (runners.length === 0) {
         return (
             <IllustratedMessage>
-                <IconSearch />
+                <IconContainer />
                 <Heading>{t("runners.empty.heading")}</Heading>
                 <Text>{t("runners.empty.text")}</Text>
+                <CreateRunnerModal />
             </IllustratedMessage>
         );
     }
@@ -60,32 +87,40 @@ export const RunnerTable = () => {
                 <TableColumn isRowHeader>
                     {t("runners.column.name")}
                 </TableColumn>
-                <TableColumn>{t("runners.column.provider")}</TableColumn>
                 <TableColumn>{t("runners.column.target")}</TableColumn>
                 <TableColumn>{t("runners.column.labels")}</TableColumn>
                 <TableColumn>{t("runners.column.size")}</TableColumn>
                 <TableColumn>{t("runners.column.cache")}</TableColumn>
                 <TableColumn>{t("runners.column.version")}</TableColumn>
                 <TableColumn>{t("runners.column.status")}</TableColumn>
-                <TableColumn>{t("runners.column.actions")}</TableColumn>
+                <TableColumn horizontalAlign="end">
+                    {t("runners.column.actions")}
+                </TableColumn>
             </TableHeader>
             <TableBody>
                 {runners.map((runner) => (
                     <TableRow key={runner.id}>
                         <TableCell>
-                            {runner.studioUrl ? (
-                                <Link href={runner.studioUrl} target="_blank">
-                                    {runner.name}
-                                </Link>
-                            ) : (
-                                runner.name
-                            )}
-                            {runner.ephemeral
-                                ? ` ${t("runners.ephemeralSuffix")}`
-                                : ""}
-                        </TableCell>
-                        <TableCell>
-                            {t(`provider.${runner.provider}`)}
+                            <Flex align="center" gap="xs" wrap="wrap">
+                                {runner.studioUrl ? (
+                                    <Link
+                                        href={runner.studioUrl}
+                                        target="_blank"
+                                    >
+                                        {runner.name}
+                                    </Link>
+                                ) : (
+                                    <Text>{runner.name}</Text>
+                                )}
+                                {runner.ephemeral && (
+                                    <Badge color="violet">
+                                        {t("runners.ephemeral")}
+                                    </Badge>
+                                )}
+                            </Flex>
+                            <Text color="light">
+                                {t(`provider.${runner.provider}`)}
+                            </Text>
                         </TableCell>
                         <TableCell>
                             <Link href={runner.targetUrl} target="_blank">
@@ -93,15 +128,27 @@ export const RunnerTable = () => {
                             </Link>
                         </TableCell>
                         <TableCell>
-                            {runner.labels.length > 0
-                                ? runner.labels.join(", ")
-                                : t("runners.labels.inCiSystem")}
+                            {runner.labels.length > 0 ? (
+                                <Flex gap="xs" wrap="wrap">
+                                    {runner.labels.map((label) => (
+                                        <Badge key={label}>{label}</Badge>
+                                    ))}
+                                </Flex>
+                            ) : (
+                                <Text color="light">
+                                    {t("runners.labels.inCiSystem")}
+                                </Text>
+                            )}
                         </TableCell>
                         <TableCell>
                             {t(`form.size.${runner.size}`)}
-                            {runner.concurrency > 1
-                                ? ` ${t("runners.concurrencySuffix", { jobs: runner.concurrency })}`
-                                : ""}
+                            {runner.concurrency > 1 && (
+                                <Text color="light">
+                                    {t("runners.concurrency", {
+                                        jobs: runner.concurrency,
+                                    })}
+                                </Text>
+                            )}
                         </TableCell>
                         <TableCell>
                             {runner.cache
@@ -126,23 +173,44 @@ export const RunnerTable = () => {
                         </TableCell>
                         <TableCell>
                             <StatusBadge status={runner.status} />
+                            {runner.statusMessage &&
+                                (runner.status === "error" ||
+                                    runner.status === "missing") && (
+                                    <Text color="light">
+                                        {runner.statusMessage}
+                                    </Text>
+                                )}
                         </TableCell>
                         <TableCell>
                             <ActionGroup>
                                 <RunnerLogsModal
                                     runnerId={runner.id}
                                     name={runner.name}
+                                    status={runner.status}
                                 />
                                 <ConfigureRunnerModal runner={runner} />
                                 <Button
                                     color="secondary"
                                     variant="soft"
                                     size="s"
-                                    isDisabled={busy === runner.id}
+                                    isPending={busy === runner.id}
+                                    isDisabled={busy !== null}
                                     onPress={() =>
-                                        run(runner.id, () =>
-                                            RunnerClientGhost.restartRunner({
-                                                data: { runnerId: runner.id },
+                                        run(
+                                            runner,
+                                            () =>
+                                                RunnerClientGhost.restartRunner(
+                                                    {
+                                                        data: {
+                                                            runnerId: runner.id,
+                                                        },
+                                                    },
+                                                ),
+                                            t("runners.notice.restarted", {
+                                                name: runner.name,
+                                            }),
+                                            t("runners.notice.restartFailed", {
+                                                name: runner.name,
                                             }),
                                         )
                                     }
@@ -150,39 +218,71 @@ export const RunnerTable = () => {
                                     {t("runners.action.restart")}
                                 </Button>
                                 {runner.updateAvailable && (
-                                    <Button
+                                    <ConfirmButton
                                         color="primary"
-                                        variant="soft"
-                                        size="s"
-                                        isDisabled={busy === runner.id}
-                                        onPress={() =>
-                                            run(runner.id, () =>
-                                                RunnerClientGhost.updateRunner({
+                                        label={t("runners.action.update")}
+                                        heading={t("runners.update.heading", {
+                                            name: runner.name,
+                                        })}
+                                        text={t("runners.update.text", {
+                                            version: runner.latestRunnerVersion,
+                                        })}
+                                        confirmLabel={t(
+                                            "runners.action.update",
+                                        )}
+                                        isDisabled={busy !== null}
+                                        onConfirm={() =>
+                                            run(
+                                                runner,
+                                                () =>
+                                                    RunnerClientGhost.updateRunner(
+                                                        {
+                                                            data: {
+                                                                runnerId:
+                                                                    runner.id,
+                                                            },
+                                                        },
+                                                    ),
+                                                t("runners.notice.updated", {
+                                                    name: runner.name,
+                                                }),
+                                                t(
+                                                    "runners.notice.updateFailed",
+                                                    { name: runner.name },
+                                                ),
+                                            )
+                                        }
+                                    />
+                                )}
+                                <ConfirmButton
+                                    color="danger"
+                                    label={t("runners.action.delete")}
+                                    heading={t("runners.delete.heading", {
+                                        name: runner.name,
+                                    })}
+                                    text={t(
+                                        `runners.delete.text.${runner.provider}`,
+                                    )}
+                                    confirmLabel={t("runners.action.delete")}
+                                    isDisabled={busy !== null}
+                                    onConfirm={() =>
+                                        run(
+                                            runner,
+                                            () =>
+                                                RunnerClientGhost.deleteRunner({
                                                     data: {
                                                         runnerId: runner.id,
                                                     },
                                                 }),
-                                            )
-                                        }
-                                    >
-                                        {t("runners.action.update")}
-                                    </Button>
-                                )}
-                                <Button
-                                    color="danger"
-                                    variant="soft"
-                                    size="s"
-                                    isDisabled={busy === runner.id}
-                                    onPress={() =>
-                                        run(runner.id, () =>
-                                            RunnerClientGhost.deleteRunner({
-                                                data: { runnerId: runner.id },
+                                            t("runners.notice.deleted", {
+                                                name: runner.name,
+                                            }),
+                                            t("runners.notice.deleteFailed", {
+                                                name: runner.name,
                                             }),
                                         )
                                     }
-                                >
-                                    {t("runners.action.delete")}
-                                </Button>
+                                />
                             </ActionGroup>
                         </TableCell>
                     </TableRow>

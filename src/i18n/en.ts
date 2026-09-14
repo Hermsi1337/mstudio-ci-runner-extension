@@ -15,7 +15,6 @@ export const en = {
     "runners.empty.text":
         'Use "Create runner" to add the first CI runner to this project.',
     "runners.column.name": "Name",
-    "runners.column.provider": "CI system",
     "runners.column.target": "Target",
     "runners.column.labels": "Labels",
     "runners.column.size": "Size",
@@ -28,15 +27,38 @@ export const en = {
     "runners.action.update": "Update",
     "runners.action.configure": "Settings",
     "runners.action.delete": "Delete",
-    "runners.version.unknown": "unknown",
+    "runners.version.unknown": "Unknown",
     "runners.version.updateAvailable": "Update to {version}",
-    "runners.ephemeralSuffix": "(ephemeral)",
-    "runners.concurrencySuffix": "({jobs} jobs at once)",
-    "runners.labels.inCiSystem": "set in GitLab",
-    "runners.cache.off": "off",
+    "runners.ephemeral": "ephemeral",
+    "runners.concurrency": "{jobs} jobs at once",
+    "runners.labels.inCiSystem": "Set in GitLab",
+    "runners.cache.off": "Off",
     "runners.cache.limit": "{size} GB",
+    "runners.notice.created": "Runner {name} created",
+    "runners.notice.createdText":
+        "The container starts now and registers within a minute.",
+    "runners.notice.configured": "Settings of {name} saved",
+    "runners.notice.restarted": "Runner {name} restarts",
+    "runners.notice.restartFailed": "Runner {name} could not be restarted",
+    "runners.notice.updated": "Runner {name} updates",
+    "runners.notice.updateFailed": "Runner {name} could not be updated",
+    "runners.notice.deleted": "Runner {name} deleted",
+    "runners.notice.deleteFailed": "Runner {name} could not be deleted",
+    "runners.update.heading": "Update {name}?",
+    "runners.update.text":
+        "The container is recreated with runner version {version}. A running job is cancelled.",
+    "runners.delete.heading": "Delete {name}?",
+    "runners.delete.text.github":
+        "Removes the registration on GitHub, the container stack and its volumes, including the cache. A running job is cancelled.",
+    "runners.delete.text.gitlab":
+        "Removes the runner from GitLab, the container stack and its volumes, including the cache. A running job is cancelled.",
     "runners.logs.heading": "Logs: {name}",
-    "runners.logs.empty": "(no logs yet)",
+    "runners.logs.empty.heading": "No output yet",
+    "runners.logs.empty.text":
+        "The container is still starting. Follow is on, the view refreshes every 5 seconds.",
+    "runners.logs.tail": "Lines",
+    "runners.logs.lines": "Last {lines} lines",
+    "runners.logs.follow": "Follow",
 
     "provider.github": "GitHub Actions",
     "provider.gitlab": "GitLab CI",
@@ -55,22 +77,27 @@ export const en = {
     "form.cancel": "Cancel",
     "form.configure.heading": "Settings: {name}",
     "form.configure.button": "Save",
-    "form.configure.text":
-        "Changing a setting redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the tool-cache volume and its cronjob.",
+    "form.configure.warning.heading": "The container is recreated",
+    "form.configure.warning.text":
+        "Saving redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the tool-cache volume and its cronjob.",
     "form.summary.heading": "Created in this project",
     "form.summary.stack.label": "Stack: CI Runner ({provider}): {name}",
     "form.summary.stack.text":
-        "One container, service runner, with the limits of the selected size.",
+        "One container (service runner) with the CPU and memory limits of the selected size.",
     "form.summary.dataVolume.label": "Volume: runner-data",
     "form.summary.dataVolume.text.github":
         "Runner registration and work directory: checkouts, downloaded actions, tool cache of the setup actions.",
     "form.summary.dataVolume.text.gitlab":
-        "Builds directory and the directory for the cache: keyword of GitLab CI.",
+        "Builds directory and the storage behind the cache: keyword in .gitlab-ci.yml.",
     "form.summary.cacheVolume.label": "Volume: tool-cache",
     "form.summary.cacheVolume.text":
-        "Package manager cache, its usage shows separately in mStudio.",
+        "Package manager cache. Its usage shows separately in mStudio.",
     "form.summary.cronjob.label": "Cronjob: cache cleanup",
     "form.summary.cronjob.text": "Trims tool-cache to {size} GB every hour.",
+    "form.section.ciSystem": "CI system",
+    "form.section.runner": "Runner",
+    "form.section.resources": "Resources",
+    "form.configCommand.parsed": "Registers at {target}, token {token}",
     "form.provider.label": "CI system",
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",
@@ -124,8 +151,11 @@ export const en = {
     "form.labels.label": "Labels",
     "form.tags.label": "Tags",
     "form.labels.description":
-        "Comma separated. GitHub: runs-on: [self-hosted, mittwald], GitLab: tags: [mittwald].",
+        "Comma separated. Reference them with runs-on: [self-hosted, mittwald].",
+    "form.tags.description":
+        "Comma separated. Reference them with tags: [mittwald].",
     "form.size.label": "Size",
+    "form.size.description": "All jobs of this runner share these limits.",
     "form.size.small": "Small (0.5 CPU, 1 GB RAM)",
     "form.size.medium": "Medium (1 CPU, 2 GB RAM)",
     "form.size.large": "Large (2 CPU, 4 GB RAM)",
@@ -193,8 +223,9 @@ export const en = {
     "form.size.help":
         "CPU and memory limits of the runner container, counted against the container hosting resources of this project. Small fits scripts and deployments, medium builds with npm or composer, large parallel test suites.",
 
-    "error.generic": "Something went wrong",
-    "error.fallback.heading": "Oops.",
+    "error.generic":
+        "Something went wrong. Try again, or check the runner logs.",
+    "error.fallback.heading": "Loading failed",
     "error.fallback.text": "Something went wrong here.",
     "error.fallback.retry": "Try again",
     "error.unexpected": "An unexpected error occurred",

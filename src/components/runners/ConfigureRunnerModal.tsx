@@ -1,20 +1,24 @@
 import {
     ActionGroup,
+    Alert,
     Button,
     Content,
     Heading,
     Modal,
     ModalTrigger,
-    Section,
     Text,
     useOverlayController,
 } from "@mittwald/flow-remote-react-components";
-import { Form } from "@mittwald/flow-remote-react-components/react-hook-form";
+import {
+    Form,
+    SubmitButton,
+} from "@mittwald/flow-remote-react-components/react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import type { Runner } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
+import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { CacheFields, type CacheFormValues } from "./CacheFields.tsx";
 import {
@@ -28,6 +32,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
     const t = useTranslation();
     const queryClient = useQueryClient();
     const modal = useOverlayController("Modal");
+    const { notify } = useNotify();
     const form = useForm<FormValues>({
         defaultValues: {
             cache: runner.cache,
@@ -42,40 +47,42 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                 data: { runnerId: runner.id, ...values },
             });
             RunnerClientGhost.listRunners().invalidate(queryClient);
+            notify(
+                "success",
+                t("runners.notice.configured", { name: runner.name }),
+            );
             modal.close();
         },
     );
+    const changed = form.formState.isDirty;
 
     return (
         <Form form={form} onSubmit={handleSubmit}>
-            <Section>
-                <Text>{t("form.configure.text")}</Text>
+            <Content>
                 {runner.provider === "gitlab" && (
                     <ConcurrencyField form={form} size={runner.size} />
                 )}
                 <CacheFields form={form} />
+                {changed && (
+                    <Alert status="warning">
+                        <Heading>{t("form.configure.warning.heading")}</Heading>
+                        <Text>{t("form.configure.warning.text")}</Text>
+                    </Alert>
+                )}
                 <RootError />
-                <ActionGroup>
-                    <Button
-                        color="secondary"
-                        variant="soft"
-                        onPress={modal.close}
-                    >
-                        {t("form.cancel")}
-                    </Button>
-                    <Button type="submit" color="primary">
-                        {t("form.configure.button")}
-                    </Button>
-                </ActionGroup>
-            </Section>
+            </Content>
+            <ActionGroup>
+                <SubmitButton color="primary" isDisabled={!changed}>
+                    {t("form.configure.button")}
+                </SubmitButton>
+                <Button color="secondary" variant="soft" onPress={modal.close}>
+                    {t("form.cancel")}
+                </Button>
+            </ActionGroup>
         </Form>
     );
 };
 
-/**
- * Same layout as CreateRunnerModal: the heading sits inside Content so Flow
- * adds no close icon and the modal closes through the form buttons only.
- */
 export const ConfigureRunnerModal = ({ runner }: { runner: Runner }) => {
     const t = useTranslation();
     return (
@@ -84,12 +91,10 @@ export const ConfigureRunnerModal = ({ runner }: { runner: Runner }) => {
                 {t("runners.action.configure")}
             </Button>
             <Modal size="m">
-                <Content>
-                    <Heading level={2}>
-                        {t("form.configure.heading", { name: runner.name })}
-                    </Heading>
-                    <ConfigureRunnerForm runner={runner} />
-                </Content>
+                <Heading>
+                    {t("form.configure.heading", { name: runner.name })}
+                </Heading>
+                <ConfigureRunnerForm runner={runner} />
             </Modal>
         </ModalTrigger>
     );
