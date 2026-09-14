@@ -58,16 +58,19 @@ export const en = {
     "form.configure.text":
         "Changing a setting redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the tool-cache volume and its cronjob.",
     "form.summary.heading": "Created in this project",
-    "form.summary.stack":
-        "Container stack CI Runner ({provider}): {name} with the service runner",
-    "form.summary.dataVolume.github":
-        "Volume runner-data: runner registration and work directory (checkouts, downloaded actions, tool cache of setup actions)",
-    "form.summary.dataVolume.gitlab":
-        "Volume runner-data: builds directory and the directory for the cache: keyword of GitLab CI",
-    "form.summary.cacheVolume":
-        "Volume tool-cache: package manager cache, shown separately in mStudio",
-    "form.summary.cronjob":
-        "Cronjob: trims the tool-cache volume to {size} GB every hour",
+    "form.summary.stack.label": "Stack: CI Runner ({provider}): {name}",
+    "form.summary.stack.text":
+        "One container, service runner, with the limits of the selected size.",
+    "form.summary.dataVolume.label": "Volume: runner-data",
+    "form.summary.dataVolume.text.github":
+        "Runner registration and work directory: checkouts, downloaded actions, tool cache of the setup actions.",
+    "form.summary.dataVolume.text.gitlab":
+        "Builds directory and the directory for the cache: keyword of GitLab CI.",
+    "form.summary.cacheVolume.label": "Volume: tool-cache",
+    "form.summary.cacheVolume.text":
+        "Package manager cache, its usage shows separately in mStudio.",
+    "form.summary.cronjob.label": "Cronjob: cache cleanup",
+    "form.summary.cronjob.text": "Trims tool-cache to {size} GB every hour.",
     "form.provider.label": "CI system",
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",

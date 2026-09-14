@@ -60,16 +60,19 @@ export const de: Messages = {
     "form.configure.text":
         "Änderst du eine Einstellung, wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Volume tool-cache und seinen Cronjob.",
     "form.summary.heading": "Wird in diesem Projekt angelegt",
-    "form.summary.stack":
-        "Container-Stack CI Runner ({provider}): {name} mit dem Service runner",
-    "form.summary.dataVolume.github":
-        "Volume runner-data: Runner-Registrierung und Arbeitsverzeichnis (Checkouts, geladene Actions, Tool-Cache der setup-Actions)",
-    "form.summary.dataVolume.gitlab":
-        "Volume runner-data: Builds-Verzeichnis und das Verzeichnis für das cache:-Keyword von GitLab CI",
-    "form.summary.cacheVolume":
-        "Volume tool-cache: Paketmanager-Cache, in mStudio separat sichtbar",
-    "form.summary.cronjob":
-        "Cronjob: kürzt das Volume tool-cache stündlich auf {size} GB",
+    "form.summary.stack.label": "Stack: CI Runner ({provider}): {name}",
+    "form.summary.stack.text":
+        "Ein Container, Service runner, mit den Limits der gewählten Größe.",
+    "form.summary.dataVolume.label": "Volume: runner-data",
+    "form.summary.dataVolume.text.github":
+        "Runner-Registrierung und Arbeitsverzeichnis: Checkouts, geladene Actions, Tool-Cache der setup-Actions.",
+    "form.summary.dataVolume.text.gitlab":
+        "Builds-Verzeichnis und das Verzeichnis für das cache:-Keyword von GitLab CI.",
+    "form.summary.cacheVolume.label": "Volume: tool-cache",
+    "form.summary.cacheVolume.text":
+        "Paketmanager-Cache, Belegung in mStudio separat sichtbar.",
+    "form.summary.cronjob.label": "Cronjob: Cache aufräumen",
+    "form.summary.cronjob.text": "Kürzt tool-cache stündlich auf {size} GB.",
     "form.provider.label": "CI-System",
     "form.name.label": "Name",
     "form.name.description": "Wird als Runner-Name im CI-System verwendet.",

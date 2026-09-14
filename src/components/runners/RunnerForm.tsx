@@ -3,7 +3,6 @@ import {
     Button,
     FieldDescription,
     Flex,
-    Heading,
     Label,
     Option,
     Section,
@@ -31,6 +30,7 @@ import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { CacheFields } from "./CacheFields.tsx";
 import { ConcurrencyField } from "./ConcurrencyField.tsx";
+import { CreatedResources } from "./CreatedResources.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 
@@ -574,22 +574,12 @@ export const RunnerForm = () => {
 
                 <CacheFields form={form} />
 
-                <Heading level={4}>{t("form.summary.heading")}</Heading>
-                {[
-                    t("form.summary.stack", {
-                        provider,
-                        name: name || "...",
-                    }),
-                    t(`form.summary.dataVolume.${provider}`),
-                    ...(cache
-                        ? [
-                              t("form.summary.cacheVolume"),
-                              t("form.summary.cronjob", { size: cacheSizeGb }),
-                          ]
-                        : []),
-                ].map((line) => (
-                    <Text key={line}>{line}</Text>
-                ))}
+                <CreatedResources
+                    provider={provider}
+                    name={name}
+                    cache={cache}
+                    cacheSizeGb={cacheSizeGb}
+                />
 
                 <RootError />
 
