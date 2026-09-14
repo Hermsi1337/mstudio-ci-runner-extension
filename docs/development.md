@@ -65,7 +65,7 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | Key for encrypted columns |
 | `RUN_MIGRATIONS_ON_STARTUP` | Default `true` |
 | `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error` ([operations.md](operations.md#logging)) |
-| `LOG_FORMAT` | `text` (default) or `json` (default when `NODE_ENV=production`) |
+| `LOG_FORMAT` | `text` (default) or `json` (default when `NODE_ENV=production`); text output is colored on a terminal, see `NO_COLOR` in [operations.md](operations.md#logging) |
 | `EXTENSION_VERSION` | Release of the extension, default the version in `package.json`; set by the image build |
 | `RUNNER_IMAGE_GITHUB` | Image for GitHub runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-github:<EXTENSION_VERSION>` |
 | `RUNNER_IMAGE_GITLAB` | Image for GitLab runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:<EXTENSION_VERSION>` |

@@ -119,6 +119,7 @@ key-value fields.
 |---|---|
 | `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error` |
 | `LOG_FORMAT` | `json` (default with `NODE_ENV=production`), `text` |
+| `NO_COLOR`, `FORCE_COLOR` | `text` output is colored when stdout and stderr are terminals; `NO_COLOR` disables, `FORCE_COLOR` forces it |
 
 Every server function call and webhook gets a `requestId`; lines written while the
 request runs, including detached cleanup work, carry it together with `fn` (the
@@ -137,8 +138,8 @@ under the container `extension`.
 
 ## Bumping the runner version
 
-1. Raise `RUNNER_VERSION` in `docker/runner/<provider>/Dockerfile`, in the matrix of
-   `runner-image.yml` and in [runner-image.md](runner-image.md).
+1. Raise the version in `docker/runner/versions.json`.
 2. `pnpm run test:integration`.
-3. Push a tag. Running GitHub runners update themselves unless `DISABLE_AUTO_UPDATE` is
-   set; GitLab runners and new images only affect fresh containers.
+3. Push a tag. Existing runners show an update in the UI once the new extension release
+   is deployed; *Update* moves them to the new image. Running GitHub runners also update
+   themselves unless `DISABLE_AUTO_UPDATE` is set.
