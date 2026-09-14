@@ -1,5 +1,4 @@
 import {
-    Action,
     ActionGroup,
     Button,
     FieldDescription,
@@ -452,11 +451,13 @@ export const RunnerForm = () => {
                 <RootError />
 
                 <ActionGroup>
-                    <Action closeOverlay="Modal">
-                        <Button color="secondary" variant="soft">
-                            {t("form.cancel")}
-                        </Button>
-                    </Action>
+                    <Button
+                        color="secondary"
+                        variant="soft"
+                        onPress={modal.close}
+                    >
+                        {t("form.cancel")}
+                    </Button>
                     <Button type="submit" color="primary">
                         {t("form.create.button")}
                     </Button>
