@@ -31,6 +31,7 @@ import {
 import {
     declareService,
     deleteStackIfEmpty,
+    deleteStackWithRow,
     deleteVolumes,
     findOrCreateStack,
     getStack,
@@ -733,18 +734,28 @@ export async function deleteRunner(
         );
     }
     await releaseProviderRegistration(row);
-    await getDatabase().delete(runners).where(eq(runners.id, row.id));
-    const stackDeleted = await deleteStackIfEmpty(
-        client,
-        extensionInstanceId,
-        row.stackId,
-    );
+    // One transaction, so the empty check can never race a parallel delete
+    // between removing the row and deciding about the stack. The mittwald
+    // call stays outside the transaction.
+    const stackEmpty = await getDatabase().transaction(async (tx) => {
+        await tx.delete(runners).where(eq(runners.id, row.id));
+        const [remaining] = await tx
+            .select({ id: runners.id })
+            .from(runners)
+            .where(eq(runners.stackId, row.stackId))
+            .limit(1);
+
+        return !remaining;
+    });
+    if (stackEmpty) {
+        await deleteStackWithRow(client, extensionInstanceId, row.stackId);
+    }
     log.info("runner deleted", {
         runnerId,
         provider: row.provider,
         stackId: row.stackId,
         serviceName: row.serviceName,
-        stackDeleted,
+        stackDeleted: stackEmpty,
     });
 }
 

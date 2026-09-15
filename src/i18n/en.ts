@@ -297,7 +297,9 @@ export const en = {
     "error.upstream.stackCreate":
         "The stack could not be created (status {status}).",
     "error.upstream.stackDeclare":
-        "The runner container could not be declared (status {status}).",
+        "The runner container could not be declared (status {status}). {detail}",
+    "error.upstream.imageMissing":
+        "mittwald cannot pull the runner image {image}. The image must exist and be publicly readable. For GHCR, set the package visibility to public.",
     "error.upstream.logs": "Logs could not be loaded (status {status}).",
     "error.upstream.stackDelete":
         "The stack could not be deleted (status {status}).",

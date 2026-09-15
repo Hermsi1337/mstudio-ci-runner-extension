@@ -304,7 +304,9 @@ export const de: Messages = {
     "error.upstream.stackCreate":
         "Der Stack konnte nicht angelegt werden (Status {status}).",
     "error.upstream.stackDeclare":
-        "Der Runner-Container konnte nicht angelegt werden (Status {status}).",
+        "Der Runner-Container konnte nicht angelegt werden (Status {status}). {detail}",
+    "error.upstream.imageMissing":
+        "mittwald kann das Runner-Image {image} nicht laden. Das Image muss existieren und öffentlich lesbar sein. Bei GHCR stell die Sichtbarkeit des Packages auf Public.",
     "error.upstream.logs":
         "Die Logs konnten nicht geladen werden (Status {status}).",
     "error.upstream.stackDelete":
