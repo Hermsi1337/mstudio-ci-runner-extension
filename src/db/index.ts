@@ -14,7 +14,7 @@ function createDatabase() {
         database: env.POSTGRES_DB,
         host: env.POSTGRES_HOST,
         port: env.POSTGRES_PORT,
-        ssl: env.POSTGRES_USE_SSL ? { rejectUnauthorized: false } : false,
+        ssl: env.POSTGRES_USE_SSL,
     });
 
     return drizzle(pool, { schema });
