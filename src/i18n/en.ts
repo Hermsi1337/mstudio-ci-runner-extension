@@ -68,9 +68,7 @@ export const en = {
     "runners.update.textPlain":
         "The container is recreated. A running job is cancelled.",
     "runners.delete.heading": "Delete {name}?",
-    "runners.delete.text.github.pat":
-        "Removes the registration on GitHub, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled.",
-    "runners.delete.text.github.registration":
+    "runners.delete.text.github":
         "Removes the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
         "Removes the runner from GitLab, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled.",
@@ -154,28 +152,13 @@ export const en = {
     "form.name.required": "Name is required",
     "form.name.tooShort": "Name needs at least 2 characters",
     "form.name.tooLong": "Name can have 64 characters at most",
-    "form.github.target.label": "GitHub organization or repository",
-    "form.github.target.placeholder": "owner or owner/repo",
-    "form.github.target.description":
-        "Organization (for example my-org) or repository (for example my-org/my-repo).",
-    "form.github.target.required": "Organization or repository is required",
-    "form.github.target.invalid":
-        "Enter owner or owner/repo, optionally as https://github.com/owner/repo.",
-    "form.github.tokenType.label": "Authentication",
-    "form.github.tokenType.registration": "Registration token from GitHub",
-    "form.github.tokenType.pat": "Personal access token (PAT)",
     "form.github.configCommand.label": "Setup command from GitHub",
     "form.github.configCommand.description":
         "Paste the config command from the New self-hosted runner page. Repository or organization and the registration token are read from it.",
     "form.github.configCommand.required": "Setup command is required",
     "form.github.configCommand.invalid":
         "Paste the full command with --url https://github.com/... and --token.",
-    "form.github.token.label": "GitHub token (PAT)",
-    "form.github.token.description":
-        'Fine-grained PAT with "Administration: Read and write" (repository) or "Self-hosted runners: Read and write" (organization). Stored encrypted and passed to the container as an environment variable.',
-    "form.github.token.required": "GitHub token is required",
     "form.github.runnerGroup.label": "Runner group",
-    "form.github.ephemeral.label": "Ephemeral (fresh registration per job)",
     "form.gitlab.tokenType.label": "Authentication",
     "form.gitlab.tokenType.registration": "Runner token from GitLab",
     "form.gitlab.tokenType.pat": "Personal access token (PAT)",
@@ -231,19 +214,10 @@ export const en = {
     "help.open": "Help for {subject}",
     "form.name.help":
         "Shown as the runner name in GitHub or GitLab and in this list. Letters, digits and hyphens are kept, every other character becomes a hyphen.",
-    "form.github.target.help":
-        "For an organization enter its name, for example my-org. For a single repository enter owner/repo, for example my-org/my-repo. An organization runner serves every repository its runner group allows.",
-    "form.github.tokenType.help":
-        "Registration token: open the runner settings of the repository or organization on GitHub, click New self-hosted runner and copy the token from the config command. The token expires after one hour, so the runner registers once and stores the resulting credentials (a few small files) in its data volume. Restarts and updates reuse them without a new token. No PAT is stored. Ephemeral runners are not possible because every job would need a fresh registration.\nPersonal access token: the container fetches registration and removal tokens itself on every start, so it needs no stored registration. Needed for ephemeral runners. The PAT is stored encrypted and lives in the container.",
     "form.github.configCommand.help":
-        "On GitHub open the repository or organization, then `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Under `Configure` copy the line starting with `./config.sh` (or `./config.cmd`) and paste it here. Only `--url` and `--token` are used. The token expires after one hour, so create the runner right away. When you delete the runner it deregisters as long as the token is valid; otherwise GitHub removes the offline runner after 14 days.",
-    "form.github.token.help":
-        "The runner registers with a personal access token. Create a fine-grained token on GitHub under `Settings` → `Developer settings` → `Personal access tokens`. Repository: permission `Administration: Read and write`. Organization: permission `Self-hosted runners: Read and write`.\nThe token is stored encrypted and handed to the runner container, which fetches a registration token with it on every start. Members with access to the container can read it, so keep its scope small.",
-    "form.github.token.link": "Create a fine-grained token on GitHub",
+        "On GitHub open the repository or organization, then `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Under `Configure` copy the line starting with `./config.sh` (or `./config.cmd`) and paste it here. Only `--url` and `--token` are used. The token expires after one hour, so create the runner right away. After you delete the runner here, GitHub lists it as offline until it removes it after 14 days.",
     "form.github.runnerGroup.help":
         "Only for organizations. Runner groups control which repositories may use the runner. Leave empty for the group Default.",
-    "form.github.ephemeral.help":
-        "An ephemeral runner takes exactly one job, deregisters and registers again with a clean work directory. Safer for untrusted code, slower per job because every job starts on a fresh registration.",
     "form.gitlab.tokenType.help":
         "Runner token: create the runner on GitLab under `Settings` → `CI/CD` → `Runners` → `New project runner` (or group or instance runner), choose its tags there and copy the `gitlab-runner register` command from the next page. The runner exists in GitLab already, the container registers with its token. No PAT is needed and the token is stored encrypted for deleting the runner later.\nPersonal access token: the extension creates the runner via the API with the scope, path, tags and untagged setting from this form. The PAT is used once and not stored.",
     "form.gitlab.configCommand.help":
@@ -318,15 +292,6 @@ export const en = {
         "mittwald could not create the cleanup cronjob for the cache (status {status}). The extension needs the cronjob scopes.",
     "error.upstream.cronjobUpdate":
         "mittwald could not update the cleanup cronjob for the cache (status {status}).",
-    "error.github.unreachable": "GitHub is unreachable: {reason}",
-    "error.github.tokenInvalid": "The GitHub token is invalid.",
-    "error.github.noAccessRepo":
-        'The token cannot manage runners for repository {owner}/{repo}, or the repository does not exist. Fine-grained PAT: "Administration: Read and write".',
-    "error.github.noAccessOrg":
-        'The token cannot manage runners for organization {org}, or the organization does not exist. Fine-grained PAT: "Self-hosted runners: Read and write".',
-    "error.github.status": "GitHub responded with status {status}.",
-    "error.github.ephemeralNeedsPat":
-        "Ephemeral runners need a personal access token. A registration token expires after one hour and cannot re-register the runner.",
     "error.gitlab.tokenInvalid": "The GitLab token is invalid.",
     "error.gitlab.instanceUrlInvalid":
         "The GitLab URL must be a public https address.",

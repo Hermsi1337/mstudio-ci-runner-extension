@@ -40,12 +40,18 @@ export type Cpus = number;
 export type MemoryMb = number;
 
 /**
- * How the runner authenticated at creation. Decides whether the extension can remove the registration on delete.
+ * How the runner authenticated at creation. Decides whether the extension can remove the
+ * registration on delete. GitHub runners created before the PAT mode was disabled still
+ * carry `pat`.
+ *
  */
 export const TokenType = { REGISTRATION: 'registration', PAT: 'pat' } as const;
 
 /**
- * How the runner authenticated at creation. Decides whether the extension can remove the registration on delete.
+ * How the runner authenticated at creation. Decides whether the extension can remove the
+ * registration on delete. GitHub runners created before the PAT mode was disabled still
+ * carry `pat`.
+ *
  */
 export type TokenType = typeof TokenType[keyof typeof TokenType];
 
@@ -74,10 +80,6 @@ export type RunnerBase = {
      * Comma separated runner labels (GitHub) or tags (GitLab).
      */
     labels?: string;
-    /**
-     * One job per registration. GitHub only and only with tokenType pat; ignored by other providers.
-     */
-    ephemeral?: boolean;
     cache?: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
     concurrency?: Concurrency;
@@ -110,14 +112,14 @@ export type GitHubRunnerRequest = RunnerBase & {
     provider: 'github';
     target: GitHubTarget;
     /**
-     * `registration`: the token from the "New self-hosted runner" page on GitHub, valid for one hour
-     * and used once to register the container. `pat`: a fine-grained personal access token that
-     * may manage self-hosted runners; the container fetches registration and removal tokens with it.
+     * The token from the "New self-hosted runner" page on GitHub, valid for one hour and used
+     * once to register the container. The PAT mode is disabled because the PAT would live in
+     * the runner container where every job can read it.
      *
      */
-    tokenType?: 'registration' | 'pat';
+    tokenType?: 'registration';
     /**
-     * Registration token or PAT, depending on `tokenType`.
+     * Registration token from the "New self-hosted runner" page.
      */
     token: string;
     runnerGroup?: string;
@@ -198,6 +200,9 @@ export type Runner = {
     target: string;
     targetUrl: string;
     labels: Array<string>;
+    /**
+     * One job per registration. Only runners created in the disabled GitHub PAT mode carry true.
+     */
     ephemeral: boolean;
     tokenType: TokenType;
     size: RunnerSize;

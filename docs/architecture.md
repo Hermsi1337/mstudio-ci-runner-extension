@@ -110,12 +110,10 @@ answer within 6 seconds.
 ## Security
 
 - Session tokens are verified server side; access tokens never reach the client.
-- GitHub with a registration token (default): the token reaches the container as
-  `RUNNER_TOKEN`, is worthless after one hour and is not stored in the database. The
-  runner credentials live in the data volume of the runner.
-- GitHub with a PAT: the PAT is stored encrypted and passed to the runner container as
-  `GITHUB_TOKEN`. Project members with container access can read it there. Use
-  fine-grained PATs with minimal scope.
+- GitHub: the registration token reaches the container as `RUNNER_TOKEN`, is worthless
+  after one hour and is not stored in the database. The runner credentials live in the
+  data volume of the runner. The PAT mode is disabled, see
+  [providers.md](providers.md#existing-providers).
 - GitLab: with a runner token from GitLab nothing else is involved. With a PAT it is
   used once to create the runner and is not stored. In both modes the container only
   receives the runner token (`CI_SERVER_TOKEN`), which is also stored encrypted for
@@ -124,6 +122,37 @@ answer within 6 seconds.
 - Errors reach the client only through `PublicError` subclasses (`src/global-errors.ts`);
   they carry message keys that the middleware renders in the request language.
 - Runners run as the unprivileged user `runner` without a Docker socket.
+
+### Trust model of a runner
+
+A job is code from the repository, organization or GitLab group the runner is registered
+for, executed inside the runner container. The container is the trust boundary, not the
+job:
+
+- `runner` has passwordless sudo (`runner ALL=(ALL) NOPASSWD:ALL`), because jobs install
+  packages with `apt-get`. Every job can become root in the container.
+- The data volume (work directory, tool cache, registration) and the cache volume
+  survive between jobs. A job can leave files, or a modified tool, for the next one.
+  There is no filesystem reset.
+- Every job can read the environment of the runner process. The entrypoint unsets
+  `RUNNER_TOKEN` (GitHub) and `CI_SERVER_TOKEN` (GitLab) before the runner starts;
+  the GitLab `config.toml` is `chmod 600`. Secrets that a job needs come from the CI
+  system, not from the container.
+- The container reaches everything in the mittwald project network, such as
+  databases and apps of that project. That is the point of the extension, and it means
+  a job can reach them too.
+
+What follows for operating runners:
+
+- One runner (or one stack) per trust boundary. Do not register a runner for an
+  organization whose repositories are maintained by people you would not give shell
+  access to that project.
+- Do not let untrusted pull requests run on the runner. GitHub: *Settings → Actions →
+  General → Fork pull request workflows*, require approval for all outside collaborators.
+  GitLab: protect the runner or restrict it to protected branches.
+- Ephemeral runners (a fresh registration per job) are currently not available, see
+  [providers.md](providers.md#existing-providers). Until they return, treat a runner as
+  shared state between all jobs of its target.
 
 ## Bundle boundary
 

@@ -28,7 +28,10 @@ export const zCpus = z.number().gte(0.25).lte(8);
 export const zMemoryMb = z.int().gte(512).lte(16384);
 
 /**
- * How the runner authenticated at creation. Decides whether the extension can remove the registration on delete.
+ * How the runner authenticated at creation. Decides whether the extension can remove the
+ * registration on delete. GitHub runners created before the PAT mode was disabled still
+ * carry `pat`.
+ *
  */
 export const zTokenType = z.enum(['registration', 'pat']);
 
@@ -64,7 +67,6 @@ export const zCacheSizeGb = z.int().gte(1).lte(500).default(10);
 export const zRunnerBase = z.object({
     name: z.string().min(2).max(64),
     labels: z.string().max(500).optional().default('mittwald'),
-    ephemeral: z.boolean().optional().default(false),
     cache: zCacheEnabled.optional(),
     cacheSizeGb: zCacheSizeGb.optional(),
     concurrency: zConcurrency.optional(),
@@ -81,7 +83,7 @@ export const zGitHubTarget = z.string().min(1).max(200).regex(/^(https:\/\/githu
 export const zGitHubRunnerRequest = zRunnerBase.and(z.object({
     provider: z.enum(['github']),
     target: zGitHubTarget,
-    tokenType: z.enum(['registration', 'pat']).optional().default('registration'),
+    tokenType: z.enum(['registration']).optional().default('registration'),
     token: z.string().min(10).max(500),
     runnerGroup: z.string().max(128).optional()
 }));

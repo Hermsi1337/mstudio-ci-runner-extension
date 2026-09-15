@@ -26,11 +26,10 @@ and reaches your databases and apps in the same project without a tunnel.
 | | |
 |---|---|
 | **Two CI systems** | GitHub Actions (repository or organization) and GitLab CI (project, group or instance) |
-| **Two ways to authenticate** | Paste the setup command with a registration token, or use a PAT and let the extension manage the registration |
+| **Registration from the setup command** | Paste the `config.sh` or `gitlab-runner register` line from the CI system; for GitLab a PAT can create the runner instead |
 | **Sizes and custom limits** | Small, medium, large, or your own CPU and memory limits |
 | **Persistent package cache** | Optional volume for npm, pnpm, yarn, pip, Composer and Go with an hourly size trim |
 | **Parallel jobs** | GitLab runners take several jobs at once, sized to the container |
-| **Ephemeral runners** | One registration per job for GitHub (PAT mode) |
 | **Lifecycle from mStudio** | Logs, restart, settings, update to the latest runner version, delete, all from the extension page |
 | **English and German** | Follows the mStudio language |
 
@@ -58,6 +57,10 @@ registration.
 Container Hosting provides no Docker daemon. Plain jobs (Node, PHP, Python, Go,
 Rust, Bash, deploys via SSH/rsync) work. GitHub `container:`, `services:`,
 `docker build` and GitLab `image:`/`services:` do not.
+
+Jobs run with passwordless sudo in a container that keeps its volumes between jobs.
+Use one runner per trust boundary and do not run untrusted pull requests on it, see the
+[trust model](docs/architecture.md#trust-model-of-a-runner).
 
 ## Quick start
 

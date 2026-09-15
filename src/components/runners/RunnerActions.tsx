@@ -164,7 +164,7 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                 heading={t("runners.delete.heading", { name: runner.name })}
                 text={
                     runner.provider === "github"
-                        ? t(`runners.delete.text.github.${runner.tokenType}`)
+                        ? t("runners.delete.text.github")
                         : t("runners.delete.text.gitlab")
                 }
                 confirmLabel={t("runners.action.delete")}

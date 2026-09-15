@@ -9,11 +9,10 @@ import { type MockApi, startMockApi } from "../helpers/prism.ts";
 
 /**
  * Prism rejects any request that violates the upstream specs, so these tests
- * also verify the request bodies the extension sends to mittwald, GitHub and GitLab.
+ * also verify the request bodies the extension sends to mittwald and GitLab.
  */
 let postgres: StartedPostgreSqlContainer;
 let mittwald: MockApi;
-let github: MockApi;
 let gitlab: MockApi;
 let runner: typeof import("@/domain/runner.ts");
 let client: ReturnType<
@@ -27,15 +26,13 @@ const projectId = "22222222-2222-2222-2222-222222222222";
 const userId = "55555555-5555-5555-5555-555555555555";
 
 beforeAll(async () => {
-    [postgres, mittwald, github, gitlab] = await Promise.all([
+    [postgres, mittwald, gitlab] = await Promise.all([
         startPostgres(),
         startMockApi("mittwald-v2"),
-        startMockApi("github"),
         startMockApi("gitlab"),
     ]);
     setTestEnvironment({
         MITTWALD_API_URL: `${mittwald.url}/`,
-        GITHUB_API_URL: github.url,
         GITLAB_API_URL: gitlab.url,
     });
 
@@ -67,7 +64,6 @@ afterAll(async () => {
     await Promise.all([
         postgres?.stop(),
         mittwald?.container.stop(),
-        github?.container.stop(),
         gitlab?.container.stop(),
     ]);
 });
@@ -101,34 +97,6 @@ const cases: {
             memoryMb: 1024,
             cache: true,
             cacheSizeGb: 20,
-        },
-    },
-    {
-        title: "GitHub organization runner with a PAT",
-        input: {
-            provider: "github",
-            name: "CI Runner",
-            target: "acme",
-            tokenType: "pat",
-            token: "github_pat_0123456789",
-            labels: "mittwald, ci",
-            ephemeral: true,
-            size: "custom",
-            cpus: 0.75,
-            memoryMb: 1536,
-            concurrency: 4,
-        },
-        expect: {
-            provider: "github",
-            target: "acme",
-            targetUrl: "https://github.com/acme",
-            labels: ["mittwald", "ci"],
-            ephemeral: true,
-            tokenType: "pat",
-            size: "custom",
-            cpus: 0.75,
-            memoryMb: 1536,
-            concurrency: 1,
         },
     },
     {
@@ -457,26 +425,6 @@ describe("input validation", () => {
                 },
             ),
         ).rejects.toMatchObject({ messageKey: "error.instance.unknown" });
-    });
-
-    it("rejects an ephemeral GitHub runner with a registration token", async () => {
-        await expect(
-            runner.createRunner(
-                client,
-                extensionInstanceId,
-                projectId,
-                userId,
-                {
-                    provider: "github",
-                    name: "broken",
-                    target: "acme/app",
-                    token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
-                    ephemeral: true,
-                },
-            ),
-        ).rejects.toMatchObject({
-            messageKey: "error.github.ephemeralNeedsPat",
-        });
     });
 
     it("rejects a GitLab project runner without a path", async () => {

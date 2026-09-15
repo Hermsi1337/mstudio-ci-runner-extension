@@ -35,26 +35,32 @@ update in the UI; *Update* redeclares its stack with the current image.
 
 1. Restores a persisted registration (`.runner`, `.credentials*`) from `RUNNER_CONFIG_DIR`
    and skips registration when one exists
-2. Otherwise derives the API path from `GITHUB_URL` (`repos/<owner>/<repo>` or
-   `orgs/<owner>`), takes `RUNNER_TOKEN` or fetches a registration token with `GITHUB_TOKEN`
+2. Otherwise takes `RUNNER_TOKEN`, or fetches a registration token with `GITHUB_TOKEN`
+   from the API path derived from `GITHUB_URL` (`repos/<owner>/<repo>` or `orgs/<owner>`)
 3. `config.sh --unattended --replace ...`, then persists the registration to
    `RUNNER_CONFIG_DIR` (not for ephemeral runners)
-4. `run.sh`; with `RUNNER_EPHEMERAL=true` re-registers after every job, which needs
-   `GITHUB_TOKEN` because a registration token expires after one hour
-5. On `SIGTERM`/`SIGINT`: removes the runner from GitHub (`config.sh remove` with a
-   removal token from `GITHUB_TOKEN`, or with `RUNNER_TOKEN` while it is still valid)
-   and clears the persisted registration
+4. Unsets `RUNNER_TOKEN` (and `GITHUB_TOKEN` unless ephemeral), then `run.sh`; with
+   `RUNNER_EPHEMERAL=true` re-registers after every job, which needs `GITHUB_TOKEN`
+   because a registration token expires after one hour
+5. On `SIGTERM`/`SIGINT`: stops the runner process group with a bounded wait. It never
+   deregisters, because mittwald recreates the container on updates and a runner with an
+   expired registration token could not register again
+
+The extension only uses `RUNNER_TOKEN`. `GITHUB_TOKEN` and `RUNNER_EPHEMERAL=true` stay
+in the image for hand-built stacks and for
+[issue #25](https://github.com/Hermsi1337/mstudio-ci-runner-extension/issues/25), but
+put a long-lived credential into a container where every job has sudo.
 
 | Variable | Meaning | Default |
 |---|---|---|
 | `GITHUB_URL` | `https://github.com/<owner>` or `https://github.com/<owner>/<repo>` | required |
 | `RUNNER_TOKEN` | Registration token from the "New self-hosted runner" page, valid for one hour | |
-| `GITHUB_TOKEN` | PAT for registration/removal tokens, alternative to `RUNNER_TOKEN`, required for ephemeral runners | |
+| `GITHUB_TOKEN` | PAT for registration tokens, alternative to `RUNNER_TOKEN`, required for ephemeral runners. Not set by the extension | |
 | `GITHUB_API` | API base URL | `https://api.github.com` |
 | `RUNNER_NAME` | Runner name | hostname |
 | `RUNNER_LABELS` | Comma separated labels | `mittwald` |
 | `RUNNER_GROUP` | Runner group | `Default` |
-| `RUNNER_EPHEMERAL` | `true` = one job per registration | `false` |
+| `RUNNER_EPHEMERAL` | `true` = one job per registration. Not set to `true` by the extension | `false` |
 | `RUNNER_DATA_DIR` | Persistent state, mount point of the data volume | `/home/runner/data` |
 | `RUNNER_WORKDIR` | Working directory: checkouts, downloaded actions, `_tool` (tool cache of the `setup-*` actions) | `RUNNER_DATA_DIR/work` |
 | `RUNNER_CONFIG_DIR` | Keeps the registration across restarts | `RUNNER_DATA_DIR/config` |
