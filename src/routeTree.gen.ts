@@ -10,17 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as LocalRouteImport } from './routes/local'
 import { Route as ApiWebhooksMittwaldRouteImport } from './routes/api/webhooks.mittwald'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LocalRoute = LocalRouteImport.update({
-  id: '/local',
-  path: '/local',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWebhooksMittwaldRoute = ApiWebhooksMittwaldRouteImport.update({
@@ -31,31 +25,27 @@ const ApiWebhooksMittwaldRoute = ApiWebhooksMittwaldRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/local': typeof LocalRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/local': typeof LocalRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/local': typeof LocalRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/local' | '/api/webhooks/mittwald'
+  fullPaths: '/' | '/api/webhooks/mittwald'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/local' | '/api/webhooks/mittwald'
-  id: '__root__' | '/' | '/local' | '/api/webhooks/mittwald'
+  to: '/' | '/api/webhooks/mittwald'
+  id: '__root__' | '/' | '/api/webhooks/mittwald'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  LocalRoute: typeof LocalRoute
   ApiWebhooksMittwaldRoute: typeof ApiWebhooksMittwaldRoute
 }
 
@@ -66,13 +56,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/local': {
-      id: '/local'
-      path: '/local'
-      fullPath: '/local'
-      preLoaderRoute: typeof LocalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/webhooks/mittwald': {
@@ -87,7 +70,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  LocalRoute: LocalRoute,
   ApiWebhooksMittwaldRoute: ApiWebhooksMittwaldRoute,
 }
 export const routeTree = rootRouteImport

@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
-import { localHostComponents } from "./local-host-plugin.ts";
 
 const port = Number(process.env.PORT ?? 3000);
 
@@ -16,7 +15,6 @@ const config = defineConfig({
         tsConfigPaths({
             projects: ["./tsconfig.json"],
         }),
-        localHostComponents(),
         tanstackStart(),
         nitro({
             preset: "node-server",

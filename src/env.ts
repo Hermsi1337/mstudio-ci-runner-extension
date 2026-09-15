@@ -38,7 +38,5 @@ export const getEnvironmentVariables = () => {
             choices: ["json", "text"],
             default: process.env.NODE_ENV === "production" ? "json" : "text",
         }),
-        LOCAL_API_TOKEN: str({ default: undefined }),
-        LOCAL_PROJECT_ID: str({ default: undefined }),
     });
 };

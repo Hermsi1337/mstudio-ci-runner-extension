@@ -125,14 +125,6 @@ answer within 6 seconds.
   they carry message keys that the middleware renders in the request language.
 - Runners run as the unprivileged user `runner` without a Docker socket.
 
-## Local mode
-
-`/local` renders the UI without an mStudio host for development
-([development.md](development.md#local-mode-without-mstudio)). The auth middleware
-accepts `x-local-mode: 1` only when `LOCAL_API_TOKEN` and `LOCAL_PROJECT_ID` are set
-and `NODE_ENV` is not `production`; the request context then carries the personal API
-token and the project id as extension instance id.
-
 ## Bundle boundary
 
 TanStack Start splits server and client code per server function. Modules that import

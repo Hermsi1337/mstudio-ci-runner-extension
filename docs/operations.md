@@ -157,7 +157,7 @@ server function name in development, a hash prefix in production builds), `userI
 by `requestId` to follow one request across scopes.
 
 Scopes: `startup` (configuration summary, migrations), `db`, `auth` (verified session
-tokens, local mode), `server-function` (rejected and failed requests with the message
+tokens), `server-function` (rejected and failed requests with the message
 key), `runner` (stack lifecycle), `github` and `gitlab` (provider calls), `webhook`
 (received events, instance cleanup). Tokens and environment values of runner
 containers are never logged, only the variable names. The hosted stack runs with

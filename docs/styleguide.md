@@ -123,9 +123,5 @@ Section
 
 ## Checking a change
 
-Take screenshots at 1440, 1024, 768 and 414 px in local mode
-(`http://localhost:3000/local`, [development.md](development.md#local-mode-without-mstudio))
-and once inside mStudio through `pnpm run dev:expose`. Remote rendering differs from
-the DOM rendering in slot handling, so a change is finished only after both looked
-right. Restart the dev server after editing components, the `local:` copies are not
-watched.
+Take screenshots at 1440, 1024, 768 and 414 px inside mStudio through
+`pnpm run dev:expose` ([development.md](development.md)).
