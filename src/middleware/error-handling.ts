@@ -23,21 +23,24 @@ export const handleServerErrors = createMiddleware({
                 });
                 return result;
             } catch (error) {
+                const locale = resolveLocale(
+                    getRequestHeader(localeHeader) ??
+                        getRequestHeader("accept-language"),
+                );
                 // A serializable Error whose message is the JSON error body:
                 // the client rejects the call and parsePublicError reads the
                 // body from the message. A thrown Response resolves the call
                 // with undefined since TanStack Start 1.17x.
-                throw new Error(JSON.stringify(toErrorBody(error)));
+                throw new Error(JSON.stringify(toErrorBody(error, locale)));
             }
         },
     ),
 );
 
-function toErrorBody(error: unknown): ErrorBody {
-    const locale = resolveLocale(
-        getRequestHeader(localeHeader) ?? getRequestHeader("accept-language"),
-    );
-
+export function toErrorBody(
+    error: unknown,
+    locale: ReturnType<typeof resolveLocale>,
+): ErrorBody {
     const validationIssues = parseZodValidationError(error);
     if (validationIssues) {
         log.warn("request rejected by validation", {

@@ -24,16 +24,22 @@ export type ServiceDeclaration =
  * two parallel creates both create a stack, the loser sees the conflict and
  * deletes its own stack again.
  */
+export interface FoundOrCreatedStack {
+    stackId: string;
+    /** True when this call created the stack, false when it reused one. */
+    created: boolean;
+}
+
 export async function findOrCreateStack(
     client: MittwaldAPIV2Client,
     extensionInstanceId: string,
     projectId: string,
     targetUrl: string,
     description: string,
-): Promise<RunnerStackRow> {
+): Promise<FoundOrCreatedStack> {
     const existing = await findStack(extensionInstanceId, targetUrl);
     if (existing && (await stackExists(client, existing.stackId))) {
-        return existing;
+        return { stackId: existing.stackId, created: false };
     }
     if (existing) {
         log.warn("stack vanished outside the extension, creating a new one", {
@@ -82,7 +88,7 @@ export async function findOrCreateStack(
     }
     if (inserted) {
         log.info("stack created", { stackId: inserted.stackId, targetUrl });
-        return inserted;
+        return { stackId: inserted.stackId, created: true };
     }
     log.debug("lost the race for the stack, removing the duplicate", {
         stackId: created.data.id,
@@ -94,7 +100,7 @@ export async function findOrCreateStack(
     if (!winner) {
         throw new UpstreamError("error.upstream.stackCreate", { status: 409 });
     }
-    return winner;
+    return { stackId: winner.stackId, created: false };
 }
 
 async function findStack(
@@ -113,23 +119,43 @@ async function findStack(
     return row;
 }
 
+/**
+ * Only a 404 means the stack is gone. Any other failure is transient or a
+ * permission problem and must not be mistaken for a vanished stack, because
+ * callers replace or delete state based on this answer.
+ */
 async function stackExists(
     client: MittwaldAPIV2Client,
     stackId: string,
 ): Promise<boolean> {
     const response = await client.container.getStack({ stackId });
-    return response.status === 200;
+    if (response.status === 200) {
+        return true;
+    }
+    if ((response.status as number) === 404) {
+        return false;
+    }
+
+    throw new UpstreamError("error.upstream.stackGet", {
+        status: response.status,
+    });
 }
 
 export async function getStack(
     client: MittwaldAPIV2Client,
     stackId: string,
-): Promise<StackResponse | null | undefined> {
+): Promise<StackResponse | null> {
     const response = await client.container.getStack({ stackId });
     if ((response.status as number) === 404) {
         return null;
     }
-    return response.status === 200 ? response.data : undefined;
+    if (response.status !== 200) {
+        throw new UpstreamError("error.upstream.stackGet", {
+            status: response.status,
+        });
+    }
+
+    return response.data;
 }
 
 /**
@@ -240,28 +266,10 @@ export async function deleteVolumes(
 }
 
 /**
- * Deletes the stack when no runner row points at it any more. Called after
- * the runner row is gone.
+ * Deletes the mittwald stack. The runner_stacks row is expected to be gone
+ * already (deleteRunner removes it inside its transaction).
  */
-export async function deleteStackIfEmpty(
-    client: MittwaldAPIV2Client,
-    extensionInstanceId: string,
-    stackId: string,
-): Promise<boolean> {
-    const [remaining] = await getDatabase()
-        .select({ id: runners.id })
-        .from(runners)
-        .where(eq(runners.stackId, stackId))
-        .limit(1);
-    if (remaining) {
-        return false;
-    }
-    await deleteStackWithRow(client, extensionInstanceId, stackId);
-
-    return true;
-}
-
-export async function deleteStackWithRow(
+export async function deleteStackUpstream(
     client: MittwaldAPIV2Client,
     extensionInstanceId: string,
     stackId: string,
@@ -275,10 +283,18 @@ export async function deleteStackWithRow(
             status: response.status,
         });
     }
+    log.info("stack deleted", { stackId, status: response.status });
+}
+
+export async function deleteStackWithRow(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    stackId: string,
+): Promise<void> {
+    await deleteStackUpstream(client, extensionInstanceId, stackId);
     await getDatabase()
         .delete(runnerStacks)
         .where(eq(runnerStacks.stackId, stackId));
-    log.info("stack deleted", { stackId, status: response.status });
 }
 
 /**
