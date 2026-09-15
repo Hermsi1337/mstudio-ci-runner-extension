@@ -93,6 +93,16 @@ export class NotFoundError extends PublicError {
     }
 }
 
+export class UnknownInstanceError extends PublicError {
+    public constructor(extensionInstanceId: string) {
+        super(
+            "error.instance.unknown",
+            {},
+            { statusCode: 409, details: { extensionInstanceId } },
+        );
+    }
+}
+
 export class ProviderError extends PublicError {
     public constructor(
         messageKey: MessageKey,

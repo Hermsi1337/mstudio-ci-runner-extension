@@ -2,7 +2,12 @@ import { assertStatus, type MittwaldAPIV2Client } from "@mittwald/api-client";
 import { desc, eq } from "drizzle-orm";
 import * as uuid from "uuid";
 import { getDatabase } from "@/db";
-import { type NewRunnerRow, type RunnerRow, runners } from "@/db/schema.ts";
+import {
+    extensionInstances,
+    type NewRunnerRow,
+    type RunnerRow,
+    runners,
+} from "@/db/schema.ts";
 import type {
     ConfigureRunnerRequest,
     CreateRunnerRequest,
@@ -13,6 +18,7 @@ import type {
 import {
     NotFoundError,
     PermissionsInsufficientError,
+    UnknownInstanceError,
     UpstreamError,
 } from "@/global-errors.ts";
 import { addLogContext, createLogger } from "@/logger.ts";
@@ -320,6 +326,18 @@ export async function listRunners(
     });
 }
 
+async function assertInstanceExists(
+    extensionInstanceId: string,
+): Promise<void> {
+    const [instance] = await getDatabase()
+        .select({ id: extensionInstances.id })
+        .from(extensionInstances)
+        .where(eq(extensionInstances.id, extensionInstanceId));
+    if (!instance) {
+        throw new UnknownInstanceError(extensionInstanceId);
+    }
+}
+
 export async function createRunner(
     client: MittwaldAPIV2Client,
     extensionInstanceId: string,
@@ -327,6 +345,7 @@ export async function createRunner(
     userId: string,
     input: CreateRunnerRequest,
 ): Promise<Runner> {
+    await assertInstanceExists(extensionInstanceId);
     const provider = getProvider(input);
     const resources = resolveResources(input);
     const labels = (input.labels ?? "mittwald")

@@ -292,6 +292,8 @@ export const en = {
     "error.unexpected": "An unexpected error occurred",
     "error.permissions":
         "Insufficient permissions. Either you cannot manage containers in this project or the extension lacks a scope (stack:read, stack:write, stack:delete).",
+    "error.instance.unknown":
+        "This installation is not registered with the extension yet. Reinstall the extension in mStudio, then try again.",
     "error.notFound.runner": "The runner was not found.",
     "error.notFound.runnerContainer": "The runner container was not found.",
     "error.upstream.stackCreate":

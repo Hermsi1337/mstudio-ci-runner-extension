@@ -53,7 +53,10 @@ Two Flow rules shape the components:
 4. `src/domain/stack.ts` finds the stack of the registration target in `runner_stacks`
    or creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
    (extension instance, target URL) settles parallel creates: the loser deletes its
-   duplicate stack and uses the winner's.
+   duplicate stack and uses the winner's. If persisting the row fails, the extension
+   deletes the stack it just created, so no orphaned stack stays behind. A create for
+   an installation without an `extension_instance` row (webhook data missing) fails
+   before anything is created.
 5. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
    requested ([providers.md](providers.md#package-manager-cache)) and declares the
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
