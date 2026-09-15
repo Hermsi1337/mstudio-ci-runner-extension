@@ -121,6 +121,7 @@ openapi/upstream/            slimmed upstream specs (generated): codegen input a
 scripts/slim-openapi.ts      produces openapi/upstream
 scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
 scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
+scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) reached the browser bundle
 scripts/generate-encryption-secrets.js  prints values for ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
 src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
@@ -165,13 +166,16 @@ Everything else lives in a subdirectory.
   handled failures at `warn`, unexpected ones at `error`. Never log tokens, secrets or
   the environment of runner containers.
 - Domain code must not end up in the client bundle. Client code imports types from
-  `src/generated/`, never from `src/domain/` or `src/db/`.
+  `src/generated/`, never from `src/domain/` or `src/db/`. Modules reachable from
+  `src/start.ts` (global middleware) export nothing but the middleware itself; pure
+  helpers live in their own module. `pnpm run check:bundle` verifies the built bundle.
 
 ## Run before committing
 
 ```bash
 pnpm run codegen && git diff --exit-code -- src/generated   # generated code up to date?
 pnpm run check && pnpm run typecheck && pnpm run build
+pnpm run check:bundle                                        # no server-only code in the client bundle
 pnpm run test                                                # unit tests, catalog consistency
 pnpm run test:integration                                    # requires Docker
 ```

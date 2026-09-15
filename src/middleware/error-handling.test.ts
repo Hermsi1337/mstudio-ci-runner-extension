@@ -1,25 +1,6 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parsePublicError, UpstreamError } from "@/global-errors.ts";
-
-// The logger reads the environment on first use; the middleware logs on every
-// error path, so the env must exist before that module runs.
-beforeAll(() => {
-    for (const [key, value] of Object.entries({
-        POSTGRES_USER: "u",
-        POSTGRES_PASSWORD: "p",
-        POSTGRES_DB: "d",
-        POSTGRES_HOST: "h",
-        POSTGRES_PORT: "5432",
-        EXTENSION_ID: "e",
-        EXTENSION_SECRET: "s",
-        ENCRYPTION_MASTER_PASSWORD: "m",
-        ENCRYPTION_SALT: "salt",
-    })) {
-        vi.stubEnv(key, value);
-    }
-});
-
-const { toErrorBody } = await import("./error-handling.ts");
+import { classifyError, toErrorBody } from "./error-body.ts";
 
 /**
  * The client contract: the middleware serialises the error body into an
@@ -27,7 +8,7 @@ const { toErrorBody } = await import("./error-handling.ts");
  * thrown Response silently resolved the call, so the round trip is pinned.
  */
 function roundTrip(error: unknown) {
-    const body = toErrorBody(error, "en");
+    const body = toErrorBody(classifyError(error), "en");
     return parsePublicError(new Error(JSON.stringify(body)));
 }
 

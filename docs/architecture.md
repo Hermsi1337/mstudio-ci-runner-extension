@@ -159,3 +159,13 @@ What follows for operating runners:
 TanStack Start splits server and client code per server function. Modules that import
 `src/db/` or `src/domain/` at module level end up in the client bundle and break the
 build (`node:crypto`). UI code therefore imports types from `src/generated/` only.
+
+The global function middleware in `src/start.ts` is the second way in: its module is
+part of the client bundle, TanStack Start strips the `.server()` callback and Rollup
+drops the logger with it, but only while nothing else in that module is exported.
+v0.2.0 exported a helper from `src/middleware/error-handling.ts`, the logger followed
+into the browser and `new AsyncLocalStorage()` threw at load, so mStudio showed
+"Extension could not be loaded" although the server answered. Pure helpers therefore
+live in `src/middleware/error-body.ts`, and `scripts/check-client-bundle.sh`
+(`pnpm run check:bundle`, run by `ci.yml` after the build) greps the built assets for
+markers of server-only modules.

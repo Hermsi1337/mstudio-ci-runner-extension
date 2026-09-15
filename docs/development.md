@@ -58,6 +58,7 @@ Schema in `src/db/schema.ts`. Migrations are generated, not written:
 pnpm run db:generate-migrations   # after schema changes, commit the result in src/db/migrations/
 pnpm run db:migrate               # manually; otherwise runs automatically on start
 pnpm run db:studio                # Drizzle Studio on port 8081
+pnpm run check:bundle             # after pnpm run build: no server-only code in the client bundle
 ```
 
 Rename the generated file from Drizzle's random name to a descriptive one

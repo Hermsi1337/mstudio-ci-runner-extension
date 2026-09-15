@@ -29,6 +29,8 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run test
       - run: pnpm run build
+      - name: No server-only code in the client bundle
+        run: pnpm run check:bundle
 
   integration:
     runs-on: ubuntu-latest
