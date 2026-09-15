@@ -2,6 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CombinedWebhookHandlerFactory } from "@weissaufschwarz/mitthooks/factory/combined";
 import type { WebhookHandler } from "@weissaufschwarz/mitthooks/handler/interface";
 import { HttpWebhookHandler } from "@weissaufschwarz/mitthooks/index";
+import { NoopLogger } from "@weissaufschwarz/mitthooks/logging/noopLogger";
+import {
+    APIPublicKeyProvider,
+    CachingPublicKeyProvider,
+} from "@weissaufschwarz/mitthooks/verification/publicKeys";
+import { WebhookVerifier } from "@weissaufschwarz/mitthooks/verification/verify";
 import { PgExtensionStorage } from "@weissaufschwarz/mitthooks-drizzle/index";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "@/db";
@@ -15,9 +21,20 @@ import {
     withLogContext,
 } from "@/logger.ts";
 import { createMittwaldClient } from "@/mittwald/client.ts";
+import { strictVerification } from "@/webhook-verification.ts";
 
 const db = getDatabase();
 const log = createLogger("webhook");
+
+function buildStrictVerifier(mittwaldApiUrl: string): WebhookHandler {
+    const publicKeyProvider = new CachingPublicKeyProvider(
+        APIPublicKeyProvider.newWithUnauthenticatedAPIClient(mittwaldApiUrl),
+    );
+
+    return strictVerification(
+        new WebhookVerifier(new NoopLogger(), publicKeyProvider),
+    );
+}
 
 /**
  * Runs before the default handler chain so the instance secret is still
@@ -93,12 +110,19 @@ export const Route = createFileRoute("/api/webhooks/mittwald")({
             POST: async ({ request }) => {
                 const env = getEnvironmentVariables();
 
+                // The strict verifier runs first: mitthooks' built-in
+                // verification ignores a false verify result (see
+                // src/webhook-verification.ts), and the cleanup handler must
+                // only see verified requests.
                 const combinedHandler = new CombinedWebhookHandlerFactory(
                     new PgExtensionStorage(db, extensionInstances),
                     env.EXTENSION_ID,
                 )
                     .withMittwaldAPIURL(env.MITTWALD_API_URL)
-                    .withWebhookHandlerPrefix(cleanupRunnersOnRemoval)
+                    .withWebhookHandlerPrefix(
+                        buildStrictVerifier(env.MITTWALD_API_URL),
+                        cleanupRunnersOnRemoval,
+                    )
                     .build();
 
                 const httpHandler = new HttpWebhookHandler(combinedHandler);
