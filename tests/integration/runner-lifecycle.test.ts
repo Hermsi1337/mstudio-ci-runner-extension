@@ -237,6 +237,7 @@ describe.each(cases)(
             const found = list.find((r) => r.id === runnerId);
             expect(found?.runnerVersion).toBe(found?.latestRunnerVersion);
             expect(found?.latestImageVersion).toBe("test");
+            expect(found?.imageVersion).toBe("test");
             expect(found?.updateAvailable).toBe(false);
         });
 

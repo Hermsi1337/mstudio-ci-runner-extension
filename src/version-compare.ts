@@ -9,6 +9,14 @@ function parseVersion(version: string): number[] | null {
     return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
 
+export function versionsSince(versions: string[], since: string): string[] {
+    if (!parseVersion(since)) {
+        return versions;
+    }
+
+    return versions.filter((version) => isNewerVersion(version, since));
+}
+
 export function isNewerVersion(candidate: string, current: string): boolean {
     const candidateParts = parseVersion(candidate);
     const currentParts = parseVersion(current);

@@ -225,7 +225,7 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, tokenType, size, cpus, memoryMb, cache, cacheSizeGb, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, latestImageVersion, updateAvailable, createdAt]
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, tokenType, size, cpus, memoryMb, cache, cacheSizeGb, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, latestImageVersion, imageVersion, updateAvailable, createdAt]
       properties:
         id:
           type: string
@@ -305,6 +305,10 @@ components:
           type: [string, 'null']
           description: Tag of the runner image this extension release ships, e.g. `0.2.0`. Null when the configured image has no tag.
           example: 0.2.0
+        imageVersion:
+          type: [string, 'null']
+          description: Tag of the image the runner was created with, the extension version at creation time. Null when the image has no tag.
+          example: 0.1.0
         updateAvailable:
           type: boolean
           description: True when the runner runs an older image than the one this extension release ships.

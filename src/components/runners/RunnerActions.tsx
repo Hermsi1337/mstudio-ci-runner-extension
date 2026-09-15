@@ -2,6 +2,7 @@ import {
     ContextMenu,
     IconChangelog,
     IconDelete,
+    IconInfo,
     IconRefresh,
     IconSettings,
     IconUpload,
@@ -9,6 +10,7 @@ import {
     Text,
     useOverlayController,
 } from "@mittwald/flow-remote-react-components";
+import { ChangelogModal } from "@/components/ChangelogModal.tsx";
 import { ConfirmModal } from "@/components/ConfirmModal.tsx";
 import type { Runner } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
@@ -34,6 +36,7 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
     const settings = useOverlayController("Modal", own);
     const restart = useOverlayController("Modal", own);
     const update = useOverlayController("Modal", own);
+    const changelog = useOverlayController("Modal", own);
     const remove = useOverlayController("Modal", own);
 
     const run = async (
@@ -56,6 +59,7 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
         settings: settings.open,
         restart: restart.open,
         update: update.open,
+        changelog: changelog.open,
         delete: remove.open,
     };
 
@@ -86,6 +90,16 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                         </Text>
                     </MenuItem>
                 )}
+                {runner.updateAvailable && runner.imageVersion && (
+                    <MenuItem id="changelog">
+                        <IconInfo />
+                        <Text>
+                            {t("runners.action.changelogSince", {
+                                version: runner.imageVersion,
+                            })}
+                        </Text>
+                    </MenuItem>
+                )}
                 <MenuItem id="delete">
                     <IconDelete />
                     <Text>{t("runners.action.delete")}</Text>
@@ -94,6 +108,10 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
 
             <RunnerLogsModal runner={runner} controller={logs} />
             <ConfigureRunnerModal runner={runner} controller={settings} />
+            <ChangelogModal
+                controller={changelog}
+                sinceVersion={runner.imageVersion}
+            />
             <ConfirmModal
                 controller={restart}
                 color="primary"
