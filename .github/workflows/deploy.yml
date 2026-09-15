@@ -10,6 +10,9 @@ on:
         description: "Image version to deploy, e.g. 0.1.0"
         required: true
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-mstudio
   cancel-in-progress: false
@@ -24,12 +27,14 @@ jobs:
     environment: mstudio
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.version && format('v{0}', inputs.version) || github.event.workflow_run.head_branch }}
       - name: Resolve image version
         id: version
         env:
           REF: ${{ inputs.version || github.event.workflow_run.head_branch }}
         run: echo "version=${REF#v}" >> "$GITHUB_OUTPUT"
-      - uses: mittwald/deploy-container-action@v1
+      - uses: mittwald/deploy-container-action@bc2fb8ccf6340a04da8a148f99c6eacc1a7b69fa # v1
         env:
           EXTENSION_VERSION: ${{ steps.version.outputs.version }}
           EXTENSION_ID: ${{ secrets.EXTENSION_ID }}

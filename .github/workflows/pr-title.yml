@@ -11,26 +11,32 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate Conventional Commits title and label the pull request
+      - name: Validate Conventional Commits title
+        id: validate
         env:
-          GH_TOKEN: ${{ github.token }}
           TITLE: ${{ github.event.pull_request.title }}
-          NUMBER: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
         run: |
           if ! [[ "$TITLE" =~ ^(feat|fix|docs|ci|chore|refactor|test)(\([a-z0-9-]+\))?!?:\  ]]; then
             echo "::error::Title must follow Conventional Commits, e.g. 'feat: add provider'. Got: $TITLE"
             exit 1
           fi
-          type="${BASH_REMATCH[1]}"
-          case "$type" in
+          echo "type=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+      - name: Label the pull request
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TYPE: ${{ steps.validate.outputs.type }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          case "$TYPE" in
             feat) color=0e8a16 ;;
             fix) color=d73a4a ;;
             *) color=ededed ;;
           esac
-          gh label create "$type" --repo "$REPO" --force --color "$color" >/dev/null
+          gh label create "$TYPE" --repo "$REPO" --force --color "$color" >/dev/null
           for other in feat fix docs ci chore refactor test; do
-            [ "$other" = "$type" ] && continue
+            [ "$other" = "$TYPE" ] && continue
             gh pr edit "$NUMBER" --repo "$REPO" --remove-label "$other" >/dev/null 2>&1 || true
           done
-          gh pr edit "$NUMBER" --repo "$REPO" --add-label "$type"
+          gh pr edit "$NUMBER" --repo "$REPO" --add-label "$TYPE"
