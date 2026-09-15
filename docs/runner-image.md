@@ -12,10 +12,18 @@ Docker daemon.
 | github | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | [actions/runner](https://github.com/actions/runner) release |
 | gitlab | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | [gitlab-runner](https://gitlab.com/gitlab-org/gitlab-runner) binary, executor `shell` |
 
-The runner software version per provider lives in `docker/runner/versions.json`. It is
-the only place to bump it: the workflow, `pnpm run runner:build`, the image test and the
-extension (shown as runner version in the UI, `runnerVersion` on the provider) read it.
-The Dockerfiles take it as build arg `RUNNER_VERSION` without a default.
+The runner software version per provider lives in `docker/runner/versions.json`
+together with the SHA-256 checksums of the upstream binaries for amd64 and arm64:
+
+```json
+{ "github": { "version": "2.337.0", "sha256": { "amd64": "...", "arm64": "..." } } }
+```
+
+It is the only place to bump it: the workflow, `pnpm run runner:build`, the image test
+and the extension (shown as runner version in the UI, `runnerVersion` on the provider)
+read it. The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64` and
+`RUNNER_SHA256_ARM64` as build args without defaults and stop the build when the
+downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
 
 The extension creates runners from `ghcr.io/hermsi1337/mstudio-ci-runner-<provider>:<EXTENSION_VERSION>`,
 the same release as the extension itself. A runner created by an older release shows an

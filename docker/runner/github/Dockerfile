@@ -3,6 +3,8 @@ ARG RUNNER_VERSION
 FROM ubuntu:24.04
 
 ARG RUNNER_VERSION
+ARG RUNNER_SHA256_AMD64
+ARG RUNNER_SHA256_ARM64
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-runner-extension" \
@@ -27,12 +29,13 @@ RUN useradd --create-home --home-dir ${RUNNER_HOME} --shell /bin/bash runner \
 WORKDIR ${RUNNER_HOME}
 
 RUN case "${TARGETARCH:-$(uname -m)}" in \
-        amd64|x86_64) ARCH=x64 ;; \
-        arm64|aarch64) ARCH=arm64 ;; \
+        amd64|x86_64) ARCH=x64; SHA256="${RUNNER_SHA256_AMD64:?RUNNER_SHA256_AMD64 is required}" ;; \
+        arm64|aarch64) ARCH=arm64; SHA256="${RUNNER_SHA256_ARM64:?RUNNER_SHA256_ARM64 is required}" ;; \
         *) echo "unsupported arch ${TARGETARCH:-$(uname -m)}" && exit 1 ;; \
     esac \
     && curl -fsSL -o runner.tar.gz \
         "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${ARCH}-${RUNNER_VERSION}.tar.gz" \
+    && echo "${SHA256}  runner.tar.gz" | sha256sum -c - \
     && tar xzf runner.tar.gz \
     && rm runner.tar.gz \
     && ./bin/installdependencies.sh \

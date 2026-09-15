@@ -1,4 +1,16 @@
 {
-  "github": "2.337.0",
-  "gitlab": "19.3.1"
+  "github": {
+    "version": "2.337.0",
+    "sha256": {
+      "amd64": "70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613",
+      "arm64": "9b1dc70626422526e3c94767cf024896beb15da5342a3f4819bf2feac13e0393"
+    }
+  },
+  "gitlab": {
+    "version": "19.3.1",
+    "sha256": {
+      "amd64": "c5e647c3b2ab3ac51f577bc8b22575ab5cbe7ab0889ca82a2d79dab08156960e",
+      "arm64": "6bf1cd34c3decad55503414045db759db20ba3a2c05a3ac251d02eac7876dcbc"
+    }
+  }
 }
