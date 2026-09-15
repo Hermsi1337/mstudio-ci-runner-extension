@@ -23,8 +23,8 @@ succeeded. Both image workflows use `docker/metadata-action` and tag:
 | Image | Tags for `v1.2.3` |
 |---|---|
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `1.2.3`, `1.2`, `latest` |
-| `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `<RUNNER_VERSION>` (e.g. `2.337.0`) |
-| `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `1.2.3`, `1.2`, `latest`, `<RUNNER_VERSION>` (e.g. `19.3.1`) |
+| `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.337.0`) |
+| `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-19.3.1`) |
 
 `workflow_dispatch` builds an image with a `sha-<commit>` tag and without `latest`,
 e.g. to try a branch.
