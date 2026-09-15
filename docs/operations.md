@@ -102,11 +102,11 @@ restart (`skip_recreation`); the extension runs its migrations on start.
 
 ### One-time setup
 
-1. GitHub environment `mstudio` with one variable and these secrets:
+1. GitHub environment `mstudio` with these secrets:
 
    | Name | Kind | Source |
    |---|---|---|
-   | `MITTWALD_STACK_ID` | variable | An empty stack created in the target project in mStudio (*Container → Stacks → Create*) |
+   | `MITTWALD_STACK_ID` | secret | An empty stack created in the target project in mStudio (*Container → Stacks → Create*) |
    | `MITTWALD_API_TOKEN` | secret | mStudio, *User → API tokens*, needs access to the project |
    | `EXTENSION_ID`, `EXTENSION_SECRET` | secret | Extension registration ([mstudio-setup.md](mstudio-setup.md)) |
    | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes stored credentials unreadable. |
