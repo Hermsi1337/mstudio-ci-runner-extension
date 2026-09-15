@@ -27,7 +27,7 @@ alike and come before personal taste. Writing style for texts is in
 
 ```
 Section
-  AccentBox              brand header: logo, name, tagline, provider badges (BrandHeader.tsx)
+  AccentBox              brand header: logo, name, tagline, provider badges, changelog button (BrandHeader.tsx); backgroundColor "gradient" token, theme-aware, no custom hex
   LayoutCard             one card per topic, Heading first
     Section
       Header             Heading + primary Button
