@@ -12,6 +12,7 @@ import {
     SkeletonText,
     Text,
 } from "@mittwald/flow-remote-react-components";
+import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
@@ -76,6 +77,8 @@ export const ChangelogModal = ({
     sinceVersion?: string | null;
 }) => {
     const t = useTranslation();
+    const { reset } = useQueryErrorResetBoundary();
+    const isOpen = controller.useIsOpen();
     return (
         <Modal offCanvas size="m" controller={controller}>
             <Heading>
@@ -84,11 +87,16 @@ export const ChangelogModal = ({
                     : t("changelog.heading")}
             </Heading>
             <Content>
-                <ErrorBoundary FallbackComponent={ErrorFallback}>
-                    <Suspense fallback={<SkeletonText />}>
-                        <Releases sinceVersion={sinceVersion} />
-                    </Suspense>
-                </ErrorBoundary>
+                {isOpen && (
+                    <ErrorBoundary
+                        onReset={reset}
+                        FallbackComponent={ErrorFallback}
+                    >
+                        <Suspense fallback={<SkeletonText />}>
+                            <Releases sinceVersion={sinceVersion} />
+                        </Suspense>
+                    </ErrorBoundary>
+                )}
             </Content>
         </Modal>
     );

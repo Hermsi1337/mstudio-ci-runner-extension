@@ -47,6 +47,17 @@ import { ResourceFields } from "./ResourceFields.tsx";
 
 type TokenType = NonNullable<CreateRunnerRequest["tokenType"]>;
 
+/**
+ * Mirrors zRunnerBase.name and zGitHubTarget from
+ * src/generated/extension-api/zod.gen.ts. The server rejects the same values,
+ * but only in English and only after the request, so the form checks them
+ * first. Keep both in sync when the spec changes.
+ */
+const NAME_MIN_LENGTH = 2;
+const NAME_MAX_LENGTH = 64;
+const gitHubTargetPattern =
+    /^(https:\/\/github\.com\/)?[A-Za-z0-9_.-]+(\/[A-Za-z0-9_.-]+)?\/?$/;
+
 interface FormValues {
     provider: Provider;
     name: string;
@@ -255,6 +266,12 @@ export const RunnerForm = ({
                                                 required: t(
                                                     "form.github.target.required",
                                                 ),
+                                                pattern: {
+                                                    value: gitHubTargetPattern,
+                                                    message: t(
+                                                        "form.github.target.invalid",
+                                                    ),
+                                                },
                                             }}
                                         >
                                             <TextField
@@ -561,9 +578,16 @@ export const RunnerForm = ({
                                                                   "form.gitlab.projectPath.label",
                                                               )}
                                                         <FieldHelp
-                                                            subject={t(
-                                                                "form.gitlab.projectPath.label",
-                                                            )}
+                                                            subject={
+                                                                runnerType ===
+                                                                "group_type"
+                                                                    ? t(
+                                                                          "form.gitlab.groupPath.label",
+                                                                      )
+                                                                    : t(
+                                                                          "form.gitlab.projectPath.label",
+                                                                      )
+                                                            }
                                                             text={t(
                                                                 "form.gitlab.path.help",
                                                             )}
@@ -642,7 +666,17 @@ export const RunnerForm = ({
                         <Heading>{t("form.section.runner")}</Heading>
                         <Field
                             name="name"
-                            rules={{ required: t("form.name.required") }}
+                            rules={{
+                                required: t("form.name.required"),
+                                minLength: {
+                                    value: NAME_MIN_LENGTH,
+                                    message: t("form.name.tooShort"),
+                                },
+                                maxLength: {
+                                    value: NAME_MAX_LENGTH,
+                                    message: t("form.name.tooLong"),
+                                },
+                            }}
                         >
                             <TextField>
                                 <Label>
@@ -665,7 +699,11 @@ export const RunnerForm = ({
                                             ? t("form.tags.label")
                                             : t("form.labels.label")}
                                         <FieldHelp
-                                            subject={t("form.labels.label")}
+                                            subject={
+                                                provider === "gitlab"
+                                                    ? t("form.tags.label")
+                                                    : t("form.labels.label")
+                                            }
                                             text={
                                                 provider === "gitlab"
                                                     ? t("form.tags.help")
@@ -674,7 +712,9 @@ export const RunnerForm = ({
                                         />
                                     </Label>
                                     <FieldDescription>
-                                        {t("form.labels.description")}
+                                        {provider === "gitlab"
+                                            ? t("form.tags.description")
+                                            : t("form.labels.description")}
                                     </FieldDescription>
                                 </TextField>
                             </Field>

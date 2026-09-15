@@ -148,12 +148,13 @@ export const ConfigureRunnerModal = ({
     controller: OverlayController;
 }) => {
     const t = useTranslation();
+    const isOpen = controller.useIsOpen();
     return (
         <Modal offCanvas size="m" controller={controller}>
             <Heading>
                 {t("form.configure.heading", { name: runner.name })}
             </Heading>
-            <ConfigureRunnerForm runner={runner} />
+            {isOpen && <ConfigureRunnerForm runner={runner} />}
         </Modal>
     );
 };

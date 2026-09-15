@@ -10,6 +10,7 @@ export type MessageKey = keyof Messages;
 export type MessageParams = Record<string, string | number>;
 
 const catalogs: Record<Locale, Messages> = { en, de };
+const numberFormats: Record<Locale, string> = { en: "en-US", de: "de-DE" };
 
 export function resolveLocale(preference: string | undefined | null): Locale {
     if (!preference) {
@@ -31,9 +32,15 @@ export function translate(
     params: MessageParams = {},
 ): string {
     const template = catalogs[locale][key] ?? catalogs[defaultLocale][key];
-    return template.replace(/\{(\w+)\}/g, (match, name: string) =>
-        name in params ? String(params[name]) : match,
-    );
+    return template.replace(/\{(\w+)\}/g, (match, name: string) => {
+        if (!(name in params)) {
+            return match;
+        }
+        const value = params[name];
+        return typeof value === "number"
+            ? value.toLocaleString(numberFormats[locale])
+            : value;
+    });
 }
 
 export type Translate = (key: MessageKey, params?: MessageParams) => string;
