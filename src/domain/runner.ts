@@ -182,14 +182,6 @@ async function deleteCronjobs(
     }
 }
 
-function parseCredentials(row: RunnerRow): Record<string, string> {
-    try {
-        return JSON.parse(row.credentials) as Record<string, string>;
-    } catch {
-        return {};
-    }
-}
-
 function withConcurrency(
     provider: RunnerProvider,
     environment: Record<string, string>,
@@ -432,7 +424,7 @@ export async function createRunner(
             return;
         }
         try {
-            await provider.release(prepared.credentials);
+            await provider.release(prepared.environment);
         } catch (error) {
             log.error("rollback: provider registration release failed", {
                 provider: provider.id,
@@ -538,7 +530,6 @@ export async function createRunner(
         name: input.name,
         target: prepared.target,
         targetUrl: prepared.targetUrl,
-        credentials: JSON.stringify(prepared.credentials),
         labels: prepared.labels,
         ephemeral: prepared.ephemeral,
         tokenType: input.tokenType ?? "registration",
@@ -867,6 +858,7 @@ export async function deleteRunner(
     const row = await findRunner(extensionInstanceId, runnerId);
     await deleteCronjobs(client, parseCronjobIds(row));
     const stack = await getStack(client, row.stackId);
+    const service = stack ? serviceOf(stack, row) : null;
     if (stack) {
         await removeService(
             client,
@@ -875,7 +867,7 @@ export async function deleteRunner(
             row.serviceName,
         );
     }
-    await releaseProviderRegistration(row);
+    await releaseProviderRegistration(row, service);
     // One transaction removes the runner row, checks whether the stack is now
     // empty, and, when it is, removes the runner_stacks row too. Deleting that
     // lock row here means a racing createRunner can no longer find the stack
@@ -909,13 +901,30 @@ export async function deleteRunner(
     });
 }
 
-async function releaseProviderRegistration(row: RunnerRow): Promise<void> {
+/**
+ * The registration token lives only in the runner container, so the release
+ * reads it from the service state mittwald reports. Without a service (deleted
+ * in mStudio) the registration stays in the CI system until someone removes it
+ * there; the delete text tells the user.
+ */
+async function releaseProviderRegistration(
+    row: RunnerRow,
+    service: ServiceResponse | null | undefined,
+): Promise<void> {
     const provider = getProviderById(row.provider);
     if (!provider) {
         return;
     }
+    if (!service) {
+        log.warn("provider registration not released, container is gone", {
+            runnerId: row.id,
+            provider: row.provider,
+        });
+        return;
+    }
+    const state = service.pendingState ?? service.deployedState;
     try {
-        await provider.release(parseCredentials(row));
+        await provider.release(state.envs ?? {});
     } catch (error) {
         log.warn("provider registration cleanup failed", {
             runnerId: row.id,
@@ -931,7 +940,16 @@ export async function deleteAllRunnersOfInstance(
 ): Promise<void> {
     for (const row of rows) {
         await deleteCronjobs(client, parseCronjobIds(row));
-        await releaseProviderRegistration(row);
+        let service: ServiceResponse | null | undefined;
+        try {
+            service = await fetchService(client, row);
+        } catch (error) {
+            log.warn("service lookup failed during instance cleanup", {
+                runnerId: row.id,
+                error,
+            });
+        }
+        await releaseProviderRegistration(row, service);
     }
     for (const stackId of new Set(rows.map((row) => row.stackId))) {
         try {

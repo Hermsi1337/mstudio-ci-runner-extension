@@ -13,8 +13,8 @@ deletion) is shared.
 | `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` (`<provider>.version`) |
 | `currentImage()` | Image this extension release creates runners with (`RUNNER_IMAGE_<PROVIDER>`) |
 | `concurrencyVariable` | Optional. Environment variable for the number of jobs the runner takes at once (`RUNNER_CONCURRENT` for GitLab). Without it the runner takes one job at a time and `concurrency` is stored as 1 |
-| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes, the labels to show and the credentials to store |
-| `release(credentials)` | Remove the provider-side registration; must tolerate runners that are already gone |
+| `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes and the labels to show |
+| `release(environment)` | Remove the provider-side registration with the environment of the runner container as mittwald reports it (the extension stores no provider secrets); must tolerate runners that are already gone |
 
 Every provider returns `DATA_VOLUME_MOUNT` (`data:/home/runner/data`) as its only
 volume; the images keep all persistent state below that directory
@@ -56,7 +56,7 @@ from `input.provider` and knows no provider details beyond that.
 | Provider | Inputs | Registration | Credentials in the container | Cleanup |
 |---|---|---|---|---|
 | `github` | `target` (owner or owner/repo), `token` (registration token), `runnerGroup` | No API call. The container registers with the token from the "New self-hosted runner" page and keeps the registration in the `config` directory of its data volume | The registration token (`RUNNER_TOKEN`), useless after one hour and unset before the runner starts | None. The runner stays offline in GitHub until GitHub removes it after 14 days |
-| `gitlab` | `instanceUrl`, `tokenType` (`registration`, default, or `pat`), `token`, and with `pat`: `runnerType` (project/group/instance), `target` (path), `runUntagged` | `registration`: the runner token `glrt-...` from the "New runner" page is checked with `POST /api/v4/runners/verify`; scope and tags live in GitLab, `labels` is stored empty. `pat`: `POST /api/v4/user/runners` with the PAT creates the runner and returns its token | Runner token only (`CI_SERVER_TOKEN`), never the PAT | `DELETE /api/v4/runners?token=` in both modes |
+| `gitlab` | `instanceUrl`, `tokenType` (`registration`, default, or `pat`), `token`, and with `pat`: `runnerType` (project/group/instance), `target` (path), `runUntagged` | `registration`: the runner token `glrt-...` from the "New runner" page is checked with `POST /api/v4/runners/verify`; scope and tags live in GitLab, `labels` is stored empty. `pat`: `POST /api/v4/user/runners` with the PAT creates the runner and returns its token | Runner token only (`CI_SERVER_TOKEN`), never the PAT | `DELETE /api/v4/runners?token=` with the token from the service environment, in both modes. Without a container (deleted in mStudio) the runner stays in GitLab |
 
 GitLab client: generated from `openapi/upstream/gitlab.json` ([codegen.md](codegen.md)).
 Project and group ids are resolved via `GET /projects/{path}` and `GET /groups/{path}`.

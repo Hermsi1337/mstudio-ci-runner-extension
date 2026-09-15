@@ -80,7 +80,7 @@ export const de: Messages = {
     "runners.delete.text.github":
         "Entfernt den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
-        "Entfernt den Runner aus GitLab, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab.",
+        "Entfernt den Runner aus GitLab, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab. Ist der Container schon weg, bleibt der Runner in GitLab; lösche ihn dort unter `Settings` → `CI/CD` → `Runners`.",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty.heading": "Noch keine Ausgabe",
     "runners.logs.empty.text":
@@ -229,7 +229,7 @@ export const de: Messages = {
     "form.github.runnerGroup.help":
         "Nur für Organisationen. Runner-Gruppen steuern, welche Repositorys den Runner nutzen dürfen. Leer lassen für die Gruppe Default.",
     "form.gitlab.tokenType.help":
-        "Runner-Token: Lege den Runner auf GitLab unter `Settings` → `CI/CD` → `Runners` → `New project runner` (oder Group- bzw. Instance-Runner) an, wähle dort die Tags und kopiere auf der Folgeseite den Befehl `gitlab-runner register`. Der Runner existiert damit schon in GitLab, der Container registriert sich mit seinem Token. Kein PAT nötig; das Token wird verschlüsselt gespeichert, um den Runner später zu löschen.\nPersonal Access Token: Die Extension legt den Runner per API an, mit Geltungsbereich, Pfad, Tags und Untagged-Einstellung aus diesem Formular. Das PAT wird einmal genutzt und nicht gespeichert.",
+        "Runner-Token: Lege den Runner auf GitLab unter `Settings` → `CI/CD` → `Runners` → `New project runner` (oder Group- bzw. Instance-Runner) an, wähle dort die Tags und kopiere auf der Folgeseite den Befehl `gitlab-runner register`. Der Runner existiert damit schon in GitLab, der Container registriert sich mit seinem Token. Kein PAT nötig; das Token geht nur in den Runner-Container.\nPersonal Access Token: Die Extension legt den Runner per API an, mit Geltungsbereich, Pfad, Tags und Untagged-Einstellung aus diesem Formular. Das PAT wird einmal genutzt und nicht gespeichert.",
     "form.gitlab.configCommand.help":
         "Öffne auf GitLab das Projekt oder die Gruppe, dann `Settings` → `CI/CD` → `Runners` → `New project runner`. Lege Tags fest und ob Jobs ohne Tags laufen, klicke `Create runner` und kopiere aus Schritt 1 die Zeile `gitlab-runner register`. Nur `--url` und `--token` werden genutzt. Das Token gehört zu diesem Runner; löschst du den Runner hier, verschwindet er auch aus GitLab.",
     "form.gitlab.instanceUrl.help":

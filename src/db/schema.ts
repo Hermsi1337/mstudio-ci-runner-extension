@@ -59,7 +59,6 @@ export const runners = pgTable("runners", {
     name: varchar({ length: 64 }).notNull(),
     target: text().notNull(),
     targetUrl: text().notNull(),
-    credentials: encryptedText().notNull(),
     labels: text().notNull(),
     ephemeral: boolean().notNull().default(false),
     tokenType: varchar({ length: 16 }).notNull().default("registration"),

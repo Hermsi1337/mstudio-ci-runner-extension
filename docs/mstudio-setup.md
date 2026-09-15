@@ -51,8 +51,8 @@ Ephemeral runners and the PAT mode are disabled, see
 Default: the register command from GitLab. Create the runner under *Settings → CI/CD →
 Runners → New project runner* (or group or instance runner), set tags there and paste
 the `gitlab-runner register --url ... --token glrt-...` line from the next page into the
-form. The runner token is stored encrypted and used to delete the runner later. No PAT
-is needed.
+form. The token goes into the runner container only; deleting the runner reads it from
+there. No PAT is needed.
 
 Alternative: a personal access token with the scopes `create_runner` and `api`. Role
 maintainer (project) or owner (group); instance runners require an admin. The extension

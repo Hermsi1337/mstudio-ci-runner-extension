@@ -58,9 +58,9 @@ Nach unter einer Minute nimmt der Runner Jobs an.
   Composer, Go) mit automatischem Aufräum-Cronjob
 - **Verwaltung:** Logs, Neustart, Einstellungen und Updates direkt in
   mStudio, inklusive Update-Hinweis und Changelog
-- **Sicherheit:** Bei GitHub werden Registrierungs-Tokens nicht gespeichert. Bei
-  GitLab liegt der Runner-Token verschlüsselt vor, ein PAT nutzt die Extension nur
-  einmal zum Anlegen des Runners und speichert ihn nicht
+- **Sicherheit:** Die Extension speichert keine Tokens. Registrierungs-Tokens gehen
+  nur in den Runner-Container, ein GitLab-PAT wird einmal zum Anlegen des Runners
+  genutzt und danach verworfen
 
 ## Gut zu wissen
 
@@ -101,9 +101,8 @@ The runner picks up jobs in under a minute.
   Composer, Go) with an automatic cleanup cronjob
 - **Management:** logs, restart, settings and updates inside mStudio,
   including an update hint and a changelog
-- **Security:** for GitHub, registration tokens are never stored. For GitLab, the
-  runner token is stored encrypted; a PAT is used once to create the runner and never
-  stored
+- **Security:** the extension stores no tokens. Registration tokens only go into the
+  runner container; a GitLab PAT is used once to create the runner and then discarded
 
 ## Good to know
 

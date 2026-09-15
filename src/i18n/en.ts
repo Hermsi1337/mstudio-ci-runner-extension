@@ -75,7 +75,7 @@ export const en = {
     "runners.delete.text.github":
         "Removes the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
-        "Removes the runner from GitLab, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled.",
+        "Removes the runner from GitLab, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled. If the container is already gone, the runner stays in GitLab; delete it there under `Settings` → `CI/CD` → `Runners`.",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty.heading": "No output yet",
     "runners.logs.empty.text":
@@ -223,7 +223,7 @@ export const en = {
     "form.github.runnerGroup.help":
         "Only for organizations. Runner groups control which repositories may use the runner. Leave empty for the group Default.",
     "form.gitlab.tokenType.help":
-        "Runner token: create the runner on GitLab under `Settings` → `CI/CD` → `Runners` → `New project runner` (or group or instance runner), choose its tags there and copy the `gitlab-runner register` command from the next page. The runner exists in GitLab already, the container registers with its token. No PAT is needed and the token is stored encrypted for deleting the runner later.\nPersonal access token: the extension creates the runner via the API with the scope, path, tags and untagged setting from this form. The PAT is used once and not stored.",
+        "Runner token: create the runner on GitLab under `Settings` → `CI/CD` → `Runners` → `New project runner` (or group or instance runner), choose its tags there and copy the `gitlab-runner register` command from the next page. The runner exists in GitLab already, the container registers with its token. No PAT is needed and the token goes into the runner container only.\nPersonal access token: the extension creates the runner via the API with the scope, path, tags and untagged setting from this form. The PAT is used once and not stored.",
     "form.gitlab.configCommand.help":
         "On GitLab open the project or group, then `Settings` → `CI/CD` → `Runners` → `New project runner`. Set tags and whether untagged jobs run, click `Create runner` and copy the `gitlab-runner register` line from step 1. Only `--url` and `--token` are used. The token belongs to that runner; deleting the runner here removes it from GitLab.",
     "form.gitlab.instanceUrl.help":

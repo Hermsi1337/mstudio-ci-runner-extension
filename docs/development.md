@@ -36,7 +36,7 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `PORT` | HTTP port, default `3000` |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USE_SSL` | Database |
 | `EXTENSION_ID`, `EXTENSION_SECRET` | From mStudio ([mstudio-setup.md](mstudio-setup.md)) |
-| `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | Key for encrypted columns |
+| `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | Key for the encrypted instance secret in `extension_instance` |
 | `RUN_MIGRATIONS_ON_STARTUP` | Default `true` |
 | `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error` ([operations.md](operations.md#logging)) |
 | `LOG_FORMAT` | `text` (default) or `json` (default when `NODE_ENV=production`); text output is colored unless `NO_COLOR` is set |
