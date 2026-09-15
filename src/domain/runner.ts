@@ -237,6 +237,28 @@ async function createTrimCronjob(
     return created.data.id;
 }
 
+/**
+ * Stores a freshly created cronjob id right away, before anything else in the
+ * same call can fail. A cronjob whose id never reached the row would survive
+ * the runner and trim a volume that no longer exists. When the row is gone
+ * (concurrent delete), the cronjob is removed again.
+ */
+async function persistCronjobIds(
+    client: MittwaldAPIV2Client,
+    runnerId: string,
+    cronjobIds: string[],
+): Promise<void> {
+    const [updated] = await getDatabase()
+        .update(runners)
+        .set({ cronjobIds: JSON.stringify(cronjobIds) })
+        .where(eq(runners.id, runnerId))
+        .returning({ id: runners.id });
+    if (!updated) {
+        await deleteCronjobs(client, cronjobIds);
+        throw new NotFoundError("runner");
+    }
+}
+
 async function updateTrimCronjob(
     client: MittwaldAPIV2Client,
     row: Pick<RunnerRow, "stackId" | "name">,
@@ -746,6 +768,7 @@ export async function configureRunner(
                     cacheSizeGb,
                 ),
             ];
+            await persistCronjobIds(client, row.id, cronjobIds);
         } else if (cacheSizeGb !== row.cacheSizeGb) {
             for (const cronjobId of cronjobIds) {
                 await updateTrimCronjob(
