@@ -94,7 +94,13 @@ const RunnerRow = ({
                 <Initials>{providerInitials[runner.provider]}</Initials>
             </Avatar>
             <Heading>
-                {runner.name}
+                {runner.studioUrl ? (
+                    <Link href={runner.studioUrl} target="_blank">
+                        {runner.name}
+                    </Link>
+                ) : (
+                    runner.name
+                )}
                 <StatusBadge status={runner.status} />
                 {runner.ephemeral && (
                     <Badge color="violet">{t("runners.ephemeral")}</Badge>
@@ -163,7 +169,12 @@ const RunnerRow = ({
                 <LabeledValue>
                     <Label>{t("runners.column.version")}</Label>
                     <Text>
-                        {runner.runnerVersion ?? t("runners.version.unknown")}
+                        {runner.imageVersion ??
+                            runner.runnerVersion ??
+                            t("runners.version.unknown")}
+                        {runner.imageVersion &&
+                            runner.runnerVersion &&
+                            ` (${runner.runnerVersion})`}
                     </Text>
                 </LabeledValue>
             </Content>

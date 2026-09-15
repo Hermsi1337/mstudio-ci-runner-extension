@@ -157,6 +157,7 @@ export const zRunner = z.object({
     runnerVersion: z.string().nullable(),
     latestRunnerVersion: z.string(),
     latestImageVersion: z.string().nullable(),
+    imageVersion: z.string().nullable(),
     updateAvailable: z.boolean(),
     createdAt: z.iso.datetime()
 });

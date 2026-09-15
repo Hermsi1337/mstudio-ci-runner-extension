@@ -240,6 +240,10 @@ export type Runner = {
      */
     latestImageVersion: string | null;
     /**
+     * Tag of the image the runner was created with, the extension version at creation time. Null when the image has no tag.
+     */
+    imageVersion: string | null;
+    /**
      * True when the runner runs an older image than the one this extension release ships.
      */
     updateAvailable: boolean;

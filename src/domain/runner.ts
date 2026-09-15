@@ -136,6 +136,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         runnerVersion: row.runnerVersion ?? null,
         latestRunnerVersion: provider?.runnerVersion ?? "",
         latestImageVersion: imageTag(currentImage),
+        imageVersion: imageTag(image),
         updateAvailable:
             image !== null && currentImage !== null && image !== currentImage,
         createdAt: row.createdAt.toISOString(),

@@ -25,6 +25,7 @@ const ChangelogAction = () => {
     ).useGhost();
     return (
         <Flex align="center" gap="xs" wrap="wrap">
+            <Badge>v{changelog.currentVersion}</Badge>
             {changelog.updateAvailable && changelog.latestVersion && (
                 <Badge color="blue">
                     {t("changelog.updateAvailable", {
@@ -35,7 +36,7 @@ const ChangelogAction = () => {
             <Button color="secondary" variant="soft" onPress={controller.open}>
                 {t("changelog.action")}
             </Button>
-            <ChangelogModal changelog={changelog} controller={controller} />
+            <ChangelogModal controller={controller} />
         </Flex>
     );
 };
