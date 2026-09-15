@@ -60,6 +60,28 @@ Package visibility is independent of the repository and can only be changed on t
 | `release.yml` | Tags `v*` | Runs both image workflows as jobs, creates the GitHub release via `softprops/action-gh-release` (generated notes plus an image table with pull commands and the runner software versions), then commits the tag version to `package.json` on `main` |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
+## Self-hosted runner
+
+The repository has one runner created by this extension (label `mittwald`, in a
+mittwald project of the maintainer). Jobs that need neither Docker nor tools that only
+GitHub-hosted images ship run there:
+
+| Job | Runner | Why |
+|---|---|---|
+| `ci.yml` `check` | `[self-hosted, mittwald]`, forks: `ubuntu-latest` | Node and pnpm come from `actions/setup-node` |
+| `ci.yml` `integration` | `ubuntu-latest` | Testcontainers needs a Docker daemon |
+| `release.yml` `verify` | `ubuntu-latest` | Runs the integration tests |
+| `release.yml` `release`, `bump-version` | `[self-hosted, mittwald]` | `jq`, `git` and Node via `actions/setup-node` |
+| `extension-image.yml`, `runner-image.yml`, `deploy.yml` | `ubuntu-latest` | Buildx with QEMU, Docker container action |
+| `pr-title.yml` | `ubuntu-latest` | Needs `gh`, which the runner image does not ship |
+
+Pull requests from forks never run on the self-hosted runner: `runs-on` switches to
+`ubuntu-latest` when `github.event.pull_request.head.repo.fork` is true, because the
+runner has passwordless sudo and reaches the project network
+([architecture.md](architecture.md#trust-model-of-a-runner)). When the runner is
+offline, `check`, `release` and `bump-version` wait in the queue until it is back; the
+integration tests and image builds are not affected.
+
 ## Release notes and dependencies
 
 `release.yml` (the workflow) creates the GitHub release for every tag once both image

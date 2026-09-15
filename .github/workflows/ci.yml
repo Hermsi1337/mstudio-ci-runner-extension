@@ -13,8 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Runs on the project's own mittwald runner (docs/operations.md#self-hosted-runner).
+  # Pull requests from forks stay on GitHub-hosted runners: their code must not
+  # execute on infrastructure of this project.
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || fromJSON('["self-hosted", "mittwald"]') }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
@@ -33,6 +36,7 @@ jobs:
         run: pnpm run check:bundle
 
   integration:
+    # Testcontainers needs a Docker daemon, which the mittwald runner has not.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
