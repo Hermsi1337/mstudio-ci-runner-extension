@@ -53,13 +53,19 @@ Package visibility is independent of the repository and can only be changed on t
 | `extension-image.yml` | Tags `v*`, manual | Extension image |
 | `runner-image.yml` | Tags `v*`, manual | Matrix over all providers, multi-arch |
 | `deploy.yml` | After `extension-image.yml` on a tag, manual | Stack update on mittwald Container Hosting |
+| `release.yml` | Tags `v*` | Waits for both image workflows of the tag, then creates the GitHub release: generated notes plus an image table with pull commands and the runner software versions |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
 ## Release notes and dependencies
 
-GitHub release notes are generated from `.github/release.yml`. The categories use the
-type labels that `pr-title.yml` sets, so pull requests are squash-merged with their
-title as commit subject. Dependabot updates arrive under `dependabot` and are excluded.
+`release.yml` (the workflow) creates the GitHub release for every tag once both image
+workflows succeeded, so a release only exists when its images do. The notes are
+generated from `.github/release.yml` (the config): the categories use the type labels
+that `pr-title.yml` sets, so pull requests are squash-merged with their title as commit
+subject. Dependabot updates arrive under `dependabot` and are excluded. The workflow
+prepends a table with the three images, their pull commands and the runner software
+versions from `docker/runner/versions.json`. The releases page is the changelog; there
+is no `CHANGELOG.md`.
 
 `.github/dependabot.yml` opens weekly pull requests for npm packages (grouped:
 `@mittwald/*`, `@tanstack/*`, dev dependencies), GitHub Actions and the base images of
