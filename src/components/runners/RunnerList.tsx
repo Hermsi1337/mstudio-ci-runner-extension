@@ -102,7 +102,9 @@ const RunnerRow = ({
                 {runner.updateAvailable && (
                     <Badge color="blue">
                         {t("runners.version.updateAvailable", {
-                            version: runner.latestRunnerVersion,
+                            version:
+                                runner.latestImageVersion ??
+                                runner.latestRunnerVersion,
                         })}
                     </Badge>
                 )}

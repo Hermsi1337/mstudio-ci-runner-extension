@@ -27,6 +27,22 @@ export function localHostComponents(): Plugin {
         enforce: "pre",
         async resolveId(source, importer) {
             if (!source.startsWith(localModulePrefix)) {
+                // The dev server does not apply the @/ alias to imports whose
+                // importer carries the local: prefix, so those resolve against
+                // the real file path instead.
+                if (
+                    source.startsWith("@/") &&
+                    importer?.startsWith(localModulePrefix)
+                ) {
+                    const resolved = await this.resolve(
+                        source,
+                        importer.slice(localModulePrefix.length),
+                        { skipSelf: true },
+                    );
+
+                    return resolved ? resolved.id : null;
+                }
+
                 return null;
             }
             const resolved = await this.resolve(

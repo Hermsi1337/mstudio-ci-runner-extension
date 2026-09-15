@@ -27,7 +27,7 @@ alike and come before personal taste. Writing style for texts is in
 
 ```
 Section
-  AccentBox              brand header: logo, name, tagline, provider badges (BrandHeader.tsx)
+  AccentBox              brand header: logo, name, tagline, provider badges, changelog button (BrandHeader.tsx); backgroundColor "gradient" token, theme-aware, no custom hex
   LayoutCard             one card per topic, Heading first
     Section
       Header             Heading + primary Button
@@ -52,6 +52,14 @@ Section
   alone, never inside a `Section` `Header`: the header collects every `ActionGroup`
   below it, including the one inside the modal.
 - Sizes: `s` for confirmations, `m` for settings, `l` for forms with a side column.
+- Large, scrolling content (create form, settings, logs, changelog) opens as an
+  off-canvas panel (`Modal offCanvas`, right side). Short confirmations stay
+  centered modals.
+- A form whose fields depend on an upfront choice opens with that choice alone:
+  the create modal first shows only the CI system as `RadioButton` cards with
+  provider logos (`provider-logos.ts`, marks from the `simple-icons` package on a
+  white tile so they read on both themes), the form follows after the pick and
+  offers a plain button back to the choice.
 - A form modal is not dismissable by clicking outside (`isDismissable={false}`).
 - Submit and cancel are an `ActionGroup` at the end of the `Form`; the primary
   button first.

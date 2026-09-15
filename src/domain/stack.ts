@@ -4,6 +4,7 @@ import { getDatabase } from "@/db";
 import { type RunnerStackRow, runnerStacks, runners } from "@/db/schema.ts";
 import {
     PermissionsInsufficientError,
+    stackDeclareError,
     UpstreamError,
 } from "@/global-errors.ts";
 import { createLogger } from "@/logger.ts";
@@ -166,9 +167,14 @@ export async function declareService(
         throw new PermissionsInsufficientError(extensionInstanceId);
     }
     if (declared.status !== 200) {
-        throw new UpstreamError("error.upstream.stackDeclare", {
+        log.warn("stack declaration rejected", {
+            stackId,
+            serviceName,
             status: declared.status,
+            response: JSON.stringify(declared.data).slice(0, 2000),
         });
+
+        throw stackDeclareError(declared.status, declared.data);
     }
     const services = declared.data.services ?? [];
     return (
@@ -250,6 +256,16 @@ export async function deleteStackIfEmpty(
     if (remaining) {
         return false;
     }
+    await deleteStackWithRow(client, extensionInstanceId, stackId);
+
+    return true;
+}
+
+export async function deleteStackWithRow(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    stackId: string,
+): Promise<void> {
     const response = await client.container.deleteStack({ stackId });
     if (response.status === 403) {
         throw new PermissionsInsufficientError(extensionInstanceId);
@@ -263,7 +279,6 @@ export async function deleteStackIfEmpty(
         .delete(runnerStacks)
         .where(eq(runnerStacks.stackId, stackId));
     log.info("stack deleted", { stackId, status: response.status });
-    return true;
 }
 
 /**

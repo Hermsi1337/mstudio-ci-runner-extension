@@ -7,6 +7,7 @@
 | Frontend fragment inside mStudio | React 19, Flow remote React components, TanStack Router (CSR) | `src/routes/`, `src/components/` |
 | Server functions | TanStack Start | `src/serverFunctions/` |
 | Domain logic | TypeScript, `@mittwald/api-client` | `src/domain/runner.ts` |
+| Changelog | GitHub releases via `@octokit/rest`, cached for ten minutes | `src/domain/changelog.ts` |
 | CI providers | `@octokit/rest`, generated GitLab client | `src/domain/providers/` ([providers.md](providers.md)) |
 | Persistence | PostgreSQL, Drizzle ORM | `src/db/` |
 | Lifecycle webhooks | `@weissaufschwarz/mitthooks` | `src/routes/api/webhooks.mittwald.ts` |
@@ -18,7 +19,8 @@ Stack and structure follow the [mittwald reference extension](https://github.com
 
 ## UI
 
-`src/routes/index.tsx` stacks a brand header (`BrandHeader.tsx`) and two cards:
+`src/routes/index.tsx` stacks a brand header (`BrandHeader.tsx`, with the changelog
+button and the new-version badge that open `ChangelogModal.tsx`) and two cards:
 `RunnersCard.tsx` with the runner list and the create modal, and `FeedbackCard.tsx`
 with links to the repository. Rules for every
 screen are in [styleguide.md](styleguide.md). The runners are grouped by registration target, one Flow `List` per group

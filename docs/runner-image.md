@@ -1,8 +1,8 @@
 # Runner images
 
 One image per provider under `docker/runner/<provider>/`, built by
-`.github/workflows/runner-image.yml` (matrix, multi-arch amd64/arm64, on git tags only,
-see [operations.md](operations.md)) with `docker/runner` as build context, so every
+`.github/workflows/runner-image.yml` (matrix, multi-arch amd64/arm64, called by
+`release.yml` on git tags only, see [operations.md](operations.md)) with `docker/runner` as build context, so every
 image also gets `docker/runner/common/` (`trim-cache.sh`, the cache cleanup called by the
 cronjob, see [providers.md](providers.md)). All images: Ubuntu 24.04, user `runner`, no
 Docker daemon.

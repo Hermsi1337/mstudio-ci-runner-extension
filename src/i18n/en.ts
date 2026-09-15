@@ -3,6 +3,13 @@ export const en = {
     "brand.tagline":
         "Self-hosted CI runners on mittwald Container Hosting, managed from this project.",
     "brand.openSource": "Open source",
+    "changelog.action": "Changelog",
+    "changelog.heading": "Changelog",
+    "changelog.updateAvailable": "Version {version} available",
+    "changelog.installed": "Installed",
+    "changelog.github": "View on GitHub",
+    "changelog.empty.heading": "No releases yet",
+    "changelog.empty.text": "GitHub returned no releases. Try again later.",
     "app.title": "CI Runners",
     "app.dockerNotice.title": "No Docker inside runners",
     "app.dockerNotice.text":
@@ -58,7 +65,7 @@ export const en = {
         "The container stops and starts again. A job that is running on it is aborted.",
     "runners.update.heading": "Update {name}?",
     "runners.update.text":
-        "The container is recreated with runner version {version}. A running job is cancelled.",
+        "The container is recreated with image version {version}. A running job is cancelled.",
     "runners.delete.heading": "Delete {name}?",
     "runners.delete.text.github.pat":
         "Removes the registration on GitHub, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled.",
@@ -135,7 +142,10 @@ export const en = {
     "form.snippet.text.github":
         "Jobs reach this runner through its labels in runs-on.",
     "form.snippet.text.gitlab": "Jobs reach this runner through its tags.",
-    "form.provider.label": "CI system",
+    "form.provider.question": "Which CI system?",
+    "form.provider.github.text": "Repositories and organizations",
+    "form.provider.gitlab.text": "gitlab.com or self-hosted",
+    "form.provider.change": "Change CI system",
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",
     "form.name.required": "Name is required",
@@ -212,8 +222,6 @@ export const en = {
         "Memory the container may use. A job that exceeds it is killed. Plan about 1 GB per job, more for test suites with a browser or a database.",
 
     "help.open": "Help for {subject}",
-    "form.provider.help":
-        "Choose where the runner registers. GitHub Actions runners appear under `Settings` → `Actions` → `Runners` of the repository or organization. GitLab CI runners appear under `Settings` → `CI/CD` → `Runners` of the project or group.",
     "form.name.help":
         "Shown as the runner name in GitHub or GitLab and in this list. Letters, digits and hyphens are kept, every other character becomes a hyphen.",
     "form.github.target.help":
@@ -291,7 +299,9 @@ export const en = {
     "error.upstream.stackCreate":
         "The stack could not be created (status {status}).",
     "error.upstream.stackDeclare":
-        "The runner container could not be declared (status {status}).",
+        "The runner container could not be declared (status {status}). {detail}",
+    "error.upstream.imageMissing":
+        "mittwald cannot pull the runner image {image}. The image must exist and be publicly readable. For GHCR, set the package visibility to public.",
     "error.upstream.logs": "Logs could not be loaded (status {status}).",
     "error.upstream.stackDelete":
         "The stack could not be deleted (status {status}).",

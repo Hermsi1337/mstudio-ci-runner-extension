@@ -126,6 +126,8 @@ src/generated/               generated types, zod schemas, GitLab client (do not
 src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
 src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
 src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
+src/domain/changelog.ts      GitHub releases for the changelog modal, cached in memory
+src/version-compare.ts       semver comparison for the update hint of the changelog
 src/domain/providers/        one module per CI provider, registry in index.ts
 src/serverFunctions/         TanStack server functions: validation and delegation only
 src/components/              Flow remote React components (UI inside mStudio)

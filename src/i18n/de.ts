@@ -5,6 +5,14 @@ export const de: Messages = {
     "brand.tagline":
         "Selbst gehostete CI-Runner auf mittwald Container Hosting, verwaltet aus diesem Projekt.",
     "brand.openSource": "Open Source",
+    "changelog.action": "Changelog",
+    "changelog.heading": "Changelog",
+    "changelog.updateAvailable": "Version {version} verfügbar",
+    "changelog.installed": "Installiert",
+    "changelog.github": "Auf GitHub ansehen",
+    "changelog.empty.heading": "Noch keine Releases",
+    "changelog.empty.text":
+        "GitHub hat keine Releases geliefert. Versuch es später noch mal.",
     "app.title": "CI Runner",
     "app.dockerNotice.title": "Kein Docker in den Runnern",
     "app.dockerNotice.text":
@@ -62,7 +70,7 @@ export const de: Messages = {
         "Der Container stoppt und startet neu. Ein Job, der gerade darauf läuft, bricht ab.",
     "runners.update.heading": "{name} aktualisieren?",
     "runners.update.text":
-        "Der Container wird mit Runner-Version {version} neu erstellt. Ein laufender Job bricht ab.",
+        "Der Container wird mit Image-Version {version} neu erstellt. Ein laufender Job bricht ab.",
     "runners.delete.heading": "{name} löschen?",
     "runners.delete.text.github.pat":
         "Entfernt die Registrierung auf GitHub, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab.",
@@ -139,7 +147,10 @@ export const de: Messages = {
     "form.snippet.text.github":
         "Jobs erreichen diesen Runner über seine Labels in runs-on.",
     "form.snippet.text.gitlab": "Jobs erreichen diesen Runner über seine Tags.",
-    "form.provider.label": "CI-System",
+    "form.provider.question": "Welches CI-System?",
+    "form.provider.github.text": "Repositorys und Organisationen",
+    "form.provider.gitlab.text": "gitlab.com oder self-hosted",
+    "form.provider.change": "CI-System ändern",
     "form.name.label": "Name",
     "form.name.description": "Wird als Runner-Name im CI-System verwendet.",
     "form.name.required": "Bitte einen Namen angeben",
@@ -217,8 +228,6 @@ export const de: Messages = {
         "Arbeitsspeicher, den der Container nutzen darf. Ein Job, der mehr braucht, wird beendet. Rechne mit etwa 1 GB pro Job, mehr für Testsuiten mit Browser oder Datenbank.",
 
     "help.open": "Hilfe zu {subject}",
-    "form.provider.help":
-        "Wähle, wo sich der Runner registriert. GitHub-Actions-Runner erscheinen unter `Settings` → `Actions` → `Runners` des Repositorys oder der Organisation. GitLab-CI-Runner erscheinen unter `Settings` → `CI/CD` → `Runners` des Projekts oder der Gruppe.",
     "form.name.help":
         "Wird als Runner-Name in GitHub oder GitLab und in dieser Liste angezeigt. Buchstaben, Ziffern und Bindestriche bleiben erhalten, alle anderen Zeichen werden zu Bindestrichen.",
     "form.github.target.help":
@@ -297,7 +306,9 @@ export const de: Messages = {
     "error.upstream.stackCreate":
         "Der Stack konnte nicht angelegt werden (Status {status}).",
     "error.upstream.stackDeclare":
-        "Der Runner-Container konnte nicht angelegt werden (Status {status}).",
+        "Der Runner-Container konnte nicht angelegt werden (Status {status}). {detail}",
+    "error.upstream.imageMissing":
+        "mittwald kann das Runner-Image {image} nicht laden. Das Image muss existieren und öffentlich lesbar sein. Bei GHCR stell die Sichtbarkeit des Packages auf Public.",
     "error.upstream.logs":
         "Die Logs konnten nicht geladen werden (Status {status}).",
     "error.upstream.stackDelete":

@@ -37,6 +37,7 @@ import {
 import {
     declareService,
     deleteStackIfEmpty,
+    deleteStackWithRow,
     deleteVolumes,
     findOrCreateStack,
     getStack,
@@ -93,6 +94,18 @@ function studioUrl(row: RunnerRow, serviceId: string | null): string | null {
         : null;
 }
 
+function imageTag(image: string | null): string | null {
+    if (!image) {
+        return null;
+    }
+    const tagSeparator = image.lastIndexOf(":");
+    if (tagSeparator <= image.lastIndexOf("/")) {
+        return null;
+    }
+
+    return image.slice(tagSeparator + 1);
+}
+
 function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
     const provider = getProviderById(row.provider);
     const image = row.image ?? service?.deployedState.image ?? null;
@@ -122,6 +135,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         image,
         runnerVersion: row.runnerVersion ?? null,
         latestRunnerVersion: provider?.runnerVersion ?? "",
+        latestImageVersion: imageTag(currentImage),
         updateAvailable:
             image !== null && currentImage !== null && image !== currentImage,
         createdAt: row.createdAt.toISOString(),
@@ -739,18 +753,28 @@ export async function deleteRunner(
         );
     }
     await releaseProviderRegistration(row);
-    await getDatabase().delete(runners).where(eq(runners.id, row.id));
-    const stackDeleted = await deleteStackIfEmpty(
-        client,
-        extensionInstanceId,
-        row.stackId,
-    );
+    // One transaction, so the empty check can never race a parallel delete
+    // between removing the row and deciding about the stack. The mittwald
+    // call stays outside the transaction.
+    const stackEmpty = await getDatabase().transaction(async (tx) => {
+        await tx.delete(runners).where(eq(runners.id, row.id));
+        const [remaining] = await tx
+            .select({ id: runners.id })
+            .from(runners)
+            .where(eq(runners.stackId, row.stackId))
+            .limit(1);
+
+        return !remaining;
+    });
+    if (stackEmpty) {
+        await deleteStackWithRow(client, extensionInstanceId, row.stackId);
+    }
     log.info("runner deleted", {
         runnerId,
         provider: row.provider,
         stackId: row.stackId,
         serviceName: row.serviceName,
-        stackDeleted,
+        stackDeleted: stackEmpty,
     });
 }
 
