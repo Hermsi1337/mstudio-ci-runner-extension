@@ -4,36 +4,29 @@ on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: write
-
 jobs:
+  extension-image:
+    uses: ./.github/workflows/extension-image.yml
+    permissions:
+      contents: read
+      packages: write
+
+  runner-images:
+    uses: ./.github/workflows/runner-image.yml
+    permissions:
+      contents: read
+      packages: write
+
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    needs: [extension-image, runner-images]
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
-      - name: Wait for the image workflows of this tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+      - name: Build the image table for the release notes
         run: |
-          for workflow in extension-image.yml runner-image.yml; do
-            while true; do
-              run="$(gh run list --workflow "$workflow" --branch "$TAG" --limit 1 --json status,conclusion --jq '.[0] | "\(.status)/\(.conclusion)"')"
-              case "$run" in
-                completed/success) break ;;
-                completed/*) echo "$workflow for $TAG ended with $run"; exit 1 ;;
-                *) sleep 20 ;;
-              esac
-            done
-          done
-      - name: Create the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          version="${TAG#v}"
+          version="${GITHUB_REF_NAME#v}"
           github_runner="$(jq -r .github docker/runner/versions.json)"
           gitlab_runner="$(jq -r .gitlab docker/runner/versions.json)"
           {
@@ -46,4 +39,7 @@ jobs:
             echo "| GitLab runner (gitlab-runner ${gitlab_runner}) | \`docker pull ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:${version}\` |"
             echo
           } > notes.md
-          gh release create "$TAG" --title "$TAG" --notes-file notes.md --generate-notes
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: notes.md
+          generate_release_notes: true

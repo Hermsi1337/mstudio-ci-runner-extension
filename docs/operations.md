@@ -14,8 +14,9 @@ The version in `package.json` must match the tag: `extension-image.yml` fails ot
 It is the fallback for `EXTENSION_VERSION` and therefore decides which runner images a
 local development extension uses.
 
-The tag triggers `extension-image.yml` and `runner-image.yml`. Both use
-`docker/metadata-action` and tag:
+The tag triggers `release.yml`, which runs `extension-image.yml` and
+`runner-image.yml` as reusable workflows and creates the GitHub release once both
+succeeded. Both image workflows use `docker/metadata-action` and tag:
 
 | Image | Tags for `v1.2.3` |
 |---|---|
@@ -50,10 +51,10 @@ Package visibility is independent of the repository and can only be changed on t
 | Workflow | Trigger | Content |
 |---|---|---|
 | `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
-| `extension-image.yml` | Tags `v*`, manual | Extension image |
-| `runner-image.yml` | Tags `v*`, manual | Matrix over all providers, multi-arch |
-| `deploy.yml` | After `extension-image.yml` on a tag, manual | Stack update on mittwald Container Hosting |
-| `release.yml` | Tags `v*` | Waits for both image workflows of the tag, then creates the GitHub release: generated notes plus an image table with pull commands and the runner software versions |
+| `extension-image.yml` | Called by `release.yml`, manual | Extension image |
+| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers, multi-arch |
+| `deploy.yml` | After `release.yml` on a tag, manual | Stack update on mittwald Container Hosting |
+| `release.yml` | Tags `v*` | Runs both image workflows as jobs, then creates the GitHub release via `softprops/action-gh-release`: generated notes plus an image table with pull commands and the runner software versions |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
 ## Release notes and dependencies
@@ -91,8 +92,8 @@ environment at its own project.
 
 ### Trigger
 
-- Automatically after `extension-image.yml` succeeded for a `v*` tag. The job waits
-  until `runner-image.yml` for the same tag has succeeded, then deploys that version.
+- Automatically after `release.yml` succeeded for a `v*` tag, so the images and the
+  GitHub release exist before the deployment starts.
 - Manually via *Actions → Deploy → Run workflow* with a version such as `0.1.0`.
 
 `EXTENSION_VERSION` selects the extension image and, inside the extension, the runner
