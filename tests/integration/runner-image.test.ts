@@ -6,6 +6,12 @@ import runnerVersions from "../../docker/runner/versions.json";
  * Registration itself is expected to fail because the CI server URLs point to
  * unreachable hosts; the tests only verify that the entrypoint gets that far.
  */
+interface MissingEnvCase {
+    name: string;
+    environment: Record<string, string>;
+    message: string;
+}
+
 interface ImageCase {
     provider: string;
     environment: Record<string, string>;
@@ -13,6 +19,7 @@ interface ImageCase {
     expectLog: string;
     versionCommand: string[];
     dataDirectories: string[];
+    missingEnv: MissingEnvCase[];
 }
 
 const images: ImageCase[] = [
@@ -30,6 +37,18 @@ const images: ImageCase[] = [
             "registering integration-test at https://github.com/acme/app (labels: mittwald,test, ephemeral: false)",
         versionCommand: ["cat", "/home/runner/bin/Runner.Listener.deps.json"],
         dataDirectories: ["config", "work"],
+        missingEnv: [
+            {
+                name: "GITHUB_URL",
+                environment: {},
+                message: "GITHUB_URL is required",
+            },
+            {
+                name: "RUNNER_TOKEN and GITHUB_TOKEN",
+                environment: { GITHUB_URL: "https://github.com/acme/app" },
+                message: "either RUNNER_TOKEN or GITHUB_TOKEN is required",
+            },
+        ],
     },
     {
         provider: "gitlab",
@@ -44,6 +63,18 @@ const images: ImageCase[] = [
             "registering integration-test at https://gitlab.invalid (executor: shell)",
         versionCommand: ["gitlab-runner", "--version"],
         dataDirectories: ["builds", "cache"],
+        missingEnv: [
+            {
+                name: "CI_SERVER_URL",
+                environment: {},
+                message: "CI_SERVER_URL is required",
+            },
+            {
+                name: "CI_SERVER_TOKEN",
+                environment: { CI_SERVER_URL: "https://gitlab.invalid" },
+                message: "CI_SERVER_TOKEN is required",
+            },
+        ],
     },
 ];
 
@@ -104,4 +135,49 @@ describe.each(images)("runner image: $provider", (image) => {
             await container.stop();
         }
     });
+
+    it("passes the probe suite", async () => {
+        const container = await new GenericContainer(tag)
+            .withEntrypoint(["sleep", "infinity"])
+            .withCopyDirectoriesToContainer([
+                { source: "docker/runner/probes", target: "/probes" },
+            ])
+            .start();
+        try {
+            const expectedVersion =
+                runnerVersions[image.provider as keyof typeof runnerVersions];
+            const probe = await container.exec([
+                "bash",
+                "-c",
+                `EXPECTED_RUNNER_VERSION=${expectedVersion} bash /probes/${image.provider}.sh`,
+            ]);
+            expect(probe.output).toContain("probes passed");
+            expect(probe.exitCode).toBe(0);
+        } finally {
+            await container.stop();
+        }
+    }, 300_000);
+
+    it.each(image.missingEnv)(
+        "entrypoint fails without $name",
+        async (missing) => {
+            const container = await new GenericContainer(tag)
+                .withEntrypoint(["sleep", "infinity"])
+                .start();
+            try {
+                const assignments = Object.entries(missing.environment)
+                    .map(([key, value]) => `${key}=${value}`)
+                    .join(" ");
+                const run = await container.exec([
+                    "bash",
+                    "-c",
+                    `env ${assignments} /entrypoint.sh 2>&1`,
+                ]);
+                expect(run.exitCode).not.toBe(0);
+                expect(run.output).toContain(missing.message);
+            } finally {
+                await container.stop();
+            }
+        },
+    );
 });
