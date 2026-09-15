@@ -56,10 +56,11 @@ Section
   off-canvas panel (`Modal offCanvas`, right side). Short confirmations stay
   centered modals.
 - A form whose fields depend on an upfront choice opens with that choice alone:
-  the create modal first shows only the CI system as `RadioButton` cards with
-  provider logos (`provider-logos.ts`, marks from the `simple-icons` package on a
-  white tile so they read on both themes), the form follows after the pick and
-  offers a plain button back to the choice.
+  the create modal first shows only the CI system as a list of provider rows
+  (Flow `typedList`, one `ListItemView` per provider with its logo from
+  `provider-logos.ts`, marks from the `simple-icons` package on a white tile so
+  they read on both themes), the form follows after the pick and offers a plain
+  button back to the choice.
 - A form modal is not dismissable by clicking outside (`isDismissable={false}`).
 - Submit and cancel are an `ActionGroup` at the end of the `Form`; the primary
   button first.
@@ -104,9 +105,10 @@ Section
   `neutral` stopped, `violet` mode flags (ephemeral), `blue` update hints.
 - Avatars: color encodes the provider (GitHub violet, GitLab teal). Do not encode
   status in the avatar, the badge does that.
-- Icons come from Flow (`IconSettings`, `IconDelete`, ...). No emoji, no custom SVG.
-  The only image is the logo in `BrandHeader.tsx`, inlined as a data URI because
-  relative asset URLs point at the wrong host inside mStudio.
+- Icons come from Flow (`IconSettings`, `IconDelete`, ...), no emoji. The only custom
+  SVGs are the logo in `BrandHeader.tsx` and the provider logos in `provider-logos.ts`,
+  both inlined as data URIs because relative asset URLs point at the wrong host inside
+  mStudio.
 
 ## Texts
 

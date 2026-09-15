@@ -5,7 +5,7 @@ limited to domain logic and UI. Generated files are never edited by hand.
 
 | Source | Generator | Output | Command |
 |---|---|---|---|
-| mittwald OpenAPI | `@mittwald/api-client` (maintained by mittwald) | Typed client, e.g. `mittwaldClient.container.declareStack` | `pnpm up @mittwald/api-client` |
+| mittwald OpenAPI | `@mittwald/api-client` (maintained by mittwald) | Typed client, e.g. `mittwaldClient.container.createStack` | `pnpm up @mittwald/api-client` |
 | GitHub OpenAPI | `@octokit/rest` (maintained by GitHub) | Typed client for `actions.listSelfHostedRunnersFor*` | `pnpm up @octokit/rest` |
 | `openapi/extension-api.yaml` | `@hey-api/openapi-ts`, config `config/openapi-ts.config.ts` | `src/generated/extension-api/{types.gen.ts,zod.gen.ts,index.ts}` | `pnpm run codegen` |
 | `openapi/upstream/gitlab.json` | `@hey-api/openapi-ts` (typescript, client-fetch, sdk), same config | `src/generated/gitlab/`: typed GitLab client | `pnpm run codegen` |
@@ -21,10 +21,11 @@ paths, because TanStack server functions have no HTTP routing in the OpenAPI sen
 - `CreateRunnerRequest`: discriminated union over `provider` of `GitHubRunnerRequest`
   and `GitLabRunnerRequest` (both allOf `RunnerBase`). The `discriminator.mapping` is
   mandatory, otherwise hey-api emits schema names as literals.
-- `RunnerIdRequest`, `RunnerLogsRequest`: further inputs. Server functions use the
-  generated zod schemas (`zCreateRunnerRequest`, ...) as `validator`.
-- `Runner`, `RunnerList`: outputs. Server functions check their return value with
-  `zRunner.parse` / `zRunnerList.parse`.
+- `RunnerIdRequest`, `RunnerLogsRequest`, `ConfigureRunnerRequest`: further inputs.
+  Server functions use the generated zod schemas (`zCreateRunnerRequest`, ...) as
+  `validator`.
+- `Runner`, `RunnerList`, `Changelog`, `Release`: outputs. Server functions check their
+  return value with `zRunner.parse` / `zRunnerList.parse`.
 - `RunnerSize`, `RunnerStatus`, `Provider`, `GitLabRunnerType`: enums, available in the UI
   as types and constants.
 

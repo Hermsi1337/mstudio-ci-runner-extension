@@ -70,7 +70,7 @@ Two Flow rules shape the components:
 
 Other operations: list with live status (`container.getStack`), logs
 (`container.getServiceLogs`), restart (`container.restartService`), update to the
-current image and cache settings (both `container.declareStack`), delete
+current image and cache settings (both `container.updateStack`), delete
 (`container.deleteStack`, then `provider.release`). All stack operations run with the
 access token of the signed-in user, so only with their permissions and the scopes of
 the extension.
