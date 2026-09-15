@@ -12,5 +12,6 @@
 | [operations.md](operations.md) | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | [i18n.md](i18n.md) | Languages: locale detection, catalogs, adding texts |
 | [styleguide.md](styleguide.md) | UI rules: components, layout, modals, forms, lists, texts, colors |
+| [marketplace/listing.md](marketplace/listing.md) | Marketplace entry: texts in both languages, logo, screenshots |
 
 Rules for maintaining these pages: [AGENTS.md](../AGENTS.md).

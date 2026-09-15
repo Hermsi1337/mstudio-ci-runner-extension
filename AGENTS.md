@@ -81,6 +81,7 @@ into this file. Every file has exactly one topic and links to the others.
 | `docs/operations.md` | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | `docs/i18n.md` | Languages: how the locale is chosen, catalogs, adding texts |
 | `docs/styleguide.md` | UI rules: components, layout, modals, forms, lists, texts, colors |
+| `docs/marketplace/listing.md` | Marketplace entry: texts in both languages, logo, screenshots |
 
 Checklist before every commit:
 
