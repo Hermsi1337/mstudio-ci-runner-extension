@@ -1,12 +1,12 @@
 import {
+    Button,
+    ColumnLayout,
     Content,
     Flex,
     Heading,
     Image,
     Modal,
     type OverlayController,
-    RadioButton,
-    RadioGroup,
     Text,
 } from "@mittwald/flow-remote-react-components";
 import { useState } from "react";
@@ -26,13 +26,14 @@ const ProviderChoice = ({
 }) => {
     const t = useTranslation();
     return (
-        <RadioGroup
-            aria-label={t("form.provider.question")}
-            s={[6, 6]}
-            onChange={(value) => onSelect(value as Provider)}
-        >
+        <ColumnLayout s={[6, 6]}>
             {providers.map((provider) => (
-                <RadioButton key={provider} value={provider}>
+                <Button
+                    key={provider}
+                    color="secondary"
+                    variant="outline"
+                    onPress={() => onSelect(provider)}
+                >
                     <Flex align="center" gap="m">
                         <Image
                             src={providerLogos[provider]}
@@ -47,9 +48,9 @@ const ProviderChoice = ({
                             <Text>{t(`form.provider.${provider}.text`)}</Text>
                         </Flex>
                     </Flex>
-                </RadioButton>
+                </Button>
             ))}
-        </RadioGroup>
+        </ColumnLayout>
     );
 };
 
