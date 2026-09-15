@@ -23,13 +23,17 @@ export const handleServerErrors = createMiddleware({
                 });
                 return result;
             } catch (error) {
-                throw toErrorResponse(error);
+                // A serializable Error whose message is the JSON error body:
+                // the client rejects the call and parsePublicError reads the
+                // body from the message. A thrown Response resolves the call
+                // with undefined since TanStack Start 1.17x.
+                throw new Error(JSON.stringify(toErrorBody(error)));
             }
         },
     ),
 );
 
-function toErrorResponse(error: unknown): Response {
+function toErrorBody(error: unknown): ErrorBody {
     const locale = resolveLocale(
         getRequestHeader(localeHeader) ?? getRequestHeader("accept-language"),
     );
@@ -83,45 +87,38 @@ function parseZodValidationError(error: unknown): ZodIssue[] | null {
     }
 }
 
-function buildValidationError(validationIssues: ZodIssue[]): Response {
+function buildValidationError(validationIssues: ZodIssue[]): ErrorBody {
     const firstIssue = validationIssues[0];
 
-    return Response.json(
-        {
-            type: "ValidationError",
-            message: firstIssue.message,
-            isRetryable: false,
-            details: {
-                affectedField: String(firstIssue.path[0]),
-            },
-        } satisfies ErrorBody,
-        { status: 400 },
-    );
+    return {
+        type: "ValidationError",
+        message: firstIssue.message,
+        isRetryable: false,
+        details: {
+            affectedField: String(firstIssue.path[0]),
+        },
+    };
 }
 
 function buildPublicError(
     error: PublicError,
     locale: ReturnType<typeof resolveLocale>,
-): Response {
-    return Response.json(
-        {
-            type: error.name,
-            message: translate(locale, error.messageKey, error.params),
-            isRetryable: error.isRetryable,
-            details: error.details ?? {},
-        } satisfies ErrorBody,
-        { status: error.statusCode },
-    );
+): ErrorBody {
+    return {
+        type: error.name,
+        message: translate(locale, error.messageKey, error.params),
+        isRetryable: error.isRetryable,
+        details: error.details ?? {},
+    };
 }
 
-function buildUnknownError(locale: ReturnType<typeof resolveLocale>): Response {
-    return Response.json(
-        {
-            type: "UnknownError",
-            message: translate(locale, "error.unexpected"),
-            isRetryable: false,
-            details: {},
-        } satisfies ErrorBody,
-        { status: 500 },
-    );
+function buildUnknownError(
+    locale: ReturnType<typeof resolveLocale>,
+): ErrorBody {
+    return {
+        type: "UnknownError",
+        message: translate(locale, "error.unexpected"),
+        isRetryable: false,
+        details: {},
+    };
 }
