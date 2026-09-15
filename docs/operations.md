@@ -6,13 +6,16 @@ Images are built from git tags only, never from pushes to `main`. `main` is veri
 by `ci.yml` (codegen drift, Biome, `tsc`, build, integration tests).
 
 ```bash
-pnpm version minor        # or patch, major, 0.2.0: bumps package.json, commits, tags v0.2.0
-git push origin main --follow-tags
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-The version in `package.json` must match the tag: `extension-image.yml` fails otherwise.
-It is the fallback for `EXTENSION_VERSION` and therefore decides which runner images a
-local development extension uses.
+The tag is the single source of truth for the version. The extension image bakes it
+in as `EXTENSION_VERSION`, so nothing depends on `package.json` at release time.
+`package.json` stays the fallback for local development (it decides which runner
+images a local extension uses by default); `extension-image.yml` prints a warning
+when it lags behind the tag, bump it with `pnpm version --no-git-tag-version` when
+convenient.
 
 The tag triggers `release.yml`, which runs `extension-image.yml` and
 `runner-image.yml` as reusable workflows and creates the GitHub release once both
