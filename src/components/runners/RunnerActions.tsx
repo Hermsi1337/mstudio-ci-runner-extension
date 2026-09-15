@@ -92,16 +92,18 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                         </Text>
                     </MenuItem>
                 )}
-                {runner.updateAvailable && runner.imageVersion && (
-                    <MenuItem id="changelog">
-                        <IconInfo />
-                        <Text>
-                            {t("runners.action.changelogSince", {
-                                version: runner.imageVersion,
-                            })}
-                        </Text>
-                    </MenuItem>
-                )}
+                {runner.updateAvailable &&
+                    runner.imageVersion &&
+                    runner.latestImageVersion && (
+                        <MenuItem id="changelog">
+                            <IconInfo />
+                            <Text>
+                                {t("runners.action.changelogSince", {
+                                    version: runner.imageVersion,
+                                })}
+                            </Text>
+                        </MenuItem>
+                    )}
                 <MenuItem id="delete">
                     <IconDelete />
                     <Text>{t("runners.action.delete")}</Text>
@@ -110,10 +112,16 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
 
             <RunnerLogsModal runner={runner} controller={logs} />
             <ConfigureRunnerModal runner={runner} controller={settings} />
-            <ChangelogModal
-                controller={changelog}
-                sinceVersion={runner.imageVersion}
-            />
+            {runner.imageVersion && runner.latestImageVersion && (
+                <ChangelogModal
+                    controller={changelog}
+                    runner={{
+                        name: runner.name,
+                        imageVersion: runner.imageVersion,
+                        targetVersion: runner.latestImageVersion,
+                    }}
+                />
+            )}
             <ConfirmModal
                 controller={restart}
                 color="primary"

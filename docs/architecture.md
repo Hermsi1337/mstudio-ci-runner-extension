@@ -7,7 +7,7 @@
 | Frontend fragment inside mStudio | React 19, Flow remote React components, TanStack Router (CSR) | `src/routes/`, `src/components/` |
 | Server functions | TanStack Start | `src/serverFunctions/` |
 | Domain logic | TypeScript, `@mittwald/api-client` | `src/domain/runner.ts` |
-| Changelog | GitHub releases via `@octokit/rest`, cached for ten minutes | `src/domain/changelog.ts` |
+| Changelog | GitHub releases via `@octokit/rest`, cached for ten minutes, cut at the running version | `src/domain/changelog.ts` |
 | CI providers | `@octokit/rest`, generated GitLab client | `src/domain/providers/` ([providers.md](providers.md)) |
 | Persistence | PostgreSQL, Drizzle ORM | `src/db/` |
 | Lifecycle webhooks | `@weissaufschwarz/mitthooks` | `src/routes/api/webhooks.mittwald.ts` |
@@ -19,8 +19,8 @@ Stack and structure follow the [mittwald reference extension](https://github.com
 
 ## UI
 
-`src/routes/index.tsx` stacks a brand header (`BrandHeader.tsx`, with the changelog
-button and the new-version badge that open `ChangelogModal.tsx`) and two cards:
+`src/routes/index.tsx` stacks a brand header (`BrandHeader.tsx`, with the version
+badge of the extension and the changelog button that opens `ChangelogModal.tsx`) and two cards:
 `RunnersCard.tsx` with the runner list and the create modal, and `FeedbackCard.tsx`
 with links to the repository. Rules for every
 screen are in [styleguide.md](styleguide.md). The runners are grouped by registration target, one Flow `List` per group
@@ -98,6 +98,15 @@ Tables in `src/db/schema.ts`:
   `ENCRYPTION_SALT`) holding provider-specific JSON, e.g. the GitLab runner token.
   `image` and `runnerVersion` record what the stack was declared with; `updateAvailable`
   in the API compares `image` with the image of the running extension release.
+  Two versions exist and the UI keeps them apart: the extension version
+  (`EXTENSION_VERSION`, `Changelog.currentVersion`, deployed by the maintainer, not
+  updatable by users) and the image version of each runner (`Runner.imageVersion`,
+  the tag of `image`). "Update" moves a runner's image to the extension version.
+  The changelog therefore lists only releases up to the running extension version:
+  a release that GitHub already shows but that is not deployed yet is nothing a
+  user can get. Opened from the header, the modal marks the current release; opened
+  from a runner, it names the runner's image version and the update target and
+  shows the releases between them.
   `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb` and `concurrency` hold the settings
   (`cpus` and `memoryMb` only for `size = custom`), `tokenType` records how the runner
   authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald

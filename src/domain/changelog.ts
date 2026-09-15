@@ -51,17 +51,16 @@ async function listReleases(): Promise<Release[]> {
     return cache.releases;
 }
 
+/**
+ * A release that GitHub lists but the hosted extension does not run yet is
+ * nothing a user can get: the maintainer deploys the extension, and runners
+ * only update to the image of the running extension. Such releases stay out.
+ */
 export async function getChangelog(): Promise<Changelog> {
     const currentVersion = getEnvironmentVariables().EXTENSION_VERSION;
-    const releases = await listReleases();
-    const latestVersion = releases[0]?.version ?? null;
+    const releases = (await listReleases()).filter(
+        (release) => !isNewerVersion(release.version, currentVersion),
+    );
 
-    return {
-        currentVersion,
-        latestVersion,
-        updateAvailable:
-            latestVersion !== null &&
-            isNewerVersion(latestVersion, currentVersion),
-        releases,
-    };
+    return { currentVersion, releases };
 }

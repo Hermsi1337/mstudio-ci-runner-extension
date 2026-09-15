@@ -343,20 +343,18 @@ components:
           example: https://github.com/Hermsi1337/mstudio-ci-runner-extension/releases/tag/v0.2.0
     Changelog:
       type: object
-      required: [currentVersion, latestVersion, updateAvailable, releases]
+      required: [currentVersion, releases]
       properties:
         currentVersion:
           type: string
-          description: Version of the running extension.
+          description: |
+            Version of the running extension. Runners update to the runner image of
+            this version.
           example: 0.1.0
-        latestVersion:
-          type: [string, 'null']
-          description: Version of the newest release on GitHub. Null when no release is visible.
-          example: 0.2.0
-        updateAvailable:
-          type: boolean
-          description: True when the newest release is newer than the running extension.
         releases:
           type: array
+          description: |
+            Releases up to and including `currentVersion`, newest first. Releases that
+            GitHub lists but that are not deployed yet are left out.
           items:
             $ref: '#/components/schemas/Release'
