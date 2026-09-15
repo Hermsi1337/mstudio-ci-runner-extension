@@ -12,10 +12,10 @@ git push origin v0.2.0
 
 The tag is the single source of truth for the version. The extension image bakes it
 in as `EXTENSION_VERSION`, so nothing depends on `package.json` at release time.
-`package.json` stays the fallback for local development (it decides which runner
-images a local extension uses by default); `extension-image.yml` prints a warning
-when it lags behind the tag, bump it with `pnpm version --no-git-tag-version` when
-convenient.
+After the release, `release.yml` commits the tag version to `package.json` on `main`
+(`chore: bump package.json to X.Y.Z`), so the fallback for local development stays
+current on the next pull. `extension-image.yml` prints a warning when the two
+diverge at build time.
 
 The tag triggers `release.yml`, which runs `extension-image.yml` and
 `runner-image.yml` as reusable workflows and creates the GitHub release once both
@@ -57,7 +57,7 @@ Package visibility is independent of the repository and can only be changed on t
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
 | `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers, multi-arch |
 | `deploy.yml` | After `release.yml` on a tag, manual | Stack update on mittwald Container Hosting |
-| `release.yml` | Tags `v*` | Runs both image workflows as jobs, then creates the GitHub release via `softprops/action-gh-release`: generated notes plus an image table with pull commands and the runner software versions |
+| `release.yml` | Tags `v*` | Runs both image workflows as jobs, creates the GitHub release via `softprops/action-gh-release` (generated notes plus an image table with pull commands and the runner software versions), then commits the tag version to `package.json` on `main` |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
 ## Release notes and dependencies

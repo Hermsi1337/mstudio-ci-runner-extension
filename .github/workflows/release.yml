@@ -43,3 +43,28 @@ jobs:
         with:
           body_path: notes.md
           generate_release_notes: true
+
+  bump-version:
+    runs-on: ubuntu-latest
+    needs: [release]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Sync package.json with the tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          current="$(jq -r .version package.json)"
+          if [[ "$version" == "$current" ]]; then
+            echo "package.json already at $version"
+            exit 0
+          fi
+          npm version "$version" --no-git-tag-version --allow-same-version
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump package.json to $version"
+          git pull --rebase origin main
+          git push origin main
