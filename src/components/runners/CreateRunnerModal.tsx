@@ -1,13 +1,12 @@
 import {
-    Button,
-    ColumnLayout,
+    Avatar,
     Content,
-    Flex,
     Heading,
     Image,
     Modal,
     type OverlayController,
     Text,
+    typedList,
 } from "@mittwald/flow-remote-react-components";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
@@ -17,7 +16,13 @@ import { useTranslation } from "@/i18n/react.tsx";
 import { providerLogos } from "./provider-logos.ts";
 import { RunnerForm } from "./RunnerForm.tsx";
 
-const providers: Provider[] = ["github", "gitlab"];
+interface ProviderEntry {
+    id: Provider;
+}
+
+const providers: ProviderEntry[] = [{ id: "github" }, { id: "gitlab" }];
+
+const ProviderListTyped = typedList<ProviderEntry>();
 
 const ProviderChoice = ({
     onSelect,
@@ -26,27 +31,27 @@ const ProviderChoice = ({
 }) => {
     const t = useTranslation();
     return (
-        <ColumnLayout s={[6, 6]}>
-            {providers.map((provider) => (
-                <Button
-                    key={provider}
-                    color="secondary"
-                    variant="outline"
-                    onPress={() => onSelect(provider)}
-                >
-                    <Flex direction="column" align="center" gap="xs">
-                        <Image
-                            src={providerLogos[provider]}
-                            alt=""
-                            width={48}
-                            height={48}
-                        />
-                        <Heading level={4}>{t(`provider.${provider}`)}</Heading>
-                        <Text>{t(`form.provider.${provider}.text`)}</Text>
-                    </Flex>
-                </Button>
-            ))}
-        </ColumnLayout>
+        <ProviderListTyped.List
+            aria-label={t("form.provider.question")}
+            getItemId={(entry) => entry.id}
+            onAction={(entry) => onSelect(entry.id)}
+            hidePagination
+        >
+            <ProviderListTyped.StaticData data={providers} />
+            <ProviderListTyped.Item
+                textValue={(entry) => t(`provider.${entry.id}`)}
+            >
+                {(entry) => (
+                    <ProviderListTyped.ItemView>
+                        <Avatar>
+                            <Image src={providerLogos[entry.id]} alt="" />
+                        </Avatar>
+                        <Heading>{t(`provider.${entry.id}`)}</Heading>
+                        <Text>{t(`form.provider.${entry.id}.text`)}</Text>
+                    </ProviderListTyped.ItemView>
+                )}
+            </ProviderListTyped.Item>
+        </ProviderListTyped.List>
     );
 };
 
