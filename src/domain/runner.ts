@@ -43,6 +43,7 @@ import {
     findOrCreateStack,
     getStack,
     prefixMounts,
+    recreateService,
     removeService,
     type ServiceResponse,
     type StackResponse,
@@ -635,9 +636,12 @@ export async function restartRunner(
 
 /**
  * Redeclares the stack with the image of this extension release and the
- * service state mittwald reports, so environment and volumes stay untouched.
- * mittwald recreates the container; GitHub runners keep their registration in
- * the data volume, GitLab runners keep their runner token.
+ * service state mittwald reports, so environment and volumes stay untouched,
+ * then recreates the service so the container runs the new image. GitHub
+ * runners keep their registration in the data volume, GitLab runners keep
+ * their runner token. The row changes last: when the recreate fails, the
+ * list keeps offering the update and the next attempt declares the same
+ * state again.
  */
 export async function updateRunner(
     client: MittwaldAPIV2Client,
@@ -669,6 +673,12 @@ export async function updateRunner(
             entrypoint: state.entrypoint,
         },
     );
+    await recreateIfRequired(
+        client,
+        extensionInstanceId,
+        row.stackId,
+        updatedService ?? service,
+    );
     const [updated] = await getDatabase()
         .update(runners)
         .set({ image, runnerVersion: provider.runnerVersion })
@@ -687,11 +697,32 @@ export async function updateRunner(
 }
 
 /**
- * Changes cache and concurrency after creation. Switching the cache adds or
- * removes the cache volume and environment on the service state mittwald
- * reports, concurrency changes its environment variable; both redeclare the
- * stack and mittwald recreates the container. Turning the cache off deletes
- * its cronjob and volume.
+ * mittwald reports requiresRecreate on the declared service. Only an explicit
+ * false skips the recreate, because a container that already runs the declared
+ * state has no reason to lose its running job.
+ */
+async function recreateIfRequired(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    stackId: string,
+    service: ServiceResponse,
+): Promise<void> {
+    if (service.requiresRecreate === false) {
+        log.debug("service already runs the declared state", {
+            stackId,
+            serviceId: service.id,
+        });
+        return;
+    }
+    await recreateService(client, extensionInstanceId, stackId, service.id);
+}
+
+/**
+ * Changes cache, concurrency and resources after creation. Switching the
+ * cache adds or removes the cache volume and environment on the service state
+ * mittwald reports, concurrency changes its environment variable; every
+ * change redeclares the stack and recreates the service. Turning the cache
+ * off deletes its cronjob and volume.
  */
 export async function configureRunner(
     client: MittwaldAPIV2Client,
@@ -755,6 +786,12 @@ export async function configureRunner(
                     entrypoint: state.entrypoint,
                 },
             )) ?? service;
+        await recreateIfRequired(
+            client,
+            extensionInstanceId,
+            row.stackId,
+            updatedService,
+        );
     }
 
     let cronjobIds = parseCronjobIds(row);

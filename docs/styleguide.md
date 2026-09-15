@@ -43,7 +43,11 @@ Section
   (Delete) last.
 - Destructive and interrupting actions confirm through `ConfirmModal`
   (`src/components/ConfirmModal.tsx`). The confirmation names the entity and what
-  happens to running work.
+  happens to running work (update: the container is recreated, a running job fails
+  and is not retried).
+- A form whose submit interrupts running work (settings modal) shows an
+  `Alert status="warning"` with the consequence as soon as the form is dirty. The
+  alert sits between the fields and the `ActionGroup`.
 
 ## Modals
 

@@ -64,9 +64,9 @@ export const en = {
         "The container stops and starts again. A job that is running on it is aborted.",
     "runners.update.heading": "Update {name}?",
     "runners.update.text":
-        "The container is recreated with image version {version}. A running job is cancelled.",
+        "The container is recreated with image version {version}. A job that is running on it fails and is not retried automatically.",
     "runners.update.textPlain":
-        "The container is recreated. A running job is cancelled.",
+        "The container is recreated with the current image. A job that is running on it fails and is not retried automatically.",
     "runners.delete.heading": "Delete {name}?",
     "runners.delete.text.github":
         "Removes the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
@@ -117,7 +117,7 @@ export const en = {
     "form.configure.button": "Save",
     "form.configure.warning.heading": "The container is recreated",
     "form.configure.warning.text":
-        "Saving redeclares the stack and mittwald recreates the container. A running job is cancelled. Turning the cache off deletes the cache volume and its cronjob.",
+        "Saving recreates the container with the new settings. A job that is running on it fails and is not retried automatically. Turning the cache off deletes the cache volume and its cronjob.",
     "form.summary.heading": "Created in this project",
     "form.summary.stack.label": "Stack: CI Runner: {target}",
     "form.summary.stack.text":
@@ -284,6 +284,8 @@ export const en = {
     "error.upstream.imageMissing":
         "mittwald cannot pull the runner image {image}. The image must exist and be publicly readable. For GHCR, set the package visibility to public.",
     "error.upstream.logs": "Logs could not be loaded (status {status}).",
+    "error.upstream.recreate":
+        "mittwald could not recreate the runner container (status {status}). The container keeps running with its previous image and settings. Try again in a moment.",
     "error.upstream.stackDelete":
         "The stack could not be deleted (status {status}).",
     "error.upstream.stackGet":

@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { getDatabase } from "@/db";
 import { type RunnerStackRow, runnerStacks, runners } from "@/db/schema.ts";
 import {
+    NotFoundError,
     PermissionsInsufficientError,
     stackDeclareError,
     UpstreamError,
@@ -207,6 +208,37 @@ export async function declareService(
         services.find((s) => s.serviceName === serviceName) ??
         (services.length === 1 ? services[0] : undefined)
     );
+}
+
+/**
+ * A declaration only records the pending state of a service; the container
+ * keeps running its deployed state until mittwald recreates it. This action
+ * recreates one service, unlike the `recreate` query parameter of updateStack,
+ * which would hit every runner that shares the stack. Same approach as
+ * mittwald/deploy-container-action after its stack update.
+ */
+export async function recreateService(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    stackId: string,
+    serviceId: string,
+): Promise<void> {
+    const response = await client.container.recreateService({
+        stackId,
+        serviceId,
+    });
+    if (response.status === 403) {
+        throw new PermissionsInsufficientError(extensionInstanceId);
+    }
+    if (response.status === 404) {
+        throw new NotFoundError("runnerContainer");
+    }
+    if (response.status !== 204) {
+        throw new UpstreamError("error.upstream.recreate", {
+            status: response.status,
+        });
+    }
+    log.info("service recreated", { stackId, serviceId });
 }
 
 /**

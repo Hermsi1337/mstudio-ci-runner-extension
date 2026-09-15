@@ -69,9 +69,9 @@ export const de: Messages = {
         "Der Container stoppt und startet neu. Ein Job, der gerade darauf läuft, bricht ab.",
     "runners.update.heading": "{name} aktualisieren?",
     "runners.update.text":
-        "Der Container wird mit Image-Version {version} neu erstellt. Ein laufender Job bricht ab.",
+        "Der Container wird mit Image-Version {version} neu erstellt. Ein Job, der gerade darauf läuft, schlägt fehl und wird nicht automatisch wiederholt.",
     "runners.update.textPlain":
-        "Der Container wird neu erstellt. Ein laufender Job bricht ab.",
+        "Der Container wird mit dem aktuellen Image neu erstellt. Ein Job, der gerade darauf läuft, schlägt fehl und wird nicht automatisch wiederholt.",
     "runners.delete.heading": "{name} löschen?",
     "runners.delete.text.github":
         "Entfernt den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
@@ -122,7 +122,7 @@ export const de: Messages = {
     "form.configure.button": "Speichern",
     "form.configure.warning.heading": "Der Container wird neu erstellt",
     "form.configure.warning.text":
-        "Beim Speichern wird der Stack neu deklariert und mittwald erstellt den Container neu. Ein laufender Job bricht ab. Schaltest du den Cache aus, löscht die Extension das Cache-Volume und seinen Cronjob.",
+        "Beim Speichern wird der Container mit den neuen Einstellungen neu erstellt. Ein Job, der gerade darauf läuft, schlägt fehl und wird nicht automatisch wiederholt. Schaltest du den Cache aus, löscht die Extension das Cache-Volume und seinen Cronjob.",
     "form.summary.heading": "Wird in diesem Projekt angelegt",
     "form.summary.stack.label": "Stack: CI Runner: {target}",
     "form.summary.stack.text":
@@ -292,6 +292,8 @@ export const de: Messages = {
         "mittwald kann das Runner-Image {image} nicht laden. Das Image muss existieren und öffentlich lesbar sein. Bei GHCR stell die Sichtbarkeit des Packages auf Public.",
     "error.upstream.logs":
         "Die Logs konnten nicht geladen werden (Status {status}).",
+    "error.upstream.recreate":
+        "mittwald konnte den Runner-Container nicht neu erstellen (Status {status}). Der Container läuft mit dem bisherigen Image und den bisherigen Einstellungen weiter. Versuch es gleich noch mal.",
     "error.upstream.stackDelete":
         "Der Stack konnte nicht gelöscht werden (Status {status}).",
     "error.upstream.stackGet":
