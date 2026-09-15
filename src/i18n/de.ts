@@ -73,9 +73,7 @@ export const de: Messages = {
     "runners.update.textPlain":
         "Der Container wird neu erstellt. Ein laufender Job bricht ab.",
     "runners.delete.heading": "{name} löschen?",
-    "runners.delete.text.github.pat":
-        "Entfernt die Registrierung auf GitHub, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab.",
-    "runners.delete.text.github.registration":
+    "runners.delete.text.github":
         "Entfernt den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
         "Entfernt den Runner aus GitLab, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab.",
@@ -159,28 +157,13 @@ export const de: Messages = {
     "form.name.required": "Bitte einen Namen angeben",
     "form.name.tooShort": "Der Name braucht mindestens 2 Zeichen",
     "form.name.tooLong": "Der Name darf höchstens 64 Zeichen haben",
-    "form.github.target.label": "GitHub-Organisation oder -Repository",
-    "form.github.target.placeholder": "owner oder owner/repo",
-    "form.github.target.description":
-        "Organisation (zum Beispiel meine-org) oder Repository (zum Beispiel meine-org/mein-repo).",
-    "form.github.target.required": "Organisation oder Repository fehlt",
-    "form.github.target.invalid":
-        "Gib owner oder owner/repo an, wahlweise als https://github.com/owner/repo.",
-    "form.github.tokenType.label": "Authentifizierung",
-    "form.github.tokenType.registration": "Registrierungs-Token von GitHub",
-    "form.github.tokenType.pat": "Personal Access Token (PAT)",
     "form.github.configCommand.label": "Einrichtungsbefehl von GitHub",
     "form.github.configCommand.description":
         "Füge den config-Befehl von der Seite New self-hosted runner ein. Repository oder Organisation und das Registrierungs-Token werden daraus gelesen.",
     "form.github.configCommand.required": "Einrichtungsbefehl fehlt",
     "form.github.configCommand.invalid":
         "Füge den vollständigen Befehl mit --url https://github.com/... und --token ein.",
-    "form.github.token.label": "GitHub-Token (PAT)",
-    "form.github.token.description":
-        'Fine-grained PAT mit "Administration: Read and write" (Repository) oder "Self-hosted runners: Read and write" (Organisation). Wird verschlüsselt gespeichert und dem Container als Umgebungsvariable übergeben.',
-    "form.github.token.required": "GitHub-Token fehlt",
     "form.github.runnerGroup.label": "Runner-Gruppe",
-    "form.github.ephemeral.label": "Ephemeral (neue Registrierung pro Job)",
     "form.gitlab.tokenType.label": "Authentifizierung",
     "form.gitlab.tokenType.registration": "Runner-Token von GitLab",
     "form.gitlab.tokenType.pat": "Personal Access Token (PAT)",
@@ -237,19 +220,10 @@ export const de: Messages = {
     "help.open": "Hilfe zu {subject}",
     "form.name.help":
         "Wird als Runner-Name in GitHub oder GitLab und in dieser Liste angezeigt. Buchstaben, Ziffern und Bindestriche bleiben erhalten, alle anderen Zeichen werden zu Bindestrichen.",
-    "form.github.target.help":
-        "Für eine Organisation gibst du ihren Namen an, zum Beispiel meine-org. Für ein einzelnes Repository owner/repo, zum Beispiel meine-org/mein-repo. Ein Organisations-Runner bedient alle Repositorys, die seine Runner-Gruppe erlaubt.",
-    "form.github.tokenType.help":
-        "Registrierungs-Token: Öffne auf GitHub die Runner-Einstellungen des Repositorys oder der Organisation, klicke New self-hosted runner und kopiere das Token aus dem config-Befehl. Das Token läuft nach einer Stunde ab, daher registriert sich der Runner einmal und legt die entstehenden Zugangsdaten (ein paar kleine Dateien) in seinem Daten-Volume ab. Neustarts und Updates nutzen sie ohne neues Token. Es wird kein PAT gespeichert. Ephemerale Runner gehen damit nicht, weil jeder Job eine frische Registrierung bräuchte.\nPersonal Access Token: Der Container holt sich Registrierungs- und Entfernungs-Token bei jedem Start selbst und braucht keine gespeicherte Registrierung. Nötig für ephemerale Runner. Das PAT wird verschlüsselt gespeichert und liegt im Container.",
     "form.github.configCommand.help":
-        "Öffne auf GitHub das Repository oder die Organisation, dann `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Kopiere unter `Configure` die Zeile, die mit `./config.sh` (oder `./config.cmd`) beginnt, und füge sie hier ein. Genutzt werden nur `--url` und `--token`. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Beim Löschen meldet sich der Runner ab, solange das Token gültig ist; sonst entfernt GitHub den Offline-Runner nach 14 Tagen.",
-    "form.github.token.help":
-        "Der Runner registriert sich mit einem Personal Access Token. Lege auf GitHub unter `Settings` → `Developer settings` → `Personal access tokens` ein Fine-grained Token an. Repository: Berechtigung `Administration: Read and write`. Organisation: Berechtigung `Self-hosted runners: Read and write`.\nDas Token wird verschlüsselt gespeichert und an den Runner-Container übergeben, der damit bei jedem Start ein Registrierungs-Token holt. Mitglieder mit Zugriff auf den Container können es lesen, halte den Umfang daher klein.",
-    "form.github.token.link": "Fine-grained Token auf GitHub anlegen",
+        "Öffne auf GitHub das Repository oder die Organisation, dann `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Kopiere unter `Configure` die Zeile, die mit `./config.sh` (oder `./config.cmd`) beginnt, und füge sie hier ein. Genutzt werden nur `--url` und `--token`. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Nach dem Löschen hier führt GitHub den Runner noch als offline, bis es ihn nach 14 Tagen entfernt.",
     "form.github.runnerGroup.help":
         "Nur für Organisationen. Runner-Gruppen steuern, welche Repositorys den Runner nutzen dürfen. Leer lassen für die Gruppe Default.",
-    "form.github.ephemeral.help":
-        "Ein ephemeraler Runner nimmt genau einen Job an, meldet sich ab und registriert sich neu mit leerem Arbeitsverzeichnis. Sicherer bei fremdem Code, pro Job langsamer, weil jeder Job mit einer frischen Registrierung startet.",
     "form.gitlab.tokenType.help":
         "Runner-Token: Lege den Runner auf GitLab unter `Settings` → `CI/CD` → `Runners` → `New project runner` (oder Group- bzw. Instance-Runner) an, wähle dort die Tags und kopiere auf der Folgeseite den Befehl `gitlab-runner register`. Der Runner existiert damit schon in GitLab, der Container registriert sich mit seinem Token. Kein PAT nötig; das Token wird verschlüsselt gespeichert, um den Runner später zu löschen.\nPersonal Access Token: Die Extension legt den Runner per API an, mit Geltungsbereich, Pfad, Tags und Untagged-Einstellung aus diesem Formular. Das PAT wird einmal genutzt und nicht gespeichert.",
     "form.gitlab.configCommand.help":
@@ -326,15 +300,6 @@ export const de: Messages = {
         "mittwald konnte den Aufräum-Cronjob für den Cache nicht anlegen (Status {status}). Die Extension braucht die Cronjob-Scopes.",
     "error.upstream.cronjobUpdate":
         "mittwald konnte den Aufräum-Cronjob für den Cache nicht ändern (Status {status}).",
-    "error.github.unreachable": "GitHub ist nicht erreichbar: {reason}",
-    "error.github.tokenInvalid": "Das GitHub-Token ist ungültig.",
-    "error.github.noAccessRepo":
-        'Das Token darf keine Runner für das Repository {owner}/{repo} verwalten, oder das Repository existiert nicht. Fine-grained PAT: "Administration: Read and write".',
-    "error.github.noAccessOrg":
-        'Das Token darf keine Runner für die Organisation {org} verwalten, oder die Organisation existiert nicht. Fine-grained PAT: "Self-hosted runners: Read and write".',
-    "error.github.status": "GitHub hat mit Status {status} geantwortet.",
-    "error.github.ephemeralNeedsPat":
-        "Ephemerale Runner brauchen ein Personal Access Token. Ein Registrierungs-Token läuft nach einer Stunde ab und kann den Runner nicht neu registrieren.",
     "error.gitlab.tokenInvalid": "Das GitLab-Token ist ungültig.",
     "error.gitlab.instanceUrlInvalid":
         "Die GitLab-URL muss eine öffentliche https-Adresse sein.",

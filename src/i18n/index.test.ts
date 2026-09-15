@@ -24,8 +24,8 @@ describe("i18n", () => {
     });
 
     it("interpolates parameters", () => {
-        expect(translate("de", "error.github.status", { status: 500 })).toBe(
-            "GitHub hat mit Status 500 geantwortet.",
+        expect(translate("de", "error.gitlab.status", { status: 500 })).toBe(
+            "GitLab hat mit Status 500 geantwortet.",
         );
         expect(translate("en", "runners.logs.heading", { name: "ci" })).toBe(
             "Logs: ci",

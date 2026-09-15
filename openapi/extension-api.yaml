@@ -36,8 +36,11 @@ components:
     TokenType:
       type: string
       enum: [registration, pat]
-      description: How the runner authenticated at creation. Decides whether the extension can remove the registration on delete.
-      example: pat
+      description: |
+        How the runner authenticated at creation. Decides whether the extension can remove the
+        registration on delete. GitHub runners created before the PAT mode was disabled still
+        carry `pat`.
+      example: registration
     RunnerStatus:
       type: string
       enum: [running, stopped, error, creating, starting, stopping, unknown, missing]
@@ -58,10 +61,6 @@ components:
           default: mittwald
           description: Comma separated runner labels (GitHub) or tags (GitLab).
           example: mittwald, node
-        ephemeral:
-          type: boolean
-          default: false
-          description: One job per registration. GitHub only and only with tokenType pat; ignored by other providers.
         cache:
           $ref: '#/components/schemas/CacheEnabled'
         cacheSizeGb:
@@ -112,17 +111,17 @@ components:
               $ref: '#/components/schemas/GitHubTarget'
             tokenType:
               type: string
-              enum: [registration, pat]
+              enum: [registration]
               default: registration
               description: |
-                `registration`: the token from the "New self-hosted runner" page on GitHub, valid for one hour
-                and used once to register the container. `pat`: a fine-grained personal access token that
-                may manage self-hosted runners; the container fetches registration and removal tokens with it.
+                The token from the "New self-hosted runner" page on GitHub, valid for one hour and used
+                once to register the container. The PAT mode is disabled because the PAT would live in
+                the runner container where every job can read it.
             token:
               type: string
               minLength: 10
               maxLength: 500
-              description: Registration token or PAT, depending on `tokenType`.
+              description: Registration token from the "New self-hosted runner" page.
               example: AEBIHM56SBF3SULYYYY3BH3KU333M
             runnerGroup:
               type: string
@@ -251,6 +250,7 @@ components:
           example: [mittwald, node]
         ephemeral:
           type: boolean
+          description: One job per registration. Only runners created in the disabled GitHub PAT mode carry true.
         tokenType:
           $ref: '#/components/schemas/TokenType'
         size:

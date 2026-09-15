@@ -1,16 +1,10 @@
-import { RequestError } from "@octokit/request-error";
-import { Octokit } from "@octokit/rest";
 import { getEnvironmentVariables } from "@/env.ts";
-import { ProviderError } from "@/global-errors.ts";
-import { createLogger } from "@/logger.ts";
 import runnerVersions from "../../../docker/runner/versions.json";
 import {
     DATA_VOLUME_MOUNT,
     type ProviderRequest,
     type RunnerProvider,
 } from "./types.ts";
-
-const log = createLogger("github");
 
 type GitHubTarget =
     | { scope: "repo"; owner: string; repo: string; url: string }
@@ -35,71 +29,16 @@ export function parseGitHubTarget(input: string): GitHubTarget {
     return { scope: "org", org: first, url: `${GITHUB_HOST}${first}` };
 }
 
-export async function assertGitHubRunnerAccess(
-    token: string,
-    target: GitHubTarget,
-): Promise<void> {
-    const octokit = new Octokit({
-        auth: token,
-        baseUrl: getEnvironmentVariables().GITHUB_API_URL,
-        userAgent: "mstudio-ci-runner-extension",
-    });
-    const headers = { accept: "application/json" };
-
-    try {
-        if (target.scope === "repo") {
-            await octokit.rest.actions.listSelfHostedRunnersForRepo({
-                owner: target.owner,
-                repo: target.repo,
-                per_page: 1,
-                headers,
-            });
-        } else {
-            await octokit.rest.actions.listSelfHostedRunnersForOrg({
-                org: target.org,
-                per_page: 1,
-                headers,
-            });
-        }
-        log.debug("runner access confirmed", { target: target.url });
-    } catch (error) {
-        log.debug("runner access check failed", {
-            target: target.url,
-            status: error instanceof RequestError ? error.status : undefined,
-            error,
-        });
-        if (!(error instanceof RequestError)) {
-            throw new ProviderError("error.github.unreachable", {
-                reason: (error as Error).message,
-            });
-        }
-        if (error.status === 401) {
-            throw new ProviderError("error.github.tokenInvalid", {}, "token");
-        }
-        if (error.status === 403 || error.status === 404) {
-            throw target.scope === "repo"
-                ? new ProviderError(
-                      "error.github.noAccessRepo",
-                      { owner: target.owner, repo: target.repo },
-                      "token",
-                  )
-                : new ProviderError(
-                      "error.github.noAccessOrg",
-                      { org: target.org },
-                      "token",
-                  );
-        }
-        throw new ProviderError("error.github.status", {
-            status: error.status,
-        });
-    }
-}
-
 /**
- * With a registration token the container registers once and keeps its runner
- * credentials in the data volume, so restarts do not need a new token. With a
- * PAT the container fetches registration and removal tokens itself. Neither
- * mode needs provider-side cleanup.
+ * The container registers once with the registration token and keeps its
+ * runner credentials in the data volume, so restarts do not need a new token.
+ * The token is worthless after one hour and is not stored. Nothing to clean
+ * up on the provider side; GitHub removes an offline runner after 14 days.
+ *
+ * A PAT mode existed and is disabled: the PAT lived in the runner container
+ * where every job can read it. Bringing ephemeral runners back needs the
+ * extension to mint registration tokens server side, see the tracking issue
+ * in docs/providers.md.
  */
 export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
     id: "github",
@@ -108,18 +47,6 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
 
     async prepare(input, runnerName) {
         const target = parseGitHubTarget(input.target);
-        const tokenType = input.tokenType ?? "registration";
-        const ephemeral = input.ephemeral ?? false;
-        if (tokenType === "registration" && ephemeral) {
-            throw new ProviderError(
-                "error.github.ephemeralNeedsPat",
-                {},
-                "ephemeral",
-            );
-        }
-        if (tokenType === "pat") {
-            await assertGitHubRunnerAccess(input.token, target);
-        }
         const env = getEnvironmentVariables();
 
         const environment: Record<string, string> = {
@@ -127,18 +54,12 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
             GITHUB_API: env.GITHUB_API_URL,
             RUNNER_NAME: runnerName,
             RUNNER_LABELS: input.labels ?? "mittwald",
-            RUNNER_EPHEMERAL: ephemeral ? "true" : "false",
+            RUNNER_TOKEN: input.token,
+            RUNNER_EPHEMERAL: "false",
         };
-        if (tokenType === "pat") {
-            environment.GITHUB_TOKEN = input.token;
-        } else {
-            environment.RUNNER_TOKEN = input.token;
-        }
         if (input.runnerGroup) {
             environment.RUNNER_GROUP = input.runnerGroup;
         }
-        const credentials: Record<string, string> =
-            tokenType === "pat" ? { token: input.token } : {};
 
         return {
             target: target.url.replace(GITHUB_HOST, ""),
@@ -146,10 +67,10 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
             image: env.RUNNER_IMAGE_GITHUB,
             runnerVersion: runnerVersions.github.version,
             environment,
-            credentials,
+            credentials: {},
             volumes: [DATA_VOLUME_MOUNT],
             labels: input.labels ?? "mittwald",
-            ephemeral,
+            ephemeral: false,
         };
     },
 

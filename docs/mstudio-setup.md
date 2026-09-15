@@ -41,17 +41,10 @@ Default: the setup command from GitHub. Open *Settings → Actions → Runners �
 self-hosted runner* for the repository or organization and paste the
 `./config.sh --url ... --token ...` line into the form; it reads target and registration
 token from it. The token expires after one hour and is used once; the container keeps
-the registration in the data volume. Ephemeral runners are not possible with it.
+the registration in the data volume. No PAT is involved.
 
-Alternative for ephemeral runners: a fine-grained personal access token:
-
-| Target | Permission |
-|---|---|
-| Repository runner | *Administration: Read and write* on the repository |
-| Organization runner | *Self-hosted runners: Read and write* on the organization |
-
-Classic PATs work as well (`repo` or `admin:org`) but are broader. The token ends up in
-the runner container ([architecture.md](architecture.md#security)).
+Ephemeral runners and the PAT mode are disabled, see
+[providers.md](providers.md#existing-providers).
 
 ### GitLab
 

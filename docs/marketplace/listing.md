@@ -48,8 +48,8 @@ Nach unter einer Minute nimmt der Runner Jobs an.
 
 ## Features
 
-- **GitHub Actions:** Repositorys und Organisationen, Registrierungs-Token
-  oder fine-grained PAT, auf Wunsch ephemere Runner
+- **GitHub Actions:** Repositorys und Organisationen, Registrierung mit dem
+  Befehl von der "New self-hosted runner"-Seite
 - **GitLab CI:** Projekte, Gruppen oder ganze Instanzen, gitlab.com und
   self-hosted, mehrere Jobs gleichzeitig pro Runner
 - **Größen:** Presets von Small bis Large plus frei wählbare CPU- und
@@ -58,15 +58,17 @@ Nach unter einer Minute nimmt der Runner Jobs an.
   Composer, Go) mit automatischem Aufräum-Cronjob
 - **Verwaltung:** Logs, Neustart, Einstellungen und Updates direkt in
   mStudio, inklusive Update-Hinweis und Changelog
-- **Sicherheit:** Bei GitHub werden Registrierungs-Tokens nicht gespeichert, PATs
-  liegen verschlüsselt vor. Bei GitLab liegt der Runner-Token verschlüsselt vor, ein
-  PAT nutzt die Extension nur einmal zum Anlegen des Runners und speichert ihn nicht
+- **Sicherheit:** Bei GitHub werden Registrierungs-Tokens nicht gespeichert. Bei
+  GitLab liegt der Runner-Token verschlüsselt vor, ein PAT nutzt die Extension nur
+  einmal zum Anlegen des Runners und speichert ihn nicht
 
 ## Gut zu wissen
 
 Die Runner laufen ohne Docker-Daemon: Jobs laufen direkt auf Ubuntu 24.04,
 die Keywords `container:` und `services:` funktionieren nicht. Pakete lassen
-sich per `sudo apt-get` nachinstallieren.
+sich per `sudo apt-get` nachinstallieren. Jobs laufen mit sudo-Rechten im
+Container, nutze daher einen Runner pro Vertrauensbereich und lass keine
+fremden Pull Requests darauf laufen.
 
 Die Extension ist Open Source (MIT):
 [github.com/Hermsi1337/mstudio-ci-runner-extension](https://github.com/Hermsi1337/mstudio-ci-runner-extension)
@@ -90,8 +92,8 @@ The runner picks up jobs in under a minute.
 
 ## Features
 
-- **GitHub Actions:** repositories and organizations, registration token or
-  fine-grained PAT, ephemeral runners on demand
+- **GitHub Actions:** repositories and organizations, registration with the
+  command from the "New self-hosted runner" page
 - **GitLab CI:** projects, groups or whole instances, gitlab.com and
   self-hosted, several concurrent jobs per runner
 - **Sizes:** presets from small to large plus custom CPU and RAM limits
@@ -99,15 +101,16 @@ The runner picks up jobs in under a minute.
   Composer, Go) with an automatic cleanup cronjob
 - **Management:** logs, restart, settings and updates inside mStudio,
   including an update hint and a changelog
-- **Security:** for GitHub, registration tokens are never stored and PATs are stored
-  encrypted. For GitLab, the runner token is stored encrypted; a PAT is used once to
-  create the runner and never stored
+- **Security:** for GitHub, registration tokens are never stored. For GitLab, the
+  runner token is stored encrypted; a PAT is used once to create the runner and never
+  stored
 
 ## Good to know
 
 The runners run without a Docker daemon: jobs run directly on Ubuntu 24.04,
 the `container:` and `services:` keywords do not work. Packages can be
-installed with `sudo apt-get`.
+installed with `sudo apt-get`. Jobs run with sudo inside the container, so use
+one runner per trust boundary and keep untrusted pull requests off it.
 
 The extension is open source (MIT):
 [github.com/Hermsi1337/mstudio-ci-runner-extension](https://github.com/Hermsi1337/mstudio-ci-runner-extension)
