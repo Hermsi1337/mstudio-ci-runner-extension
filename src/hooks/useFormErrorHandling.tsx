@@ -42,6 +42,11 @@ export function useFormErrorHandling<TFormValues extends FieldValues>(
                 type: "manual",
                 message,
             });
+
+            // Rethrow so the Form reports a failed submit: Flow closes the
+            // surrounding modal after a resolved submit, which unmounted the
+            // alert before anyone could read it.
+            throw error;
         }
     };
 
