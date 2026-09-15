@@ -87,6 +87,18 @@ function studioUrl(row: RunnerRow, serviceId: string | null): string | null {
         : null;
 }
 
+function imageTag(image: string | null): string | null {
+    if (!image) {
+        return null;
+    }
+    const tagSeparator = image.lastIndexOf(":");
+    if (tagSeparator <= image.lastIndexOf("/")) {
+        return null;
+    }
+
+    return image.slice(tagSeparator + 1);
+}
+
 function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
     const provider = getProviderById(row.provider);
     const image = row.image ?? service?.deployedState.image ?? null;
@@ -116,6 +128,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         image,
         runnerVersion: row.runnerVersion ?? null,
         latestRunnerVersion: provider?.runnerVersion ?? "",
+        latestImageVersion: imageTag(currentImage),
         updateAvailable:
             image !== null && currentImage !== null && image !== currentImage,
         createdAt: row.createdAt.toISOString(),

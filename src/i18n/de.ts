@@ -62,7 +62,7 @@ export const de: Messages = {
         "Der Container stoppt und startet neu. Ein Job, der gerade darauf läuft, bricht ab.",
     "runners.update.heading": "{name} aktualisieren?",
     "runners.update.text":
-        "Der Container wird mit Runner-Version {version} neu erstellt. Ein laufender Job bricht ab.",
+        "Der Container wird mit Image-Version {version} neu erstellt. Ein laufender Job bricht ab.",
     "runners.delete.heading": "{name} löschen?",
     "runners.delete.text.github.pat":
         "Entfernt die Registrierung auf GitHub, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab.",

@@ -58,7 +58,7 @@ export const en = {
         "The container stops and starts again. A job that is running on it is aborted.",
     "runners.update.heading": "Update {name}?",
     "runners.update.text":
-        "The container is recreated with runner version {version}. A running job is cancelled.",
+        "The container is recreated with image version {version}. A running job is cancelled.",
     "runners.delete.heading": "Delete {name}?",
     "runners.delete.text.github.pat":
         "Removes the registration on GitHub, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled.",
