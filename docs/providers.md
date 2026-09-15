@@ -37,8 +37,9 @@ involved. `runner.ts` then creates a mittwald service cronjob (stack, service, c
 from `cacheTrimCronjob(sizeGb)` that runs `/usr/local/bin/trim-cache.sh` hourly inside
 the container, stores its id in `runners.cronjobIds` and deletes it with the runner.
 
-`configureRunner` changes cache and concurrency after creation
-(`ConfigureRunnerRequest`: `cache`, `cacheSizeGb`, `concurrency`). `withCache` and `withoutCache` add or strip the cache mount and
+`configureRunner` changes cache, concurrency and resources after creation
+(`ConfigureRunnerRequest`: `cache`, `cacheSizeGb`, `concurrency`, `size`, `cpus`,
+`memoryMb`). `withCache` and `withoutCache` add or strip the cache mount and
 variables from the service state mittwald reports, the stack is redeclared and mittwald
 recreates the container. Turning the cache on creates the cronjob, changing the limit
 patches its command, turning it off deletes the cronjob and the volume

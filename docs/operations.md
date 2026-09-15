@@ -26,7 +26,8 @@ succeeded. Both image workflows use `docker/metadata-action` and tag:
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.337.0`) |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-19.3.1`) |
 
-`workflow_dispatch` builds an image with a `sha-<commit>` tag and without `latest`,
+`workflow_dispatch` builds an image with a `sha-<commit>` tag only, without `latest`
+and without the `runner-<RUNNER_VERSION>` alias, which are both gated to `v*` tag refs,
 e.g. to try a branch.
 
 The extension image receives the version as build arg `EXTENSION_VERSION` (baked in as
@@ -158,8 +159,9 @@ by `requestId` to follow one request across scopes.
 
 Scopes: `startup` (configuration summary, migrations), `db`, `auth` (verified session
 tokens), `server-function` (rejected and failed requests with the message
-key), `runner` (stack lifecycle), `github` and `gitlab` (provider calls), `webhook`
-(received events, instance cleanup). Tokens and environment values of runner
+key), `runner` (runner lifecycle), `stack` (stack lifecycle), `github` and `gitlab`
+(provider calls), `webhook` (received events, instance cleanup), `changelog` (GitHub
+release lookups). Tokens and environment values of runner
 containers are never logged, only the variable names. The hosted stack runs with
 `LOG_LEVEL=info` and `LOG_FORMAT=json` (`deploy/mstudio/stack.yaml`); raise to `debug`
 there for troubleshooting and lower it again afterwards. Logs are visible in mStudio

@@ -121,6 +121,7 @@ openapi/upstream/            slimmed upstream specs (generated): codegen input a
 scripts/slim-openapi.ts      produces openapi/upstream
 scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
 scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
+scripts/generate-encryption-secrets.js  prints values for ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
 src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
 src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
@@ -129,9 +130,12 @@ src/domain/changelog.ts      GitHub releases for the changelog modal, cached in 
 src/version-compare.ts       semver comparison for the update hint of the changelog
 src/domain/providers/        one module per CI provider, registry in index.ts
 src/serverFunctions/         TanStack server functions: validation and delegation only
+src/ghosts.ts                server-function clients bundled for the UI (react-ghostmaker)
 src/components/              Flow remote React components (UI inside mStudio)
+src/hooks/                   React hooks: useNotify (toasts), useFormErrorHandling (form-level errors)
 src/routes/                  TanStack Router routes (/ inside mStudio), webhook endpoint
 src/middleware/              session token verification, access token, error handling
+src/server/                  nitro plugin that runs database migrations on startup
 src/logger.ts                logger with scopes, LOG_LEVEL and LOG_FORMAT
 src/runner-sizes.ts          size presets and limits, shared by domain and UI
 src/mittwald/client.ts       factory for the mittwald API client (configurable base URL)
@@ -154,7 +158,8 @@ Everything else lives in a subdirectory.
 - Domain code in `src/domain/` receives the `MittwaldAPIV2Client` as a parameter and
   never creates it, so it stays testable against mock servers.
 - Errors reach the client only through subclasses of `PublicError`
-  (`src/global-errors.ts`). Unknown errors are mapped to a generic 500 by the middleware.
+  (`src/global-errors.ts`). Unknown errors become a generic localized error body that
+  the client reads through `parsePublicError`.
 - Logging only through `createLogger(scope)` from `src/logger.ts`, never `console`.
   Server code logs state changes at `info`, lookups and request details at `debug`,
   handled failures at `warn`, unexpected ones at `error`. Never log tokens, secrets or
