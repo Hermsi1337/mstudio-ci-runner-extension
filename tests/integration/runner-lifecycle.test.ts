@@ -404,6 +404,24 @@ describe("shared stacks", () => {
 });
 
 describe("input validation", () => {
+    it("rejects a create for an unknown extension instance", async () => {
+        await expect(
+            runner.createRunner(
+                client,
+                "99999999-9999-9999-9999-999999999999",
+                projectId,
+                userId,
+                {
+                    provider: "github",
+                    name: "orphaned",
+                    target: "acme/app",
+                    tokenType: "registration",
+                    token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+                },
+            ),
+        ).rejects.toMatchObject({ messageKey: "error.instance.unknown" });
+    });
+
     it("rejects an ephemeral GitHub runner with a registration token", async () => {
         await expect(
             runner.createRunner(

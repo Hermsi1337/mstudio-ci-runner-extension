@@ -56,16 +56,29 @@ export async function findOrCreateStack(
             status: created.status,
         });
     }
-    const [inserted] = await getDatabase()
-        .insert(runnerStacks)
-        .values({
+    let inserted: RunnerStackRow | undefined;
+    try {
+        [inserted] = await getDatabase()
+            .insert(runnerStacks)
+            .values({
+                stackId: created.data.id,
+                extensionInstanceId,
+                projectId,
+                targetUrl,
+            })
+            .onConflictDoNothing()
+            .returning();
+    } catch (insertError) {
+        log.warn("persisting the stack failed, deleting it again", {
             stackId: created.data.id,
-            extensionInstanceId,
-            projectId,
             targetUrl,
-        })
-        .onConflictDoNothing()
-        .returning();
+        });
+        await client.container
+            .deleteStack({ stackId: created.data.id })
+            .catch(() => undefined);
+
+        throw insertError;
+    }
     if (inserted) {
         log.info("stack created", { stackId: inserted.stackId, targetUrl });
         return inserted;

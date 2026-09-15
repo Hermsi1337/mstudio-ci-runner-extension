@@ -289,6 +289,8 @@ export const de: Messages = {
     "error.unexpected": "Ein unerwarteter Fehler ist aufgetreten",
     "error.permissions":
         "Nicht genug Berechtigungen. Entweder darfst du in diesem Projekt keine Container verwalten oder der Extension fehlt ein Scope (stack:read, stack:write, stack:delete).",
+    "error.instance.unknown":
+        "Diese Installation ist der Extension noch nicht bekannt. Installiere die Extension in mStudio neu und versuch es dann noch mal.",
     "error.notFound.runner": "Der Runner wurde nicht gefunden.",
     "error.notFound.runnerContainer":
         "Der Runner-Container wurde nicht gefunden.",
