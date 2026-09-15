@@ -19,10 +19,6 @@ export const de: Messages = {
     "app.dockerNotice.text":
         "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon.\n\n**Geht nicht**\n\n- GitHub Actions: `container:`, `services:`, `docker build`, Docker-Container-Actions\n- GitLab CI: `image:`, `services:`, alles was `docker` aufruft\n\n**Geht**\n\n- Jobs direkt auf Ubuntu 24.04: Node über `actions/setup-node`, Python, `build-essential`\n- `git`, `curl`, `rsync`, SSH-Deploys\n- Pakete nachinstallieren mit `sudo apt-get`",
 
-    "local.heading": "Lokaler Modus",
-    "local.text":
-        "Diese Seite läuft außerhalb von mStudio. Anfragen nutzen LOCAL_API_TOKEN gegen das Projekt LOCAL_PROJECT_ID. In Produktion nicht verfügbar.",
-
     "runners.heading": "Runner",
     "runners.intro.heading": "So arbeiten Runner",
     "runners.intro":

@@ -43,8 +43,7 @@ the [README](README.md), details in [docs/](docs/README.md).
 11. **Writing style.** All text, in every language, follows the rules below.
 12. **UI follows the style guide.** Every screen, modal, list and text in mStudio
     follows [docs/styleguide.md](docs/styleguide.md): Flow components only, one
-    layout for every width, no text without a container, tested in local mode and
-    inside mStudio.
+    layout for every width, no text without a container, tested inside mStudio.
 
 ## Writing style
 
@@ -93,7 +92,7 @@ Checklist before every commit:
 - New or changed user-facing text: both catalogs in `src/i18n/`, `docs/i18n.md` if the
   mechanism changes.
 - New or changed screen, modal or component pattern: `docs/styleguide.md`, screenshots
-  at 1440, 1024, 768 and 414 px in local mode and inside mStudio.
+  at 1440, 1024, 768 and 414 px inside mStudio.
 - Change to specs or generators: `docs/codegen.md`.
 - New test or new container in tests: `docs/testing.md`.
 - New directory or moved module: `docs/architecture.md` and the structure below.
@@ -108,7 +107,6 @@ and in the table above.
 
 ```
 config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts); scripts pass them via --config
-config/local-host-plugin.ts  Vite plugin serving the UI with DOM-rendering Flow components under the local: prefix
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
 docker/runner/common/        scripts shared by all runner images (trim-cache.sh)
@@ -131,9 +129,8 @@ src/version-compare.ts       semver comparison for the update hint of the change
 src/domain/providers/        one module per CI provider, registry in index.ts
 src/serverFunctions/         TanStack server functions: validation and delegation only
 src/components/              Flow remote React components (UI inside mStudio)
-src/routes/                  TanStack Router routes (/ inside mStudio, /local without), webhook endpoint
-src/middleware/              session token verification, access token, local mode, error handling
-src/local-mode.ts            client-side flag that switches the middleware to local mode
+src/routes/                  TanStack Router routes (/ inside mStudio), webhook endpoint
+src/middleware/              session token verification, access token, error handling
 src/logger.ts                logger with scopes, LOG_LEVEL and LOG_FORMAT
 src/runner-sizes.ts          size presets and limits, shared by domain and UI
 src/mittwald/client.ts       factory for the mittwald API client (configurable base URL)

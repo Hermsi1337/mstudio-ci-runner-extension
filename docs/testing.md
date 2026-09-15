@@ -6,7 +6,7 @@ Vitest with two projects (`config/vitest.config.ts`):
 
 | Project | Files | Command |
 |---|---|---|
-| `unit` | `src/**/*.test.ts`, `config/**/*.test.ts` (i18n catalog checks, logger, local host plugin rewrite) | `pnpm run test` |
+| `unit` | `src/**/*.test.ts`, `config/**/*.test.ts` (i18n catalog checks, logger, version compare, error mapping) | `pnpm run test` |
 | `integration` | `tests/integration/**/*.test.ts` | `pnpm run test:integration` |
 
 Integration tests start their dependencies themselves with

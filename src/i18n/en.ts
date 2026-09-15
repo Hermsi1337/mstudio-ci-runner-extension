@@ -16,10 +16,6 @@ export const en = {
     "app.dockerNotice.text":
         "Runners run on mittwald Container Hosting without a Docker daemon.\n\n**Fails**\n\n- GitHub Actions: `container:`, `services:`, `docker build`, Docker container actions\n- GitLab CI: `image:`, `services:`, anything that calls `docker`\n\n**Works**\n\n- Jobs that run directly on Ubuntu 24.04: Node via `actions/setup-node`, Python, `build-essential`\n- `git`, `curl`, `rsync`, SSH deploys\n- Installing packages with `sudo apt-get`",
 
-    "local.heading": "Local mode",
-    "local.text":
-        "This page runs outside mStudio. Requests use LOCAL_API_TOKEN against the project LOCAL_PROJECT_ID. Not available in production.",
-
     "runners.heading": "Runners",
     "runners.intro.heading": "How runners work",
     "runners.intro":

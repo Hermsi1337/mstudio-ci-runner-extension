@@ -13,7 +13,6 @@ export default definePlugin(async () => {
         mittwaldApiUrl: env.MITTWALD_API_URL,
         runnerImageGithub: env.RUNNER_IMAGE_GITHUB,
         runnerImageGitlab: env.RUNNER_IMAGE_GITLAB,
-        localMode: Boolean(env.LOCAL_API_TOKEN && env.LOCAL_PROJECT_ID),
     });
 
     if (!env.RUN_MIGRATIONS_ON_STARTUP) {
