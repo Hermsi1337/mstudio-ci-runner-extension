@@ -13,7 +13,7 @@ interface MissingEnvCase {
 }
 
 interface ImageCase {
-    provider: string;
+    provider: keyof typeof runnerVersions;
     environment: Record<string, string>;
     waitFor: RegExp;
     expectLog: string;
@@ -87,10 +87,11 @@ describe.each(images)("runner image: $provider", (image) => {
             `${image.provider}/Dockerfile`,
         )
             .withBuildArgs({
-                RUNNER_VERSION:
-                    runnerVersions[
-                        image.provider as keyof typeof runnerVersions
-                    ],
+                RUNNER_VERSION: runnerVersions[image.provider].version,
+                RUNNER_SHA256_AMD64:
+                    runnerVersions[image.provider].sha256.amd64,
+                RUNNER_SHA256_ARM64:
+                    runnerVersions[image.provider].sha256.arm64,
             })
             .build(tag, { deleteOnExit: false });
 
@@ -144,8 +145,7 @@ describe.each(images)("runner image: $provider", (image) => {
             ])
             .start();
         try {
-            const expectedVersion =
-                runnerVersions[image.provider as keyof typeof runnerVersions];
+            const expectedVersion = runnerVersions[image.provider].version;
             const probe = await container.exec([
                 "bash",
                 "-c",

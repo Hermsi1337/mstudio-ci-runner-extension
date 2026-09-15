@@ -3,6 +3,8 @@ ARG RUNNER_VERSION
 FROM ubuntu:24.04
 
 ARG RUNNER_VERSION
+ARG RUNNER_SHA256_AMD64
+ARG RUNNER_SHA256_ARM64
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-runner-extension" \
@@ -23,12 +25,13 @@ RUN useradd --create-home --home-dir ${RUNNER_HOME} --shell /bin/bash runner \
     && echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/runner
 
 RUN case "${TARGETARCH:-$(uname -m)}" in \
-        amd64|x86_64) ARCH=amd64 ;; \
-        arm64|aarch64) ARCH=arm64 ;; \
+        amd64|x86_64) ARCH=amd64; SHA256="${RUNNER_SHA256_AMD64:?RUNNER_SHA256_AMD64 is required}" ;; \
+        arm64|aarch64) ARCH=arm64; SHA256="${RUNNER_SHA256_ARM64:?RUNNER_SHA256_ARM64 is required}" ;; \
         *) echo "unsupported arch ${TARGETARCH:-$(uname -m)}" && exit 1 ;; \
     esac \
     && curl -fsSL -o /usr/local/bin/gitlab-runner \
         "https://gitlab-runner-downloads.s3.amazonaws.com/v${RUNNER_VERSION}/binaries/gitlab-runner-linux-${ARCH}" \
+    && echo "${SHA256}  /usr/local/bin/gitlab-runner" | sha256sum -c - \
     && chmod +x /usr/local/bin/gitlab-runner \
     && mkdir -p ${RUNNER_HOME}/.gitlab-runner ${RUNNER_HOME}/data/builds ${RUNNER_HOME}/data/cache \
     && chown -R runner:runner ${RUNNER_HOME}

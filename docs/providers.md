@@ -10,7 +10,7 @@ deletion) is shared.
 
 | Method | Responsibility |
 |---|---|
-| `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` |
+| `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` (`<provider>.version`) |
 | `currentImage()` | Image this extension release creates runners with (`RUNNER_IMAGE_<PROVIDER>`) |
 | `concurrencyVariable` | Optional. Environment variable for the number of jobs the runner takes at once (`RUNNER_CONCURRENT` for GitLab). Without it the runner takes one job at a time and `concurrency` is stored as 1 |
 | `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes, the labels to show and the credentials to store |
@@ -71,8 +71,8 @@ Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
    `pnpm run spec:update`, add a job to `config/openapi-ts.config.ts`, run `pnpm run codegen`.
 3. `src/domain/providers/<name>.ts` implementing `RunnerProvider<ProviderRequest<"<name>">>`,
    registered in `index.ts`.
-4. `RUNNER_IMAGE_<NAME>` in `src/env.ts`, `tests/helpers/env.ts`; runner version in
-   `docker/runner/versions.json`.
+4. `RUNNER_IMAGE_<NAME>` in `src/env.ts`, `tests/helpers/env.ts`; runner version and
+   binary checksums in `docker/runner/versions.json`.
 5. Image under `docker/runner/<name>/` ([runner-image.md](runner-image.md)), matrix entry
    in `.github/workflows/runner-image.yml`.
 6. Form fields in `src/components/runners/RunnerForm.tsx`, initials and filter value in

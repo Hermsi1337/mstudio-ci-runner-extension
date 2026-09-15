@@ -169,8 +169,16 @@ under the container `extension`.
 
 ## Bumping the runner version
 
-1. Raise the version in `docker/runner/versions.json`.
-2. `pnpm run test:integration`.
+1. Raise `<provider>.version` in `docker/runner/versions.json` and replace the two
+   `sha256` values. GitHub publishes them in the release notes of
+   [actions/runner](https://github.com/actions/runner/releases) (`linux-x64` and
+   `linux-arm64`); GitLab in `release.sha256` next to the binaries:
+
+   ```bash
+   curl -fsSL "https://gitlab-runner-downloads.s3.amazonaws.com/v${VERSION}/release.sha256" | grep -E 'binaries/gitlab-runner-linux-(amd64|arm64)$'
+   ```
+
+2. `pnpm run test:integration`. The image build fails when a checksum does not match.
 3. Push a tag. Existing runners show an update in the UI once the new extension release
    is deployed; *Update* moves them to the new image. Running GitHub runners also update
    themselves unless `DISABLE_AUTO_UPDATE` is set.

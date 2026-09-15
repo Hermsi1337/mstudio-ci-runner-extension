@@ -302,7 +302,7 @@ async function createRunnerWithPat(
  */
 export const gitlabProvider: RunnerProvider<GitLabRequest> = {
     id: "gitlab",
-    runnerVersion: runnerVersions.gitlab,
+    runnerVersion: runnerVersions.gitlab.version,
     concurrencyVariable: "RUNNER_CONCURRENT",
     currentImage: () => getEnvironmentVariables().RUNNER_IMAGE_GITLAB,
 
@@ -318,7 +318,7 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
             target: registration.target,
             targetUrl: registration.targetUrl,
             image: env.RUNNER_IMAGE_GITLAB,
-            runnerVersion: runnerVersions.gitlab,
+            runnerVersion: runnerVersions.gitlab.version,
             environment: {
                 CI_SERVER_URL: instanceUrl,
                 CI_SERVER_TOKEN: registration.runnerToken,

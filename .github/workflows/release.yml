@@ -52,8 +52,8 @@ jobs:
       - name: Build the image table for the release notes
         run: |
           version="${GITHUB_REF_NAME#v}"
-          github_runner="$(jq -r .github docker/runner/versions.json)"
-          gitlab_runner="$(jq -r .gitlab docker/runner/versions.json)"
+          github_runner="$(jq -r .github.version docker/runner/versions.json)"
+          gitlab_runner="$(jq -r .gitlab.version docker/runner/versions.json)"
           {
             echo "## Images"
             echo

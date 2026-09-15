@@ -103,7 +103,7 @@ export async function assertGitHubRunnerAccess(
  */
 export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
     id: "github",
-    runnerVersion: runnerVersions.github,
+    runnerVersion: runnerVersions.github.version,
     currentImage: () => getEnvironmentVariables().RUNNER_IMAGE_GITHUB,
 
     async prepare(input, runnerName) {
@@ -144,7 +144,7 @@ export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
             target: target.url.replace(GITHUB_HOST, ""),
             targetUrl: target.url,
             image: env.RUNNER_IMAGE_GITHUB,
-            runnerVersion: runnerVersions.github,
+            runnerVersion: runnerVersions.github.version,
             environment,
             credentials,
             volumes: [DATA_VOLUME_MOUNT],

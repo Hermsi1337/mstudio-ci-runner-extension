@@ -20,9 +20,14 @@ jobs:
             image: ghcr.io/hermsi1337/mstudio-ci-runner-gitlab
     steps:
       - uses: actions/checkout@v7
-      - name: Read the runner version from docker/runner/versions.json
+      - name: Read the runner version and checksums from docker/runner/versions.json
         id: runner
-        run: echo "version=$(jq -r '.${{ matrix.provider }}' docker/runner/versions.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          {
+            echo "version=$(jq -r '.${{ matrix.provider }}.version' docker/runner/versions.json)"
+            echo "sha256_amd64=$(jq -r '.${{ matrix.provider }}.sha256.amd64' docker/runner/versions.json)"
+            echo "sha256_arm64=$(jq -r '.${{ matrix.provider }}.sha256.arm64' docker/runner/versions.json)"
+          } >> "$GITHUB_OUTPUT"
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4
@@ -48,6 +53,8 @@ jobs:
           push: true
           build-args: |
             RUNNER_VERSION=${{ steps.runner.outputs.version }}
+            RUNNER_SHA256_AMD64=${{ steps.runner.outputs.sha256_amd64 }}
+            RUNNER_SHA256_ARM64=${{ steps.runner.outputs.sha256_arm64 }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.provider }}
