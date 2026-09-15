@@ -119,8 +119,7 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                 heading={t("runners.update.heading", { name: runner.name })}
                 text={t("runners.update.text", {
                     version:
-                        runner.latestImageVersion ??
-                        runner.latestRunnerVersion,
+                        runner.latestImageVersion ?? runner.latestRunnerVersion,
                 })}
                 confirmLabel={t("runners.action.update")}
                 onConfirm={() =>

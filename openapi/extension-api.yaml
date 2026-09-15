@@ -316,3 +316,43 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Runner'
+    Release:
+      type: object
+      required: [version, publishedAt, notes, url]
+      properties:
+        version:
+          type: string
+          description: Extension version of the release, the tag without the leading `v`.
+          example: 0.2.0
+        publishedAt:
+          type: string
+          format: date-time
+          example: 2026-09-15T10:00:00Z
+        notes:
+          type: string
+          description: Release notes as Markdown.
+          example: "## Features\n- New provider"
+        url:
+          type: string
+          format: uri
+          description: Release page on GitHub.
+          example: https://github.com/Hermsi1337/mstudio-ci-runner-extension/releases/tag/v0.2.0
+    Changelog:
+      type: object
+      required: [currentVersion, latestVersion, updateAvailable, releases]
+      properties:
+        currentVersion:
+          type: string
+          description: Version of the running extension.
+          example: 0.1.0
+        latestVersion:
+          type: [string, 'null']
+          description: Version of the newest release on GitHub. Null when no release is visible.
+          example: 0.2.0
+        updateAvailable:
+          type: boolean
+          description: True when the newest release is newer than the running extension.
+        releases:
+          type: array
+          items:
+            $ref: '#/components/schemas/Release'

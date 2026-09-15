@@ -43,6 +43,7 @@ on import, so tests import them after the containers started via `await import(.
 | `database.test.ts` | Migrations, encrypted column `credentials`, cascade delete |
 | `runner-lifecycle.test.ts` | Per provider case (GitHub repo, GitLab project, GitLab instance): `createRunner` → `listRunners` → logs/restart → settings → `deleteRunner` against the Prism mocks; two runners sharing a stack; tenant isolation; input errors |
 | `runner-image.test.ts` | Per image: builds with `RUNNER_VERSION` from `docker/runner/versions.json`, entrypoint reaches registration with the configured values, runs as user `runner`, passes the probe suite, entrypoint rejects missing required variables with a clear message |
+| `changelog.test.ts` | `getChangelog` against the GitHub Prism mock: releases parsed and validated, second call served from the cache |
 
 Prism answers with the static examples of the upstream spec: every `createStack` returns
 the same stack id and every stack reports the same example service. The domain matches

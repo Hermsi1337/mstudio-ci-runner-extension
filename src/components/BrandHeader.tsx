@@ -1,13 +1,44 @@
 import {
     AccentBox,
     Badge,
+    Button,
     Flex,
     Heading,
     Image,
     Text,
+    useOverlayController,
 } from "@mittwald/flow-remote-react-components";
+import { Suspense } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import logo from "@/assets/logo.svg?inline";
+import { ChangelogModal } from "@/components/ChangelogModal.tsx";
+import { ChangelogClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
+
+const ChangelogAction = () => {
+    const t = useTranslation();
+    const controller = useOverlayController("Modal", {
+        reuseControllerFromContext: false,
+    });
+    const { value: changelog } = ChangelogClientGhost.getChangelog(
+        {},
+    ).useGhost();
+    return (
+        <Flex align="center" gap="xs" wrap="wrap">
+            {changelog.updateAvailable && changelog.latestVersion && (
+                <Badge color="blue">
+                    {t("changelog.updateAvailable", {
+                        version: changelog.latestVersion,
+                    })}
+                </Badge>
+            )}
+            <Button color="secondary" variant="soft" onPress={controller.open}>
+                {t("changelog.action")}
+            </Button>
+            <ChangelogModal changelog={changelog} controller={controller} />
+        </Flex>
+    );
+};
 
 /**
  * The logo is inlined as a data URI because the remote UI renders inside
@@ -30,6 +61,11 @@ export const BrandHeader = () => {
                         <Badge color="light">{t("brand.openSource")}</Badge>
                     </Flex>
                 </Flex>
+                <ErrorBoundary fallbackRender={() => null}>
+                    <Suspense fallback={null}>
+                        <ChangelogAction />
+                    </Suspense>
+                </ErrorBoundary>
             </Flex>
         </AccentBox>
     );

@@ -3,6 +3,13 @@ export const en = {
     "brand.tagline":
         "Self-hosted CI runners on mittwald Container Hosting, managed from this project.",
     "brand.openSource": "Open source",
+    "changelog.action": "Changelog",
+    "changelog.heading": "Changelog",
+    "changelog.updateAvailable": "Version {version} available",
+    "changelog.installed": "Installed",
+    "changelog.github": "View on GitHub",
+    "changelog.empty.heading": "No releases yet",
+    "changelog.empty.text": "GitHub returned no releases. Try again later.",
     "app.title": "CI Runners",
     "app.dockerNotice.title": "No Docker inside runners",
     "app.dockerNotice.text":

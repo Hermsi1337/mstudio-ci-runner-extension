@@ -48,6 +48,7 @@ const sources: Source[] = [
             "/orgs/{org}/actions/runners/registration-token",
             "/repos/{owner}/{repo}/actions/runners/remove-token",
             "/orgs/{org}/actions/runners/remove-token",
+            "/repos/{owner}/{repo}/releases",
         ],
     },
     {

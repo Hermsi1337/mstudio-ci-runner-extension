@@ -5,6 +5,14 @@ export const de: Messages = {
     "brand.tagline":
         "Selbst gehostete CI-Runner auf mittwald Container Hosting, verwaltet aus diesem Projekt.",
     "brand.openSource": "Open Source",
+    "changelog.action": "Changelog",
+    "changelog.heading": "Changelog",
+    "changelog.updateAvailable": "Version {version} verfügbar",
+    "changelog.installed": "Installiert",
+    "changelog.github": "Auf GitHub ansehen",
+    "changelog.empty.heading": "Noch keine Releases",
+    "changelog.empty.text":
+        "GitHub hat keine Releases geliefert. Versuch es später noch mal.",
     "app.title": "CI Runner",
     "app.dockerNotice.title": "Kein Docker in den Runnern",
     "app.dockerNotice.text":
