@@ -156,8 +156,23 @@ export const zRunner = z.object({
     image: z.string().nullable(),
     runnerVersion: z.string().nullable(),
     latestRunnerVersion: z.string(),
+    latestImageVersion: z.string().nullable(),
     updateAvailable: z.boolean(),
     createdAt: z.iso.datetime()
 });
 
 export const zRunnerList = z.array(zRunner);
+
+export const zRelease = z.object({
+    version: z.string(),
+    publishedAt: z.iso.datetime(),
+    notes: z.string(),
+    url: z.url()
+});
+
+export const zChangelog = z.object({
+    currentVersion: z.string(),
+    latestVersion: z.string().nullable(),
+    updateAvailable: z.boolean(),
+    releases: z.array(zRelease)
+});

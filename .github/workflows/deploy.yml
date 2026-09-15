@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   workflow_run:
-    workflows: ["Extension image"]
+    workflows: ["Release"]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -29,20 +29,6 @@ jobs:
         env:
           REF: ${{ inputs.version || github.event.workflow_run.head_branch }}
         run: echo "version=${REF#v}" >> "$GITHUB_OUTPUT"
-      - name: Wait for the runner images of this tag
-        if: github.event_name == 'workflow_run'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.workflow_run.head_branch }}
-        run: |
-          while true; do
-            run="$(gh run list --workflow runner-image.yml --branch "$TAG" --limit 1 --json status,conclusion --jq '.[0] | "\(.status)/\(.conclusion)"')"
-            case "$run" in
-              completed/success) exit 0 ;;
-              completed/*) echo "runner-image.yml for $TAG ended with $run"; exit 1 ;;
-              *) sleep 20 ;;
-            esac
-          done
       - uses: mittwald/deploy-container-action@v1
         env:
           EXTENSION_VERSION: ${{ steps.version.outputs.version }}

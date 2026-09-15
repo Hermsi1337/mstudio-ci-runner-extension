@@ -149,7 +149,7 @@ export const ConfigureRunnerModal = ({
 }) => {
     const t = useTranslation();
     return (
-        <Modal size="m" controller={controller}>
+        <Modal offCanvas size="m" controller={controller}>
             <Heading>
                 {t("form.configure.heading", { name: runner.name })}
             </Heading>

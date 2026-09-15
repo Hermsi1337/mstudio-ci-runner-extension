@@ -79,7 +79,9 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                         <IconUpload />
                         <Text>
                             {t("runners.version.updateAvailable", {
-                                version: runner.latestRunnerVersion,
+                                version:
+                                    runner.latestImageVersion ??
+                                    runner.latestRunnerVersion,
                             })}
                         </Text>
                     </MenuItem>
@@ -116,7 +118,8 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                 color="primary"
                 heading={t("runners.update.heading", { name: runner.name })}
                 text={t("runners.update.text", {
-                    version: runner.latestRunnerVersion,
+                    version:
+                        runner.latestImageVersion ?? runner.latestRunnerVersion,
                 })}
                 confirmLabel={t("runners.action.update")}
                 onConfirm={() =>

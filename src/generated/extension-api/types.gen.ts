@@ -236,6 +236,10 @@ export type Runner = {
      */
     latestRunnerVersion: string;
     /**
+     * Tag of the runner image this extension release ships, e.g. `0.2.0`. Null when the configured image has no tag.
+     */
+    latestImageVersion: string | null;
+    /**
      * True when the runner runs an older image than the one this extension release ships.
      */
     updateAvailable: boolean;
@@ -243,3 +247,35 @@ export type Runner = {
 };
 
 export type RunnerList = Array<Runner>;
+
+export type Release = {
+    /**
+     * Extension version of the release, the tag without the leading `v`.
+     */
+    version: string;
+    publishedAt: string;
+    /**
+     * Release notes as Markdown.
+     */
+    notes: string;
+    /**
+     * Release page on GitHub.
+     */
+    url: string;
+};
+
+export type Changelog = {
+    /**
+     * Version of the running extension.
+     */
+    currentVersion: string;
+    /**
+     * Version of the newest release on GitHub. Null when no release is visible.
+     */
+    latestVersion: string | null;
+    /**
+     * True when the newest release is newer than the running extension.
+     */
+    updateAvailable: boolean;
+    releases: Array<Release>;
+};

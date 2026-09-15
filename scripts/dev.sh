@@ -17,6 +17,12 @@ trap stop EXIT INT TERM
 
 until docker exec mstudio-ci-runner-db pg_isready -q 2>/dev/null; do sleep 1; done
 
-setsid pnpm run dev &
+# macOS ships no setsid binary; perl's POSIX::setsid gives the dev server its
+# own process group there, so stop() can kill the whole tree either way.
+if command -v setsid >/dev/null 2>&1; then
+    setsid pnpm run dev &
+else
+    perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' -- pnpm run dev &
+fi
 dev_pid=$!
 wait "$dev_pid" || true

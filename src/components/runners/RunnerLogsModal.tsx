@@ -71,7 +71,7 @@ export const RunnerLogsModal = ({
         runner.status === "creating" || runner.status === "starting",
     );
     return (
-        <Modal size="l" controller={controller}>
+        <Modal offCanvas size="l" controller={controller}>
             <Heading>
                 {t("runners.logs.heading", { name: runner.name })}
             </Heading>

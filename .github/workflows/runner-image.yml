@@ -1,8 +1,7 @@
 name: Runner images
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_call:
   workflow_dispatch:
 
 jobs:

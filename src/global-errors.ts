@@ -111,3 +111,52 @@ export class UpstreamError extends PublicError {
         super(messageKey, params, { statusCode: 502, isRetryable: true });
     }
 }
+
+const upstreamValidationSchema = z.object({
+    message: z.string().optional(),
+    validationErrors: z
+        .array(
+            z.object({
+                message: z.string().optional(),
+                path: z.string().optional(),
+            }),
+        )
+        .optional(),
+});
+
+/**
+ * mittwald answers a rejected stack declaration with its validation errors.
+ * The one users actually hit is an image reference the platform cannot pull
+ * (private or missing package), so that case gets its own message; everything
+ * else surfaces the upstream text as detail.
+ */
+export function stackDeclareError(
+    status: number,
+    body: unknown,
+): UpstreamError {
+    const parsed = upstreamValidationSchema.safeParse(body);
+    if (parsed.success) {
+        const imageError = parsed.data.validationErrors?.find(
+            (validationError) => validationError.path === "imageReference",
+        );
+        if (imageError) {
+            const image = /'([^']+)'/.exec(imageError.message ?? "")?.[1];
+            if (image) {
+                return new UpstreamError("error.upstream.imageMissing", {
+                    image,
+                });
+            }
+        }
+        if (parsed.data.message) {
+            return new UpstreamError("error.upstream.stackDeclare", {
+                status,
+                detail: parsed.data.message,
+            });
+        }
+    }
+
+    return new UpstreamError("error.upstream.stackDeclare", {
+        status,
+        detail: "",
+    });
+}
