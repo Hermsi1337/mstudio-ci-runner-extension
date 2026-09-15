@@ -6,6 +6,7 @@ import {
     extensionInstances,
     type NewRunnerRow,
     type RunnerRow,
+    runnerStacks,
     runners,
 } from "@/db/schema.ts";
 import type {
@@ -36,7 +37,7 @@ import {
 } from "./providers/index.ts";
 import {
     declareService,
-    deleteStackIfEmpty,
+    deleteStackUpstream,
     deleteStackWithRow,
     deleteVolumes,
     findOrCreateStack,
@@ -98,12 +99,15 @@ function imageTag(image: string | null): string | null {
     if (!image) {
         return null;
     }
-    const tagSeparator = image.lastIndexOf(":");
-    if (tagSeparator <= image.lastIndexOf("/")) {
+    // A digest reference (repo@sha256:...) has no tag; the colon belongs to
+    // the digest, not a tag separator.
+    const reference = image.split("@")[0];
+    const tagSeparator = reference.lastIndexOf(":");
+    if (tagSeparator <= reference.lastIndexOf("/")) {
         return null;
     }
 
-    return image.slice(tagSeparator + 1);
+    return reference.slice(tagSeparator + 1);
 }
 
 function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
@@ -147,8 +151,8 @@ function slugify(name: string): string {
     return name
         .toLowerCase()
         .replace(/[^a-z0-9-]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 40);
+        .slice(0, 40)
+        .replace(/^-+|-+$/g, "");
 }
 
 function parseCronjobIds(row: RunnerRow): string[] {
@@ -315,8 +319,23 @@ export async function listRunners(
     const stacks = new Map(
         await Promise.all(
             [...new Set(rows.map((row) => row.stackId))].map(
-                async (stackId) =>
-                    [stackId, await getStack(client, stackId)] as const,
+                async (stackId) => {
+                    // A transient stack lookup failure must not fail the whole
+                    // list; undefined maps to status "unknown" in toView,
+                    // while a real 404 comes back as null ("missing").
+                    try {
+                        return [
+                            stackId,
+                            await getStack(client, stackId),
+                        ] as const;
+                    } catch (error) {
+                        log.warn("stack lookup failed while listing runners", {
+                            stackId,
+                            error,
+                        });
+                        return [stackId, undefined] as const;
+                    }
+                },
             ),
         ),
     );
@@ -380,19 +399,39 @@ export async function createRunner(
         volumes: mounts,
     });
 
+    // A user-supplied registration token (GitLab glrt, GitHub registration
+    // token) belongs to a runner the user created by hand; rolling it back
+    // would delete their runner and invalidate the token they pasted. Only
+    // release registrations this extension created (PAT mode).
+    const registrationIsUserSupplied = input.tokenType !== "pat";
+    const releaseOnRollback = async () => {
+        if (registrationIsUserSupplied) {
+            return;
+        }
+        try {
+            await provider.release(prepared.credentials);
+        } catch (error) {
+            log.error("rollback: provider registration release failed", {
+                provider: provider.id,
+                error,
+            });
+        }
+    };
+
     let stackId: string;
+    let createdStack: boolean;
     try {
-        stackId = (
-            await findOrCreateStack(
-                client,
-                extensionInstanceId,
-                projectId,
-                prepared.targetUrl,
-                `CI Runner: ${prepared.target}`,
-            )
-        ).stackId;
+        const stack = await findOrCreateStack(
+            client,
+            extensionInstanceId,
+            projectId,
+            prepared.targetUrl,
+            `CI Runner: ${prepared.target}`,
+        );
+        stackId = stack.stackId;
+        createdStack = stack.created;
     } catch (error) {
-        await provider.release(prepared.credentials).catch(() => undefined);
+        await releaseOnRollback();
         throw error;
     }
     const serviceName = await uniqueServiceName(stackId, runnerName);
@@ -401,16 +440,33 @@ export async function createRunner(
     const cronjobIds: string[] = [];
     const rollback = async () => {
         await deleteCronjobs(client, cronjobIds);
-        await removeService(
-            client,
-            extensionInstanceId,
-            stackId,
-            serviceName,
-        ).catch(() => undefined);
-        await deleteStackIfEmpty(client, extensionInstanceId, stackId).catch(
-            () => undefined,
-        );
-        await provider.release(prepared.credentials).catch(() => undefined);
+        try {
+            await removeService(
+                client,
+                extensionInstanceId,
+                stackId,
+                serviceName,
+            );
+        } catch (error) {
+            log.error("rollback: service removal failed", {
+                stackId,
+                serviceName,
+                error,
+            });
+        }
+        // Only tear down the stack this call created; a shared stack may hold
+        // an in-flight sibling create whose row is not committed yet.
+        if (createdStack) {
+            try {
+                await deleteStackWithRow(client, extensionInstanceId, stackId);
+            } catch (error) {
+                log.error("rollback: stack deletion failed", {
+                    stackId,
+                    error,
+                });
+            }
+        }
+        await releaseOnRollback();
     };
 
     let service: ServiceResponse | undefined;
@@ -596,6 +652,9 @@ export async function updateRunner(
         .set({ image, runnerVersion: provider.runnerVersion })
         .where(eq(runners.id, row.id))
         .returning();
+    if (!updated) {
+        throw new NotFoundError("runner");
+    }
     log.info("runner updated", {
         runnerId,
         stackId: row.stackId,
@@ -722,6 +781,9 @@ export async function configureRunner(
         })
         .where(eq(runners.id, row.id))
         .returning();
+    if (!updated) {
+        throw new NotFoundError("runner");
+    }
     log.info("runner configured", {
         cache,
         cacheSizeGb,
@@ -754,9 +816,11 @@ export async function deleteRunner(
         );
     }
     await releaseProviderRegistration(row);
-    // One transaction, so the empty check can never race a parallel delete
-    // between removing the row and deciding about the stack. The mittwald
-    // call stays outside the transaction.
+    // One transaction removes the runner row, checks whether the stack is now
+    // empty, and, when it is, removes the runner_stacks row too. Deleting that
+    // lock row here means a racing createRunner can no longer find the stack
+    // and declares a fresh one instead of into the stack we are about to
+    // delete upstream. The mittwald deleteStack call stays outside.
     const stackEmpty = await getDatabase().transaction(async (tx) => {
         await tx.delete(runners).where(eq(runners.id, row.id));
         const [remaining] = await tx
@@ -764,11 +828,17 @@ export async function deleteRunner(
             .from(runners)
             .where(eq(runners.stackId, row.stackId))
             .limit(1);
+        if (remaining) {
+            return false;
+        }
+        await tx
+            .delete(runnerStacks)
+            .where(eq(runnerStacks.stackId, row.stackId));
 
-        return !remaining;
+        return true;
     });
     if (stackEmpty) {
-        await deleteStackWithRow(client, extensionInstanceId, row.stackId);
+        await deleteStackUpstream(client, extensionInstanceId, row.stackId);
     }
     log.info("runner deleted", {
         runnerId,

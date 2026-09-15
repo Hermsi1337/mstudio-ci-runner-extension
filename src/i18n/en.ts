@@ -43,6 +43,7 @@ export const en = {
     "runners.action.changelogSince": "Changelog since {version}",
     "runners.version.unknown": "Unknown",
     "runners.version.updateAvailable": "Update to {version}",
+    "runners.version.updateAvailablePlain": "Update available",
     "runners.ephemeral": "ephemeral",
     "runners.concurrency": "{jobs} jobs at once",
     "runners.labels.inCiSystem": "Set in GitLab",
@@ -64,6 +65,8 @@ export const en = {
     "runners.update.heading": "Update {name}?",
     "runners.update.text":
         "The container is recreated with image version {version}. A running job is cancelled.",
+    "runners.update.textPlain":
+        "The container is recreated. A running job is cancelled.",
     "runners.delete.heading": "Delete {name}?",
     "runners.delete.text.github.pat":
         "Removes the registration on GitHub, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled.",
@@ -75,6 +78,8 @@ export const en = {
     "runners.logs.empty.heading": "No output yet",
     "runners.logs.empty.text":
         "The container is still starting. Follow is on, the view refreshes every 5 seconds.",
+    "runners.logs.empty.textPaused":
+        "The container is still starting. Turn Follow on to refresh the view every 5 seconds.",
     "runners.logs.tail": "Lines",
     "runners.logs.lines": "Last {lines} lines",
     "runners.logs.follow": "Follow",
@@ -147,11 +152,15 @@ export const en = {
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",
     "form.name.required": "Name is required",
+    "form.name.tooShort": "Name needs at least 2 characters",
+    "form.name.tooLong": "Name can have 64 characters at most",
     "form.github.target.label": "GitHub organization or repository",
     "form.github.target.placeholder": "owner or owner/repo",
     "form.github.target.description":
         "Organization (for example my-org) or repository (for example my-org/my-repo).",
     "form.github.target.required": "Organization or repository is required",
+    "form.github.target.invalid":
+        "Enter owner or owner/repo, optionally as https://github.com/owner/repo.",
     "form.github.tokenType.label": "Authentication",
     "form.github.tokenType.registration": "Registration token from GitHub",
     "form.github.tokenType.pat": "Personal access token (PAT)",
@@ -303,6 +312,8 @@ export const en = {
     "error.upstream.logs": "Logs could not be loaded (status {status}).",
     "error.upstream.stackDelete":
         "The stack could not be deleted (status {status}).",
+    "error.upstream.stackGet":
+        "The runner stack could not be loaded (status {status}). Try again in a moment.",
     "error.upstream.cronjobCreate":
         "mittwald could not create the cleanup cronjob for the cache (status {status}). The extension needs the cronjob scopes.",
     "error.upstream.cronjobUpdate":
@@ -317,6 +328,8 @@ export const en = {
     "error.github.ephemeralNeedsPat":
         "Ephemeral runners need a personal access token. A registration token expires after one hour and cannot re-register the runner.",
     "error.gitlab.tokenInvalid": "The GitLab token is invalid.",
+    "error.gitlab.instanceUrlInvalid":
+        "The GitLab URL must be a public https address.",
     "error.gitlab.runnerTokenInvalid":
         "GitLab does not accept the runner token. Paste the full register command from the New runner page; the token starts with glrt-.",
     "error.gitlab.noAccessProject":

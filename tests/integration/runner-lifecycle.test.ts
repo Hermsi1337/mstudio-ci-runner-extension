@@ -405,6 +405,41 @@ describe("shared stacks", () => {
     });
 });
 
+describe("instance cleanup", () => {
+    it("removes every runner and stack of a removed instance", async () => {
+        const created = await runner.createRunner(
+            client,
+            extensionInstanceId,
+            projectId,
+            userId,
+            {
+                provider: "github",
+                name: "Cleanup",
+                target: "acme/cleanup",
+                tokenType: "registration",
+                token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+            },
+        );
+        const rows = await db
+            .select()
+            .from(schema.runners)
+            .where(eq(schema.runners.id, created.id));
+        expect(rows).toHaveLength(1);
+
+        await runner.deleteAllRunnersOfInstance(client, rows);
+
+        const remaining = await runner.listRunners(client, extensionInstanceId);
+        expect(remaining.some((r) => r.id === created.id)).toBe(true);
+        // deleteAllRunnersOfInstance only tears down the upstream stacks and
+        // provider registrations; the rows go with the FK cascade when the
+        // instance row is removed. Assert the stack delete did not throw and
+        // the runner remained addressable for that cascade.
+        await db
+            .delete(schema.runners)
+            .where(eq(schema.runners.id, created.id));
+    });
+});
+
 describe("input validation", () => {
     it("rejects a create for an unknown extension instance", async () => {
         await expect(

@@ -40,8 +40,93 @@ function gitlabClient(instanceUrl: string, token?: string) {
     });
 }
 
+/**
+ * The instance URL is user input that becomes an outbound request target, so
+ * it must be a public https host. Rejecting other schemes and private,
+ * loopback and link-local addresses keeps it from reaching services inside
+ * the extension's own network (SSRF).
+ */
 function normalizeInstanceUrl(url: string): string {
-    return url.trim().replace(/\/+$/, "");
+    const trimmed = url.trim().replace(/\/+$/, "");
+    let parsed: URL;
+    try {
+        parsed = new URL(trimmed);
+    } catch {
+        throw new ProviderError(
+            "error.gitlab.instanceUrlInvalid",
+            {},
+            "instanceUrl",
+        );
+    }
+    if (parsed.protocol !== "https:" || isBlockedHost(parsed.hostname)) {
+        throw new ProviderError(
+            "error.gitlab.instanceUrlInvalid",
+            {},
+            "instanceUrl",
+        );
+    }
+
+    return trimmed;
+}
+
+function isBlockedHost(hostname: string): boolean {
+    const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+    if (
+        host === "localhost" ||
+        host.endsWith(".localhost") ||
+        host.endsWith(".internal") ||
+        host.endsWith(".local")
+    ) {
+        return true;
+    }
+    if (!host.includes(".") && !host.includes(":")) {
+        return true;
+    }
+    const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (v4) {
+        const [a, b] = v4.slice(1).map(Number);
+        if (
+            a === 10 ||
+            a === 127 ||
+            (a === 192 && b === 168) ||
+            (a === 172 && b >= 16 && b <= 31) ||
+            (a === 169 && b === 254) ||
+            a === 0
+        ) {
+            return true;
+        }
+    }
+    if (
+        host === "::1" ||
+        host.startsWith("fc") ||
+        host.startsWith("fd") ||
+        host.startsWith("fe80")
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * A URL returned by GitLab (web_url) is untrusted and gets rendered as a link
+ * in mStudio; only keep http/https so a hostile instance cannot plant a
+ * javascript: link.
+ */
+function safeWebUrl(url: string | undefined, fallback: string): string {
+    if (!url) {
+        return fallback;
+    }
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+            return url;
+        }
+    } catch {
+        return fallback;
+    }
+
+    return fallback;
 }
 
 function normalizePath(path: string | undefined): string {
@@ -88,10 +173,13 @@ async function verifyRunnerToken(
         body: { token },
     });
     if (!verified.data) {
-        log.debug("runner token verification failed", {
-            instanceUrl,
-            status: verified.response?.status,
-        });
+        const status = verified.response?.status;
+        log.debug("runner token verification failed", { instanceUrl, status });
+        // Only 401/403 mean the token is actually wrong; a 5xx or a missing
+        // response means GitLab is unreachable, not that the user mistyped.
+        if (status !== undefined && status !== 401 && status !== 403) {
+            throw new ProviderError("error.gitlab.status", { status });
+        }
         throw new ProviderError(
             "error.gitlab.runnerTokenInvalid",
             {},
@@ -147,7 +235,7 @@ async function createRunnerWithPat(
         projectId = project.data.id;
         log.debug("project resolved", { instanceUrl, path, projectId });
         target = `${target} ${project.data.path_with_namespace ?? path}`;
-        targetUrl = project.data.web_url ?? `${instanceUrl}/${path}`;
+        targetUrl = safeWebUrl(project.data.web_url, `${instanceUrl}/${path}`);
     } else if (runnerType === "group_type") {
         if (!path) {
             throw new ProviderError(
@@ -166,7 +254,10 @@ async function createRunnerWithPat(
         groupId = group.data.id;
         log.debug("group resolved", { instanceUrl, path, groupId });
         target = `${target} ${group.data.full_path ?? path}`;
-        targetUrl = group.data.web_url ?? `${instanceUrl}/groups/${path}`;
+        targetUrl = safeWebUrl(
+            group.data.web_url,
+            `${instanceUrl}/groups/${path}`,
+        );
     }
 
     const created = await postApiV4UserRunners({
@@ -253,13 +344,18 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
             query: { token: credentials.runnerToken },
         });
         const status = result.response?.status ?? 0;
-        log.info("runner registration removed", {
-            instanceUrl: credentials.instanceUrl,
-            runnerId: credentials.runnerId,
-            status,
-        });
-        if (status >= 500) {
-            throw new ProviderError("error.gitlab.removeFailed", { status });
+        // 204 removed, 404 already gone. Anything else (including 403 on a
+        // rotated token and a missing response) means the registration may
+        // still exist, so surface it instead of logging a false success.
+        if (status === 204 || status === 404) {
+            log.info("runner registration removed", {
+                instanceUrl: credentials.instanceUrl,
+                runnerId: credentials.runnerId,
+                status,
+            });
+            return;
         }
+
+        throw new ProviderError("error.gitlab.removeFailed", { status });
     },
 };
