@@ -39,6 +39,6 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         with:
           api_token: ${{ secrets.MITTWALD_API_TOKEN }}
-          stack_id: ${{ vars.MITTWALD_STACK_ID }}
+          stack_id: ${{ secrets.MITTWALD_STACK_ID }}
           stack_file: deploy/mstudio/stack.yaml
           skip_recreation: postgres
