@@ -134,7 +134,7 @@ restart (`skip_recreation`); the extension runs its migrations on start.
    | `MITTWALD_STACK_ID` | secret | An empty stack created in the target project in mStudio (*Container → Stacks → Create*) |
    | `MITTWALD_API_TOKEN` | secret | mStudio, *User → API tokens*, needs access to the project |
    | `EXTENSION_ID`, `EXTENSION_SECRET` | secret | Extension registration ([mstudio-setup.md](mstudio-setup.md)) |
-   | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes stored credentials unreadable. |
+   | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes the stored instance secrets unreadable, so the cleanup after an uninstall stops working. |
    | `POSTGRES_PASSWORD` | secret | Any strong value. Used by both services. |
 
 2. Image access. The extension image is private. Either set the package

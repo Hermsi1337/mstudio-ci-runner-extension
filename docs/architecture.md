@@ -48,8 +48,8 @@ Two Flow rules shape the components:
 2. Input is validated with `zCreateRunnerRequest` (generated, see [codegen.md](codegen.md)),
    a discriminated union over `provider`.
 3. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
-   registration in the CI system where needed and returns image, environment, the
-   data volume and the credentials to store ([providers.md](providers.md)).
+   registration in the CI system where needed and returns image, environment and the
+   data volume ([providers.md](providers.md)). Nothing secret is returned for storage.
 4. `src/domain/stack.ts` finds the stack of the registration target in `runner_stacks`
    or creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
    (extension instance, target URL) settles parallel creates: the loser deletes its
@@ -94,8 +94,8 @@ Tables in `src/db/schema.ts`:
   instance secret).
 - `runners`: one row per runner. Foreign key to `extension_instance` with
   `ON DELETE CASCADE`. `stackId` and `serviceName` locate the container; `provider`,
-  `target`, `targetUrl` describe the registration target. `credentials` is an encrypted column (`ENCRYPTION_MASTER_PASSWORD`,
-  `ENCRYPTION_SALT`) holding provider-specific JSON, e.g. the GitLab runner token.
+  `target`, `targetUrl` describe the registration target. No column holds a provider
+  secret: the registration token exists only in the environment of the runner container.
   `image` and `runnerVersion` record what the stack was declared with; `updateAvailable`
   in the API compares `image` with the image of the running extension release.
   Two versions exist and the UI keeps them apart: the extension version
@@ -136,8 +136,12 @@ answer within 6 seconds.
   [providers.md](providers.md#existing-providers).
 - GitLab: with a runner token from GitLab nothing else is involved. With a PAT it is
   used once to create the runner and is not stored. In both modes the container only
-  receives the runner token (`CI_SERVER_TOKEN`), which is also stored encrypted for
-  deleting the runner.
+  receives the runner token (`CI_SERVER_TOKEN`). Deleting the runner reads that token
+  from the service state at mittwald; when the container is already gone, the runner
+  stays in GitLab until someone removes it there.
+- The database holds one secret: the instance secret in `extension_instance`, encrypted
+  with `ENCRYPTION_MASTER_PASSWORD` and `ENCRYPTION_SALT` (AES-256-GCM via
+  mitthooks-drizzle). It authenticates the cleanup after an uninstall.
 - Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
 - Errors reach the client only through `PublicError` subclasses (`src/global-errors.ts`);
   they carry message keys that the middleware renders in the request language.

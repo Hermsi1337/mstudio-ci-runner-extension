@@ -30,7 +30,7 @@ describe("database", () => {
         expect(names).toContain("runners");
     });
 
-    it("stores provider credentials encrypted and reads them back in clear text", async () => {
+    it("stores the instance secret encrypted and reads it back in clear text", async () => {
         await db.insert(schema.extensionInstances).values({
             id: instanceId,
             contextId: "22222222-2222-2222-2222-222222222222",
@@ -39,6 +39,24 @@ describe("database", () => {
             consentedScopes: ["stack:read"],
             secret: "instance-secret",
         });
+        const [instance] = await db
+            .select()
+            .from(schema.extensionInstances)
+            .where(eq(schema.extensionInstances.id, instanceId));
+        expect(instance.secret).toBe("instance-secret");
+
+        const raw = await db.execute(
+            sql`select "secret" from extension_instance where id = ${instanceId}`,
+        );
+        expect(raw.rows[0].secret).not.toBe("instance-secret");
+    });
+
+    it("keeps no provider secrets in the runners table", async () => {
+        const columns = await db.execute(
+            sql`select column_name from information_schema.columns where table_name = 'runners'`,
+        );
+        const names = columns.rows.map((row) => row.column_name);
+        expect(names).not.toContain("credentials");
         await db.insert(schema.runners).values({
             id: "33333333-3333-3333-3333-333333333333",
             extensionInstanceId: instanceId,
@@ -48,23 +66,9 @@ describe("database", () => {
             name: "ci",
             target: "acme/app",
             targetUrl: "https://github.com/acme/app",
-            credentials: JSON.stringify({ token: "github_pat_secret" }),
             labels: "mittwald",
             createdBy: "55555555-5555-5555-5555-555555555555",
         });
-
-        const [row] = await db
-            .select()
-            .from(schema.runners)
-            .where(eq(schema.runners.extensionInstanceId, instanceId));
-        expect(JSON.parse(row.credentials)).toEqual({
-            token: "github_pat_secret",
-        });
-
-        const raw = await db.execute(
-            sql`select "credentials" as token from runners where id = ${row.id}`,
-        );
-        expect(raw.rows[0].token).not.toBe("github_pat_secret");
     });
 
     it("deletes runners when the extension instance is removed", async () => {

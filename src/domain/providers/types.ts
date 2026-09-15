@@ -15,7 +15,6 @@ export interface PreparedRunner {
     image: string;
     runnerVersion: string;
     environment: Record<string, string>;
-    credentials: Record<string, string>;
     volumes: string[];
     /** Comma separated labels or tags to show; empty when they live in the CI system only. */
     labels: string;
@@ -34,7 +33,13 @@ export interface RunnerProvider<
     readonly concurrencyVariable?: string;
     currentImage(): string;
     prepare(input: Request, runnerName: string): Promise<PreparedRunner>;
-    release(credentials: Record<string, string>): Promise<void>;
+    /**
+     * Removes the provider-side registration. Receives the environment of the
+     * runner container as mittwald reports it, because the extension stores no
+     * provider secrets itself; the registration token only exists in the
+     * container. Must tolerate runners that are already gone.
+     */
+    release(environment: Record<string, string>): Promise<void>;
 }
 
 export type ProviderRequest<P extends Provider> = Extract<

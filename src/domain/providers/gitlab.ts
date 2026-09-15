@@ -324,35 +324,31 @@ export const gitlabProvider: RunnerProvider<GitLabRequest> = {
                 CI_SERVER_TOKEN: registration.runnerToken,
                 RUNNER_NAME: runnerName,
             },
-            credentials: {
-                instanceUrl,
-                runnerId: registration.runnerId,
-                runnerToken: registration.runnerToken,
-            },
             volumes: [DATA_VOLUME_MOUNT],
             labels: registration.tags,
             ephemeral: false,
         };
     },
 
-    async release(credentials) {
-        if (!credentials.runnerToken || !credentials.instanceUrl) {
+    async release(environment) {
+        const instanceUrl = environment.CI_SERVER_URL;
+        const runnerToken = environment.CI_SERVER_TOKEN;
+        if (!instanceUrl || !runnerToken) {
+            log.warn(
+                "runner registration not removed, container environment has no token",
+            );
             return;
         }
         const result = await deleteApiV4Runners({
-            client: gitlabClient(credentials.instanceUrl),
-            query: { token: credentials.runnerToken },
+            client: gitlabClient(instanceUrl),
+            query: { token: runnerToken },
         });
         const status = result.response?.status ?? 0;
         // 204 removed, 404 already gone. Anything else (including 403 on a
         // rotated token and a missing response) means the registration may
         // still exist, so surface it instead of logging a false success.
         if (status === 204 || status === 404) {
-            log.info("runner registration removed", {
-                instanceUrl: credentials.instanceUrl,
-                runnerId: credentials.runnerId,
-                status,
-            });
+            log.info("runner registration removed", { instanceUrl, status });
             return;
         }
 
