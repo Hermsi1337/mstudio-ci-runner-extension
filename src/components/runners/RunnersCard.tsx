@@ -12,6 +12,7 @@ import {
     Text,
     useOverlayController,
 } from "@mittwald/flow-remote-react-components";
+import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
@@ -26,6 +27,7 @@ import { RunnerList } from "./RunnerList.tsx";
  */
 export const RunnersCard = () => {
     const t = useTranslation();
+    const { reset } = useQueryErrorResetBoundary();
     const createModal = useOverlayController("Modal", {
         reuseControllerFromContext: false,
     });
@@ -51,7 +53,10 @@ export const RunnersCard = () => {
                             <Markdown>{t("app.dockerNotice.text")}</Markdown>
                         </Content>
                     </Accordion>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
+                    <ErrorBoundary
+                        onReset={reset}
+                        FallbackComponent={ErrorFallback}
+                    >
                         <Suspense fallback={<SkeletonText />}>
                             <RunnerList onCreate={createModal.open} />
                         </Suspense>

@@ -15,16 +15,13 @@ import { ChangelogModal } from "@/components/ChangelogModal.tsx";
 import { ChangelogClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
 
-const ChangelogAction = () => {
+const VersionBadges = () => {
     const t = useTranslation();
-    const controller = useOverlayController("Modal", {
-        reuseControllerFromContext: false,
-    });
     const { value: changelog } = ChangelogClientGhost.getChangelog(
         {},
     ).useGhost();
     return (
-        <Flex align="center" gap="xs" wrap="wrap">
+        <>
             <Badge>v{changelog.currentVersion}</Badge>
             {changelog.updateAvailable && changelog.latestVersion && (
                 <Badge color="blue">
@@ -33,6 +30,27 @@ const ChangelogAction = () => {
                     })}
                 </Badge>
             )}
+        </>
+    );
+};
+
+/**
+ * Only the badges need the changelog, so only they sit behind the boundary
+ * that hides them on a failed request. The button stays, and the modal
+ * reports the failure with its own retry.
+ */
+const ChangelogAction = () => {
+    const t = useTranslation();
+    const controller = useOverlayController("Modal", {
+        reuseControllerFromContext: false,
+    });
+    return (
+        <Flex align="center" gap="xs" wrap="wrap">
+            <ErrorBoundary fallbackRender={() => null}>
+                <Suspense fallback={null}>
+                    <VersionBadges />
+                </Suspense>
+            </ErrorBoundary>
             <Button color="secondary" variant="soft" onPress={controller.open}>
                 {t("changelog.action")}
             </Button>
@@ -64,11 +82,7 @@ export const BrandHeader = () => {
                         </Flex>
                     </Flex>
                 </Flex>
-                <ErrorBoundary fallbackRender={() => null}>
-                    <Suspense fallback={null}>
-                        <ChangelogAction />
-                    </Suspense>
-                </ErrorBoundary>
+                <ChangelogAction />
             </Flex>
         </AccentBox>
     );

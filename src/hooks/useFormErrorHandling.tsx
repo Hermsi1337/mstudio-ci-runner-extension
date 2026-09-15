@@ -30,15 +30,16 @@ export function useFormErrorHandling<TFormValues extends FieldValues>(
             await submitHandler(values);
         } catch (error) {
             const publicError = parsePublicError(error as Error);
-            let affectedField: string = "root";
-            let message = t("error.generic");
+            const message = publicError
+                ? publicError.message
+                : t("error.generic");
+            const affectedField = publicError?.details.affectedField;
+            const target =
+                affectedField && affectedField in form.getValues()
+                    ? affectedField
+                    : "root";
 
-            if (publicError) {
-                affectedField =
-                    publicError.details.affectedField ?? affectedField;
-                message = publicError.message;
-            }
-            form.setError(affectedField as FieldPath<TFormValues>, {
+            form.setError(target as FieldPath<TFormValues>, {
                 type: "manual",
                 message,
             });

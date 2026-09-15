@@ -31,4 +31,14 @@ describe("i18n", () => {
             "Logs: ci",
         );
     });
+
+    it("formats numbers for the locale", () => {
+        const custom = { cpus: 0.5, memory: 1.5 };
+        expect(translate("de", "form.size.customValue", custom)).toBe(
+            "Individuell (0,5 CPU, 1,5 GB RAM)",
+        );
+        expect(translate("en", "form.size.customValue", custom)).toBe(
+            "Custom (0.5 CPU, 1.5 GB RAM)",
+        );
+    });
 });

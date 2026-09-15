@@ -14,6 +14,7 @@ import {
     Switch,
     Text,
 } from "@mittwald/flow-remote-react-components";
+import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { Suspense, useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/ErrorFallback.tsx";
@@ -51,7 +52,11 @@ const Logs = ({
             <IllustratedMessage>
                 <IconPending />
                 <Heading>{t("runners.logs.empty.heading")}</Heading>
-                <Text>{t("runners.logs.empty.text")}</Text>
+                <Text>
+                    {follow
+                        ? t("runners.logs.empty.text")
+                        : t("runners.logs.empty.textPaused")}
+                </Text>
             </IllustratedMessage>
         );
     }
@@ -66,6 +71,8 @@ export const RunnerLogsModal = ({
     controller: OverlayController;
 }) => {
     const t = useTranslation();
+    const { reset } = useQueryErrorResetBoundary();
+    const isOpen = controller.useIsOpen();
     const [tail, setTail] = useState<number>(300);
     const [follow, setFollow] = useState(
         runner.status === "creating" || runner.status === "starting",
@@ -76,32 +83,41 @@ export const RunnerLogsModal = ({
                 {t("runners.logs.heading", { name: runner.name })}
             </Heading>
             <Content>
-                <Flex align="end" gap="m" wrap="wrap">
-                    <Select
-                        isRequired
-                        selectedKey={String(tail)}
-                        onChange={(key) => setTail(Number(key))}
-                    >
-                        <Label>{t("runners.logs.tail")}</Label>
-                        {tailOptions.map((option) => (
-                            <Option key={option} value={String(option)}>
-                                {t("runners.logs.lines", { lines: option })}
-                            </Option>
-                        ))}
-                    </Select>
-                    <Switch isSelected={follow} onChange={setFollow}>
-                        {t("runners.logs.follow")}
-                    </Switch>
-                </Flex>
-                <ErrorBoundary FallbackComponent={ErrorFallback}>
-                    <Suspense fallback={<SkeletonText />}>
-                        <Logs
-                            runnerId={runner.id}
-                            tail={tail}
-                            follow={follow}
-                        />
-                    </Suspense>
-                </ErrorBoundary>
+                {isOpen && (
+                    <>
+                        <Flex align="end" gap="m" wrap="wrap">
+                            <Select
+                                isRequired
+                                selectedKey={String(tail)}
+                                onChange={(key) => setTail(Number(key))}
+                            >
+                                <Label>{t("runners.logs.tail")}</Label>
+                                {tailOptions.map((option) => (
+                                    <Option key={option} value={String(option)}>
+                                        {t("runners.logs.lines", {
+                                            lines: option,
+                                        })}
+                                    </Option>
+                                ))}
+                            </Select>
+                            <Switch isSelected={follow} onChange={setFollow}>
+                                {t("runners.logs.follow")}
+                            </Switch>
+                        </Flex>
+                        <ErrorBoundary
+                            onReset={reset}
+                            FallbackComponent={ErrorFallback}
+                        >
+                            <Suspense fallback={<SkeletonText />}>
+                                <Logs
+                                    runnerId={runner.id}
+                                    tail={tail}
+                                    follow={follow}
+                                />
+                            </Suspense>
+                        </ErrorBoundary>
+                    </>
+                )}
             </Content>
         </Modal>
     );

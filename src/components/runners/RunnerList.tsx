@@ -107,11 +107,11 @@ const RunnerRow = ({
                 )}
                 {runner.updateAvailable && (
                     <Badge color="blue">
-                        {t("runners.version.updateAvailable", {
-                            version:
-                                runner.latestImageVersion ??
-                                runner.latestRunnerVersion,
-                        })}
+                        {runner.latestImageVersion
+                            ? t("runners.version.updateAvailable", {
+                                  version: runner.latestImageVersion,
+                              })
+                            : t("runners.version.updateAvailablePlain")}
                     </Badge>
                 )}
             </Heading>
@@ -226,6 +226,8 @@ export const RunnerList = ({ onCreate }: { onCreate: () => void }) => {
         [runners, provider, search],
     );
 
+    const filtering = search !== "" || provider !== "all";
+
     if (runners.length === 0) {
         return (
             <IllustratedMessage>
@@ -241,7 +243,7 @@ export const RunnerList = ({ onCreate }: { onCreate: () => void }) => {
 
     return (
         <>
-            {runners.length >= TOOLS_FROM && (
+            {(runners.length >= TOOLS_FROM || filtering) && (
                 <ColumnLayout s={[1]} m={[1, 1]}>
                     <SearchField
                         aria-label={t("runners.search")}

@@ -26,7 +26,9 @@ interface RunnerActionsProps {
 
 /**
  * The options menu of a list row. Every modal has its own controller so a
- * menu item can open it; the modals mount their content only while open.
+ * menu item can open it. The modals stay mounted, but each one renders its
+ * content only while its controller reports open, so a row that nobody opens
+ * fetches nothing.
  */
 export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
     const t = useTranslation();
@@ -82,11 +84,11 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                     <MenuItem id="update">
                         <IconUpload />
                         <Text>
-                            {t("runners.version.updateAvailable", {
-                                version:
-                                    runner.latestImageVersion ??
-                                    runner.latestRunnerVersion,
-                            })}
+                            {runner.latestImageVersion
+                                ? t("runners.version.updateAvailable", {
+                                      version: runner.latestImageVersion,
+                                  })
+                                : t("runners.version.updateAvailablePlain")}
                         </Text>
                     </MenuItem>
                 )}
@@ -135,10 +137,13 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                 controller={update}
                 color="primary"
                 heading={t("runners.update.heading", { name: runner.name })}
-                text={t("runners.update.text", {
-                    version:
-                        runner.latestImageVersion ?? runner.latestRunnerVersion,
-                })}
+                text={
+                    runner.latestImageVersion
+                        ? t("runners.update.text", {
+                              version: runner.latestImageVersion,
+                          })
+                        : t("runners.update.textPlain")
+                }
                 confirmLabel={t("runners.action.update")}
                 onConfirm={() =>
                     run(
