@@ -54,17 +54,12 @@ jobs:
         with:
           ref: main
       - name: Sync package.json with the tag
+        id: version
         run: |
           version="${GITHUB_REF_NAME#v}"
-          current="$(jq -r .version package.json)"
-          if [[ "$version" == "$current" ]]; then
-            echo "package.json already at $version"
-            exit 0
-          fi
           npm version "$version" --no-git-tag-version --allow-same-version
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json
-          git commit -m "chore: bump package.json to $version"
-          git pull --rebase origin main
-          git push origin main
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "chore: bump package.json to ${{ steps.version.outputs.version }}"
+          file_pattern: package.json
