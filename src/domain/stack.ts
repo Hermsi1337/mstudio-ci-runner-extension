@@ -153,6 +153,12 @@ export async function declareService(
         throw new PermissionsInsufficientError(extensionInstanceId);
     }
     if (declared.status !== 200) {
+        log.warn("stack declaration rejected", {
+            stackId,
+            serviceName,
+            status: declared.status,
+            response: JSON.stringify(declared.data).slice(0, 2000),
+        });
         throw new UpstreamError("error.upstream.stackDeclare", {
             status: declared.status,
         });
