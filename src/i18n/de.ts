@@ -147,7 +147,12 @@ export const de: Messages = {
     "form.snippet.text.github":
         "Jobs erreichen diesen Runner über seine Labels in runs-on.",
     "form.snippet.text.gitlab": "Jobs erreichen diesen Runner über seine Tags.",
-    "form.provider.label": "CI-System",
+    "form.provider.question": "Welches CI-System?",
+    "form.provider.github.text":
+        "Für Repositorys und Organisationen auf github.com.",
+    "form.provider.gitlab.text":
+        "Für Projekte, Gruppen oder eine ganze Instanz, gitlab.com oder self-hosted.",
+    "form.provider.change": "CI-System ändern",
     "form.name.label": "Name",
     "form.name.description": "Wird als Runner-Name im CI-System verwendet.",
     "form.name.required": "Bitte einen Namen angeben",
@@ -225,8 +230,6 @@ export const de: Messages = {
         "Arbeitsspeicher, den der Container nutzen darf. Ein Job, der mehr braucht, wird beendet. Rechne mit etwa 1 GB pro Job, mehr für Testsuiten mit Browser oder Datenbank.",
 
     "help.open": "Hilfe zu {subject}",
-    "form.provider.help":
-        "Wähle, wo sich der Runner registriert. GitHub-Actions-Runner erscheinen unter `Settings` → `Actions` → `Runners` des Repositorys oder der Organisation. GitLab-CI-Runner erscheinen unter `Settings` → `CI/CD` → `Runners` des Projekts oder der Gruppe.",
     "form.name.help":
         "Wird als Runner-Name in GitHub oder GitLab und in dieser Liste angezeigt. Buchstaben, Ziffern und Bindestriche bleiben erhalten, alle anderen Zeichen werden zu Bindestrichen.",
     "form.github.target.help":

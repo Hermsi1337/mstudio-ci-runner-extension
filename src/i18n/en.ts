@@ -142,7 +142,12 @@ export const en = {
     "form.snippet.text.github":
         "Jobs reach this runner through its labels in runs-on.",
     "form.snippet.text.gitlab": "Jobs reach this runner through its tags.",
-    "form.provider.label": "CI system",
+    "form.provider.question": "Which CI system?",
+    "form.provider.github.text":
+        "For repositories and organizations on github.com.",
+    "form.provider.gitlab.text":
+        "For projects, groups or a whole instance, gitlab.com or self-hosted.",
+    "form.provider.change": "Change CI system",
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",
     "form.name.required": "Name is required",
@@ -219,8 +224,6 @@ export const en = {
         "Memory the container may use. A job that exceeds it is killed. Plan about 1 GB per job, more for test suites with a browser or a database.",
 
     "help.open": "Help for {subject}",
-    "form.provider.help":
-        "Choose where the runner registers. GitHub Actions runners appear under `Settings` → `Actions` → `Runners` of the repository or organization. GitLab CI runners appear under `Settings` → `CI/CD` → `Runners` of the project or group.",
     "form.name.help":
         "Shown as the runner name in GitHub or GitLab and in this list. Letters, digits and hyphens are kept, every other character becomes a hyphen.",
     "form.github.target.help":

@@ -7,11 +7,10 @@ import {
     FieldDescription,
     Flex,
     Heading,
+    Image,
     Label,
     Option,
     Section,
-    Segment,
-    SegmentedControl,
     Select,
     Switch,
     TextArea,
@@ -43,6 +42,7 @@ import { CreatedResources } from "./CreatedResources.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
 import { ParsedCommand } from "./ParsedCommand.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
+import { providerLogos } from "./provider-logos.ts";
 import { ResourceFields } from "./ResourceFields.tsx";
 
 type TokenType = NonNullable<CreateRunnerRequest["tokenType"]>;
@@ -113,7 +113,13 @@ function suggestName(provider: Provider, target: string): string {
     return (provider === "github" ? path : "gitlab").replace(/\//g, "-");
 }
 
-export const RunnerForm = () => {
+export const RunnerForm = ({
+    initialProvider,
+    onChangeProvider,
+}: {
+    initialProvider: Provider;
+    onChangeProvider: () => void;
+}) => {
     const t = useTranslation();
     const queryClient = useQueryClient();
     const modal = useOverlayController("Modal");
@@ -122,7 +128,7 @@ export const RunnerForm = () => {
     const form = useForm<FormValues>({
         mode: "onBlur",
         defaultValues: {
-            provider: "github",
+            provider: initialProvider,
             name: "",
             labels: "mittwald",
             size: "medium",
@@ -194,23 +200,24 @@ export const RunnerForm = () => {
             <ColumnLayout>
                 <Content>
                     <Section>
-                        <Field name="provider" rules={{ required: true }}>
-                            <SegmentedControl>
-                                <Label>
-                                    {t("form.provider.label")}
-                                    <FieldHelp
-                                        subject={t("form.provider.label")}
-                                        text={t("form.provider.help")}
-                                    />
-                                </Label>
-                                <Segment value="github">
-                                    {t("provider.github")}
-                                </Segment>
-                                <Segment value="gitlab">
-                                    {t("provider.gitlab")}
-                                </Segment>
-                            </SegmentedControl>
-                        </Field>
+                        <Flex align="center" gap="m" wrap="wrap">
+                            <Image
+                                src={providerLogos[provider]}
+                                alt=""
+                                width={28}
+                                height={28}
+                            />
+                            <Heading level={4}>
+                                {t(`provider.${provider}`)}
+                            </Heading>
+                            <Button
+                                color="secondary"
+                                variant="plain"
+                                onPress={onChangeProvider}
+                            >
+                                {t("form.provider.change")}
+                            </Button>
+                        </Flex>
 
                         {provider === "github" && (
                             <>
