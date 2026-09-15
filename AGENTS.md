@@ -112,6 +112,7 @@ config/local-host-plugin.ts  Vite plugin serving the UI with DOM-rendering Flow 
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
 docker/runner/common/        scripts shared by all runner images (trim-cache.sh)
+docker/runner/probes/        probe suite run inside the built images by the integration tests
 docker/runner/versions.json  runner software version per provider, single source for workflow, build and UI
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
 docs/                        documentation, one topic per file
