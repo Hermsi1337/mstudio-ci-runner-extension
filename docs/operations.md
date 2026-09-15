@@ -14,8 +14,7 @@ The tag is the single source of truth for the version. The extension image bakes
 in as `EXTENSION_VERSION`, so nothing depends on `package.json` at release time.
 After the release, `release.yml` commits the tag version to `package.json` on `main`
 (`chore: bump package.json to X.Y.Z`), so the fallback for local development stays
-current on the next pull. `extension-image.yml` prints a warning when the two
-diverge at build time.
+current on the next pull.
 
 The tag triggers `release.yml`, which runs `extension-image.yml` and
 `runner-image.yml` as reusable workflows and creates the GitHub release once both
