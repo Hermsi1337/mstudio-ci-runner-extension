@@ -70,10 +70,21 @@ Two Flow rules shape the components:
 
 Other operations: list with live status (`container.getStack`), logs
 (`container.getServiceLogs`), restart (`container.restartService`), update to the
-current image and cache settings (both `container.updateStack`), delete
+current image and settings changes (cache, concurrency, size), delete
 (`container.deleteStack`, then `provider.release`). All stack operations run with the
 access token of the signed-in user, so only with their permissions and the scopes of
 the extension.
+
+Update and settings changes redeclare the service through `container.updateStack`
+and then call `container.recreateService`. A declaration alone only changes the
+`pendingState` of the service; the container keeps running its `deployedState`
+until it is recreated. The per-service action recreates only this runner, unlike
+the `recreate` query parameter of `updateStack`, which would recreate every runner
+that shares the stack. The extension skips the recreate only when mittwald reports
+`requiresRecreate: false` for the declared service. A recreate cancels the job that
+runs in the container; neither GitHub nor GitLab retries it automatically. The
+runner row is written after the recreate succeeded, so a failed recreate leaves the
+update on offer and the next attempt declares the same state again.
 
 ## Data model
 

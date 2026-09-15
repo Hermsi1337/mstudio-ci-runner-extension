@@ -673,6 +673,62 @@
         ]
       }
     },
+    "/v2/stacks/{stackId}/services/{serviceId}/actions/recreate": {
+      "post": {
+        "operationId": "container-recreate-service",
+        "parameters": [
+          {
+            "description": "ID of the Stack to recreate a Service for.",
+            "in": "path",
+            "name": "stackId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Service to recreate.",
+            "in": "path",
+            "name": "serviceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "404": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.NotFoundError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Recreate a Service.",
+        "tags": [
+          "Container"
+        ]
+      }
+    },
     "/v2/stacks/{stackId}/volumes": {
       "get": {
         "operationId": "container-list-stack-volumes",

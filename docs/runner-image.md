@@ -43,8 +43,8 @@ update in the UI; *Update* redeclares its stack with the current image.
    `RUNNER_EPHEMERAL=true` re-registers after every job, which needs `GITHUB_TOKEN`
    because a registration token expires after one hour
 5. On `SIGTERM`/`SIGINT`: stops the runner process group with a bounded wait. It never
-   deregisters, because mittwald recreates the container on updates and a runner with an
-   expired registration token could not register again
+   deregisters, because the extension recreates the container on updates and settings
+   changes and a runner with an expired registration token could not register again
 
 The extension only uses `RUNNER_TOKEN`. `GITHUB_TOKEN` and `RUNNER_EPHEMERAL=true` stay
 in the image for hand-built stacks and for

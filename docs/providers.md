@@ -40,8 +40,9 @@ the container, stores its id in `runners.cronjobIds` and deletes it with the run
 `configureRunner` changes cache, concurrency and resources after creation
 (`ConfigureRunnerRequest`: `cache`, `cacheSizeGb`, `concurrency`, `size`, `cpus`,
 `memoryMb`). `withCache` and `withoutCache` add or strip the cache mount and
-variables from the service state mittwald reports, the stack is redeclared and mittwald
-recreates the container. Turning the cache on creates the cronjob, changing the limit
+variables from the service state mittwald reports, the stack is redeclared and the
+service recreated (`container.recreateService`, see
+[architecture.md](architecture.md#data-flow-create-runner)). Turning the cache on creates the cronjob, changing the limit
 patches its command, turning it off deletes the cronjob and the volume
 (`container.listStackVolumes`, `container.deleteVolume`). A volume that is still in use
 (412) stays orphaned in the stack and can be removed in mStudio. `runners.cache`,
