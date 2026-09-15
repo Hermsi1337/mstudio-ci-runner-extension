@@ -27,7 +27,7 @@ alike and come before personal taste. Writing style for texts is in
 
 ```
 Section
-  AccentBox              brand header: logo, name, tagline, provider badges, changelog button (BrandHeader.tsx); backgroundColor "gradient" token, theme-aware, no custom hex
+  AccentBox              brand header: logo, name, tagline, provider badges, version badge and changelog button (BrandHeader.tsx); backgroundColor "gradient" token, theme-aware, no custom hex
   LayoutCard             one card per topic, Heading first
     Section
       Header             Heading + primary Button
@@ -65,6 +65,13 @@ Section
   `provider-logos.ts`, marks from the `simple-icons` package on a white tile so
   they read on both themes), the form follows after the pick and offers a plain
   button back to the choice.
+- A modal that is opened from two places says which one it serves. The changelog
+  modal from the header lists the releases of the extension and marks the running
+  one ("Current version"). From a runner's menu it opens with an `Alert status="info"`
+  that names the runner's image version and the update target, lists only the
+  releases between them and marks both ("Runs on this runner", "Update target").
+  Nothing in the runner context is called "installed", because the runner and the
+  extension run different versions.
 - A form modal is not dismissable by clicking outside (`isDismissable={false}`).
 - Submit and cancel are an `ActionGroup` at the end of the `Form`; the primary
   button first.

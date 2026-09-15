@@ -15,28 +15,20 @@ import { ChangelogModal } from "@/components/ChangelogModal.tsx";
 import { ChangelogClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
 
-const VersionBadges = () => {
-    const t = useTranslation();
+/**
+ * The version is plain information: the maintainer deploys the extension,
+ * users cannot update it. Runners carry their own update hint in the list.
+ */
+const VersionBadge = () => {
     const { value: changelog } = ChangelogClientGhost.getChangelog(
         {},
     ).useGhost();
-    return (
-        <>
-            <Badge>v{changelog.currentVersion}</Badge>
-            {changelog.updateAvailable && changelog.latestVersion && (
-                <Badge color="blue">
-                    {t("changelog.updateAvailable", {
-                        version: changelog.latestVersion,
-                    })}
-                </Badge>
-            )}
-        </>
-    );
+    return <Badge>v{changelog.currentVersion}</Badge>;
 };
 
 /**
- * Only the badges need the changelog, so only they sit behind the boundary
- * that hides them on a failed request. The button stays, and the modal
+ * Only the badge needs the changelog, so only it sits behind the boundary
+ * that hides it on a failed request. The button stays, and the modal
  * reports the failure with its own retry.
  */
 const ChangelogAction = () => {
@@ -48,7 +40,7 @@ const ChangelogAction = () => {
         <Flex align="center" gap="xs" wrap="wrap">
             <ErrorBoundary fallbackRender={() => null}>
                 <Suspense fallback={null}>
-                    <VersionBadges />
+                    <VersionBadge />
                 </Suspense>
             </ErrorBoundary>
             <Button color="secondary" variant="soft" onPress={controller.open}>

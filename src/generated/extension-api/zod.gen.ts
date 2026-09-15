@@ -175,7 +175,5 @@ export const zRelease = z.object({
 
 export const zChangelog = z.object({
     currentVersion: z.string(),
-    latestVersion: z.string().nullable(),
-    updateAvailable: z.boolean(),
     releases: z.array(zRelease)
 });

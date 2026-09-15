@@ -7,9 +7,13 @@ export const de: Messages = {
     "brand.openSource": "Open Source",
     "changelog.action": "Changelog",
     "changelog.heading": "Changelog",
-    "changelog.since.heading": "Changelog seit {version}",
-    "changelog.updateAvailable": "Version {version} verfügbar",
-    "changelog.installed": "Installiert",
+    "changelog.current": "Aktuelle Version",
+    "changelog.runner.heading": "Änderungen für {name}",
+    "changelog.runner.summary.heading": "Update von {from} auf {to}",
+    "changelog.runner.summary.text":
+        "Dein Runner läuft mit Image-Version {from}. Aktualisieren erstellt ihn mit Version {to} neu, der Version dieser Extension.",
+    "changelog.runner.badge.current": "Läuft auf diesem Runner",
+    "changelog.runner.badge.target": "Ziel des Updates",
     "changelog.github": "Auf GitHub ansehen",
     "changelog.empty.heading": "Noch keine Releases",
     "changelog.empty.text":

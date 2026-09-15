@@ -275,16 +275,15 @@ export type Release = {
 
 export type Changelog = {
     /**
-     * Version of the running extension.
+     * Version of the running extension. Runners update to the runner image of
+     * this version.
+     *
      */
     currentVersion: string;
     /**
-     * Version of the newest release on GitHub. Null when no release is visible.
+     * Releases up to and including `currentVersion`, newest first. Releases that
+     * GitHub lists but that are not deployed yet are left out.
+     *
      */
-    latestVersion: string | null;
-    /**
-     * True when the newest release is newer than the running extension.
-     */
-    updateAvailable: boolean;
     releases: Array<Release>;
 };
