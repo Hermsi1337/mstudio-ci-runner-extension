@@ -20,7 +20,9 @@ fi
 
 echo "[trim-cache] ${dir} uses $((used_kb / 1024)) MiB, limit $((limit_kb / 1024)) MiB"
 while IFS= read -r -d '' entry; do
-    read -r _mtime size_kb path <<<"${entry}"
+    rest="${entry#* }"
+    size_kb="${rest%% *}"
+    path="${rest#* }"
     rm -f -- "${path}"
     used_kb=$((used_kb - size_kb))
     if (( used_kb <= limit_kb )); then
