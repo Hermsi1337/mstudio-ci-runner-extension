@@ -34,19 +34,15 @@ const ProviderChoice = ({
                     variant="outline"
                     onPress={() => onSelect(provider)}
                 >
-                    <Flex align="center" gap="m">
+                    <Flex direction="column" align="center" gap="xs">
                         <Image
                             src={providerLogos[provider]}
                             alt=""
-                            width={40}
-                            height={40}
+                            width={48}
+                            height={48}
                         />
-                        <Flex direction="column" gap="xs">
-                            <Heading level={4}>
-                                {t(`provider.${provider}`)}
-                            </Heading>
-                            <Text>{t(`form.provider.${provider}.text`)}</Text>
-                        </Flex>
+                        <Heading level={4}>{t(`provider.${provider}`)}</Heading>
+                        <Text>{t(`form.provider.${provider}.text`)}</Text>
                     </Flex>
                 </Button>
             ))}
@@ -73,6 +69,7 @@ export const CreateRunnerModal = ({
     controller.useUpdateOptions({ onClose: () => setProvider(null) });
     return (
         <Modal
+            offCanvas
             size={provider ? "l" : "m"}
             isDismissable={provider === null}
             controller={controller}

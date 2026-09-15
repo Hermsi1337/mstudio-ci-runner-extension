@@ -148,10 +148,8 @@ export const de: Messages = {
         "Jobs erreichen diesen Runner über seine Labels in runs-on.",
     "form.snippet.text.gitlab": "Jobs erreichen diesen Runner über seine Tags.",
     "form.provider.question": "Welches CI-System?",
-    "form.provider.github.text":
-        "Für Repositorys und Organisationen auf github.com.",
-    "form.provider.gitlab.text":
-        "Für Projekte, Gruppen oder eine ganze Instanz, gitlab.com oder self-hosted.",
+    "form.provider.github.text": "Repositorys und Organisationen",
+    "form.provider.gitlab.text": "gitlab.com oder self-hosted",
     "form.provider.change": "CI-System ändern",
     "form.name.label": "Name",
     "form.name.description": "Wird als Runner-Name im CI-System verwendet.",

@@ -52,6 +52,9 @@ Section
   alone, never inside a `Section` `Header`: the header collects every `ActionGroup`
   below it, including the one inside the modal.
 - Sizes: `s` for confirmations, `m` for settings, `l` for forms with a side column.
+- Large, scrolling content (create form, settings, logs, changelog) opens as an
+  off-canvas panel (`Modal offCanvas`, right side). Short confirmations stay
+  centered modals.
 - A form whose fields depend on an upfront choice opens with that choice alone:
   the create modal first shows only the CI system as `RadioButton` cards with
   provider logos (`provider-logos.ts`, marks from the `simple-icons` package on a

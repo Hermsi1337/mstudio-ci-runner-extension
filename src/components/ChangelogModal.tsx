@@ -24,7 +24,7 @@ export const ChangelogModal = ({
     const t = useTranslation();
     const locale = useLocale();
     return (
-        <Modal size="m" controller={controller}>
+        <Modal offCanvas size="m" controller={controller}>
             <Heading>{t("changelog.heading")}</Heading>
             <Content>
                 {changelog.releases.length === 0 && (

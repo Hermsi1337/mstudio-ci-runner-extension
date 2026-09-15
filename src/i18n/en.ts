@@ -143,10 +143,8 @@ export const en = {
         "Jobs reach this runner through its labels in runs-on.",
     "form.snippet.text.gitlab": "Jobs reach this runner through its tags.",
     "form.provider.question": "Which CI system?",
-    "form.provider.github.text":
-        "For repositories and organizations on github.com.",
-    "form.provider.gitlab.text":
-        "For projects, groups or a whole instance, gitlab.com or self-hosted.",
+    "form.provider.github.text": "Repositories and organizations",
+    "form.provider.gitlab.text": "gitlab.com or self-hosted",
     "form.provider.change": "Change CI system",
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",
