@@ -4,13 +4,18 @@ Texts and assets for the extension entry in the mStudio marketplace. The
 screenshots in this directory are taken from the hosted extension inside
 mStudio; `logo.png` is a copy of `src/assets/logo.png`.
 
-## Subtitle
+Limits per language: subtitle 40 characters, brief description 300
+characters, detailed description unlimited. The texts below fit. The
+marketplace form offers one field per text; the second language is set
+through the mStudio API.
 
-**de:** Self-hosted CI-Runner für GitHub Actions und GitLab CI
+## Subtitle (max 40 characters)
 
-**en:** Self-hosted CI runners for GitHub Actions and GitLab CI
+**de:** Self-hosted Runner für GitHub & GitLab
 
-## Brief description
+**en:** Self-hosted runners for GitHub & GitLab
+
+## Brief description (max 300 characters)
 
 **de:** Betreibe deine CI-Runner direkt in deinem mittwald Projekt. Runner
 anlegen, Registrierungsbefehl aus GitHub oder GitLab einfügen, fertig: der
