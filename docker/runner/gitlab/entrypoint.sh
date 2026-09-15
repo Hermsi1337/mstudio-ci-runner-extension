@@ -32,6 +32,11 @@ CONFIG="${HOME}/.gitlab-runner/config.toml"
 
 mkdir -p "${RUNNER_BUILDS_DIR}" "${RUNNER_CACHE_DIR}"
 
+if [[ ! "${RUNNER_CONCURRENT}" =~ ^[0-9]+$ ]]; then
+    echo "RUNNER_CONCURRENT must be a positive integer, got '${RUNNER_CONCURRENT}'" >&2
+    exit 1
+fi
+
 echo "[entrypoint] registering ${RUNNER_NAME} at ${CI_SERVER_URL} (executor: shell)"
 rm -f "${CONFIG}"
 gitlab-runner register \
@@ -44,6 +49,8 @@ gitlab-runner register \
     --shell bash \
     --builds-dir "${RUNNER_BUILDS_DIR}" \
     --cache-dir "${RUNNER_CACHE_DIR}"
+chmod 600 "${CONFIG}"
+unset CI_SERVER_TOKEN
 
 sed -i "s/^concurrent = .*/concurrent = ${RUNNER_CONCURRENT}/" "${CONFIG}"
 
@@ -51,7 +58,12 @@ run_pid=""
 on_signal() {
     echo "[entrypoint] caught signal, shutting down"
     if [[ -n "${run_pid}" ]]; then
-        kill -TERM "${run_pid}" 2>/dev/null || true
+        kill -TERM -- -"${run_pid}" 2>/dev/null || true
+        local waited=0
+        while kill -0 "${run_pid}" 2>/dev/null && (( waited < 60 )); do
+            sleep 1
+            ((waited++))
+        done
         wait "${run_pid}" 2>/dev/null || true
     fi
     if [[ "${RUNNER_UNREGISTER_ON_EXIT}" == "true" ]]; then
@@ -61,6 +73,6 @@ on_signal() {
 }
 trap on_signal SIGINT SIGTERM
 
-gitlab-runner run --config "${CONFIG}" --working-directory "${HOME}" &
+setsid gitlab-runner run --config "${CONFIG}" --working-directory "${HOME}" &
 run_pid=$!
 wait "${run_pid}"

@@ -10,7 +10,7 @@ case "${1:-up}" in
             docker start "$NAME" >/dev/null
         else
             docker run -d --name "$NAME" \
-                -p "${POSTGRES_PORT:-5433}:5432" \
+                -p "127.0.0.1:${POSTGRES_PORT:-5433}:5432" \
                 -e POSTGRES_USER="${POSTGRES_USER:-postgres}" \
                 -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}" \
                 -e POSTGRES_DB="${POSTGRES_DB:-extension}" \
