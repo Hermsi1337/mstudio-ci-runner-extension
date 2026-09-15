@@ -27,66 +27,89 @@ paste the setup command from GitHub or GitLab, done: the container starts on
 Container Hosting and registers itself. Your jobs run on your own
 infrastructure.
 
-## Detailed description
+## Detailed description (Markdown)
 
 **de:**
 
-CI Runner bringt self-hosted Runner für GitHub Actions und GitLab CI in dein
-mittwald Projekt. Jeder Runner ist ein Container auf Container Hosting:
+```markdown
+**CI Runner** bringt self-hosted Runner für GitHub Actions und GitLab CI in
+dein mittwald Projekt. Jeder Runner ist ein Container auf Container Hosting:
 Runner desselben Repositorys, derselben Organisation oder GitLab-Instanz
 teilen sich einen Container-Stack, jeder Runner registriert sich beim Start
 selbst.
 
-So funktioniert es: CI-System wählen, den Registrierungsbefehl von der "New
-self-hosted runner"-Seite einfügen, Größe wählen, anlegen. Nach unter einer
-Minute nimmt der Runner Jobs an.
+## So funktioniert es
 
-- GitHub Actions: Repositorys und Organisationen, Registrierungs-Token oder
-  fine-grained PAT, auf Wunsch ephemere Runner
-- GitLab CI: Projekte, Gruppen oder ganze Instanzen, gitlab.com und
+1. CI-System wählen (GitHub Actions oder GitLab CI)
+2. Registrierungsbefehl von der "New self-hosted runner"-Seite einfügen
+3. Größe wählen, anlegen
+
+Nach unter einer Minute nimmt der Runner Jobs an.
+
+## Features
+
+- **GitHub Actions:** Repositorys und Organisationen, Registrierungs-Token
+  oder fine-grained PAT, auf Wunsch ephemere Runner
+- **GitLab CI:** Projekte, Gruppen oder ganze Instanzen, gitlab.com und
   self-hosted, mehrere Jobs gleichzeitig pro Runner
-- Größen-Presets von Small bis Large plus frei wählbare CPU- und RAM-Limits
-- Persistenter Cache für Paketmanager (npm, pnpm, Yarn, pip, Composer, Go)
-  mit automatischem Aufräum-Cronjob
-- Logs, Neustart, Einstellungen und Updates direkt in mStudio, inklusive
-  Update-Hinweis und Changelog
-- Registrierungs-Tokens werden nicht gespeichert, PATs verschlüsselt abgelegt
+- **Größen:** Presets von Small bis Large plus frei wählbare CPU- und
+  RAM-Limits
+- **Cache:** Persistenter Cache für Paketmanager (npm, pnpm, Yarn, pip,
+  Composer, Go) mit automatischem Aufräum-Cronjob
+- **Verwaltung:** Logs, Neustart, Einstellungen und Updates direkt in
+  mStudio, inklusive Update-Hinweis und Changelog
+- **Sicherheit:** Registrierungs-Tokens werden nicht gespeichert, PATs
+  verschlüsselt abgelegt
+
+## Gut zu wissen
 
 Die Runner laufen ohne Docker-Daemon: Jobs laufen direkt auf Ubuntu 24.04,
-`container:`- und `services:`-Keywords funktionieren nicht. Pakete lassen
-sich per sudo apt-get nachinstallieren.
+die Keywords `container:` und `services:` funktionieren nicht. Pakete lassen
+sich per `sudo apt-get` nachinstallieren.
 
 Die Extension ist Open Source (MIT):
-https://github.com/Hermsi1337/mstudio-ci-runner-extension
+[github.com/Hermsi1337/mstudio-ci-runner-extension](https://github.com/Hermsi1337/mstudio-ci-runner-extension)
+```
 
 **en:**
 
-CI Runner brings self-hosted runners for GitHub Actions and GitLab CI into
-your mittwald project. Every runner is a container on Container Hosting:
-runners of the same repository, organization or GitLab instance share one
-container stack, and every runner registers itself on start.
+```markdown
+**CI Runner** brings self-hosted runners for GitHub Actions and GitLab CI
+into your mittwald project. Every runner is a container on Container
+Hosting: runners of the same repository, organization or GitLab instance
+share one container stack, and every runner registers itself on start.
 
-How it works: pick the CI system, paste the setup command from the "New
-self-hosted runner" page, choose a size, create. The runner picks up jobs in
-under a minute.
+## How it works
 
-- GitHub Actions: repositories and organizations, registration token or
+1. Pick the CI system (GitHub Actions or GitLab CI)
+2. Paste the setup command from the "New self-hosted runner" page
+3. Choose a size, create
+
+The runner picks up jobs in under a minute.
+
+## Features
+
+- **GitHub Actions:** repositories and organizations, registration token or
   fine-grained PAT, ephemeral runners on demand
-- GitLab CI: projects, groups or whole instances, gitlab.com and
+- **GitLab CI:** projects, groups or whole instances, gitlab.com and
   self-hosted, several concurrent jobs per runner
-- Size presets from small to large plus custom CPU and RAM limits
-- Persistent cache for package managers (npm, pnpm, Yarn, pip, Composer, Go)
-  with an automatic cleanup cronjob
-- Logs, restart, settings and updates inside mStudio, including an update
-  hint and a changelog
-- Registration tokens are never stored, PATs are stored encrypted
+- **Sizes:** presets from small to large plus custom CPU and RAM limits
+- **Cache:** persistent cache for package managers (npm, pnpm, Yarn, pip,
+  Composer, Go) with an automatic cleanup cronjob
+- **Management:** logs, restart, settings and updates inside mStudio,
+  including an update hint and a changelog
+- **Security:** registration tokens are never stored, PATs are stored
+  encrypted
+
+## Good to know
 
 The runners run without a Docker daemon: jobs run directly on Ubuntu 24.04,
 the `container:` and `services:` keywords do not work. Packages can be
-installed with sudo apt-get.
+installed with `sudo apt-get`.
 
 The extension is open source (MIT):
-https://github.com/Hermsi1337/mstudio-ci-runner-extension
+[github.com/Hermsi1337/mstudio-ci-runner-extension](https://github.com/Hermsi1337/mstudio-ci-runner-extension)
+```
 
 ## Assets
 
