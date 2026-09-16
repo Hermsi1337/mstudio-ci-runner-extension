@@ -1,5 +1,8 @@
 # Marketplace listing
 
+The published entry:
+[CI Runner in the mStudio Marketplace](https://studio.mittwald.de/marketplace/extensions/af91e32f-4596-4cbc-8d30-efc1c04b131f).
+
 The texts of the marketplace entry live in `deploy/mstudio/extension.yaml`: name, tags,
 support address, subtitle and both descriptions, in German and English. The deployment
 writes them into mStudio, so nothing is maintained twice

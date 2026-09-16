@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://studio.mittwald.de/marketplace/extensions/af91e32f-4596-4cbc-8d30-efc1c04b131f"><img src="https://img.shields.io/badge/mStudio-Marketplace-14b8a6" alt="In the mStudio Marketplace"></a>
   <a href="https://github.com/Hermsi1337/mstudio-ci-runner-extension/actions/workflows/ci.yml"><img src="https://github.com/Hermsi1337/mstudio-ci-runner-extension/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/Hermsi1337/mstudio-ci-runner-extension/releases"><img src="https://img.shields.io/github/v/release/Hermsi1337/mstudio-ci-runner-extension?display_name=tag" alt="Release"></a>
   <a href="https://github.com/Hermsi1337/mstudio-ci-runner-extension/pkgs/container/mstudio-ci-runner-github"><img src="https://img.shields.io/badge/ghcr.io-runner%20images-2f81f7?logo=docker&logoColor=white" alt="Runner images on GHCR"></a>
@@ -64,7 +65,9 @@ Use one runner per trust boundary and do not run untrusted pull requests on it, 
 
 ## Quick start
 
-For users: add the extension to your mStudio project and open "CI Runners".
+For users: install
+[CI Runner from the mStudio Marketplace](https://studio.mittwald.de/marketplace/extensions/af91e32f-4596-4cbc-8d30-efc1c04b131f)
+into your project and open "CI Runners".
 
 For developers:
 
