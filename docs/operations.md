@@ -16,6 +16,22 @@ After the release, `release.yml` commits the tag version to `package.json` on `m
 (`chore: bump package.json to X.Y.Z`), so the fallback for local development stays
 current on the next pull.
 
+### Pre-releases
+
+A tag with a suffix (`v0.5.0-beta.1`) may be cut from any branch, a pull request
+branch included, and is the way to try a change inside mStudio before it is merged:
+
+```bash
+git tag v0.5.0-beta.1
+git push origin v0.5.0-beta.1
+```
+
+It builds the same four images, creates a GitHub release marked as pre-release and is
+deployed into the development installation like any other tag. Three things it does not
+do: no `latest` tag on the images, no `1.2` alias, and no version bump on `main`.
+`deploy-production.yml` refuses a version containing `-`, so a pre-release never reaches
+users.
+
 The tag triggers `release.yml`, which runs `extension-image.yml` and
 `runner-image.yml` as reusable workflows and creates the GitHub release once both
 succeeded. Both image workflows use `docker/metadata-action` and tag:
@@ -25,6 +41,7 @@ succeeded. Both image workflows use `docker/metadata-action` and tag:
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `1.2.3`, `1.2`, `latest` |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.337.0`) |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-19.3.1`) |
+| `ghcr.io/hermsi1337/mstudio-ci-builder` | `1.2.3`, `1.2`, `latest`, `kaniko-<KANIKO_VERSION>` (e.g. `kaniko-v1.25.19`) |
 
 `workflow_dispatch` builds an image with a `sha-<commit>` tag only, without `latest`
 and without the `runner-<RUNNER_VERSION>` alias, which are both gated to `v*` tag refs,
@@ -60,7 +77,7 @@ Package visibility is independent of the repository and can only be changed on t
 | `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)), multi-arch |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
 | `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
-| `deploy-production.yml` | Manual | Deploys into the production installation |
+| `deploy-production.yml` | Manual | Deploys into the production installation, refuses pre-release versions |
 | `release.yml` | Tags `v*` | Runs both image workflows as jobs, creates the GitHub release via `softprops/action-gh-release` (generated notes plus an image table with pull commands and the runner software versions), then commits the tag version to `package.json` on `main` |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
@@ -131,7 +148,7 @@ environment at its own project.
 | Workflow | Trigger | Installation |
 |---|---|---|
 | `deploy-dev.yml` | Automatically after `release.yml` succeeded for a `v*` tag, so the images and the GitHub release exist before the deployment starts. Manually with a version such as `0.1.0`. | `mstudio-dev` |
-| `deploy-production.yml` | Manually only, *Actions → Deploy production → Run workflow* with a version such as `0.1.0`. | `mstudio` |
+| `deploy-production.yml` | Manually only, *Actions → Deploy production → Run workflow* with a version such as `0.1.0`. A version containing `-` is rejected. | `mstudio` |
 
 Both call `deploy.yml`, which holds the steps and takes the tag, the environment and the
 name suffix of the marketplace entry as inputs. The development installation gets

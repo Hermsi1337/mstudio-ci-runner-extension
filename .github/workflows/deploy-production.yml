@@ -1,7 +1,8 @@
 name: Deploy production
 
 # Manual on purpose: the version has to run in the development installation
-# first (deploy-dev.yml), this workflow puts it in front of users.
+# first (deploy-dev.yml), this workflow puts it in front of users. Pre-release
+# versions stay in development, so this workflow refuses them.
 
 on:
   workflow_dispatch:
@@ -14,7 +15,20 @@ permissions:
   contents: read
 
 jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse pre-release versions
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "${VERSION}" == *-* ]]; then
+            echo "${VERSION} is a pre-release, it only goes into the development installation (Deploy dev)" >&2
+            exit 1
+          fi
+
   deploy:
+    needs: [guard]
     uses: ./.github/workflows/deploy.yml
     with:
       ref: v${{ inputs.version }}

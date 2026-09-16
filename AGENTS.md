@@ -38,8 +38,9 @@ the [README](README.md), details in [docs/](docs/README.md).
    configuration, scripts, environment variables, scopes, flows or structure updates
    the affected docs in the same commit. Stale docs are bugs. See below.
 9. **Conventional Commits.** `feat:`, `fix:`, `docs:`, `ci:`, `chore:`, `refactor:`, `test:`.
-10. **Images are built from tags only.** Never from pushes to `main`
-    ([docs/operations.md](docs/operations.md)).
+10. **Images are built from tags only.** Never from pushes to `main`. A pre-release tag
+    (`v1.2.3-beta.1`) may come from any branch, goes into the development installation
+    only and never bumps `main` ([docs/operations.md](docs/operations.md)).
 11. **Writing style.** All text, in every language, follows the rules below.
 12. **UI follows the style guide.** Every screen, modal, list and text in mStudio
     follows [docs/styleguide.md](docs/styleguide.md): Flow components only, one
