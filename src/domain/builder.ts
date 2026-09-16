@@ -18,8 +18,9 @@ import {
  * brings it back with a clean one.
  *
  * Runner and builder exchange jobs through a directory in the project file
- * system, the only storage two containers of a project reliably share. Details
- * and the queue protocol: docs/image-builds.md.
+ * system, the only storage two containers of a project reliably share. The
+ * directory carries the stack id, because the file system is shared by the
+ * whole project. Details and the queue protocol: docs/image-builds.md.
  */
 const log = createLogger("builder");
 
@@ -30,8 +31,9 @@ const BUILDER_LIMITS = { cpus: "2", memory: "4096mb" };
 export async function buildQueueMount(
     client: MittwaldAPIV2Client,
     projectId: string,
+    stackId: string,
 ): Promise<string> {
-    return queueMountFor(await getProjectDirectory(client, projectId));
+    return queueMountFor(await getProjectDirectory(client, projectId), stackId);
 }
 
 function hasBuilder(stack: StackResponse): boolean {

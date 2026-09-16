@@ -39,11 +39,14 @@ runner container                     builder container
   -> crane push
 ```
 
-Both containers mount the same directory of the project file system, by default
-`/home/<project>/ci-builds` at `/builds`. That is the whole channel: no API token in the
-job, no stack change per build, no log polling. The queue directory is created by the
-builder with mode `1777`, because the uid of the runner user depends on its base image
-and the API has no field for the user of a container.
+Both containers mount the same directory of the project file system,
+`/home/<project>/ci-builds/<stack id>` at `/builds`. That is the whole channel: no API
+token in the job, no stack change per build, no log polling. The stack id is part of the
+path because the file system belongs to the project, not to the stack: two stacks run two
+builders, and on a shared path they would poll one queue and claim each other's jobs. The
+queue directory below the mount is created by the builder with mode `1777`, because the
+uid of the runner user depends on its base image and the API has no field for the user of
+a container.
 
 Protocol, one directory per job:
 
@@ -70,13 +73,15 @@ of the stack if it is missing:
 {
   "image": "ghcr.io/hermsi1337/mstudio-ci-builder:<version>",
   "restartPolicy": "always",
-  "volumes": ["/home/<project>/ci-builds:/builds"],
+  "volumes": ["/home/<project>/ci-builds/<stack id>:/builds"],
   "deploy": { "resources": { "limits": { "cpus": "2", "memory": "4096mb" } } }
 }
 ```
 
-One builder serves every runner of its stack. Turning the switch off for the last
-runner that builds removes it again, deleting the runner does the same. No new scope is
+One builder serves every runner of its stack. Turning the switch off for the last runner
+of that stack that builds removes it again, deleting that runner does the same. What stays
+is the queue directory of the stack in the project file system; it is empty, because every
+job removes its own directory when it is done. No new scope is
 needed, the extension declares the service with `stack:write`. The image follows the
 extension release like the runner images do (`BUILDER_IMAGE`,
 [development.md](development.md)).
