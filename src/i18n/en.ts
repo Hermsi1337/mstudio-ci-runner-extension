@@ -76,9 +76,9 @@ export const en = {
         "The container is recreated with the current image. A job that is running on it fails and is not retried automatically.",
     "runners.delete.heading": "Delete {name}?",
     "runners.delete.text.github":
-        "Removes the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
+        "Removes the container and its volumes, including the cache. A stack the extension created goes with its last runner, a stack you picked stays. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
-        "Removes the runner from GitLab, the container and its volumes, including the cache. The stack goes with the last runner of the target. A running job is cancelled. If the container is already gone, the runner stays in GitLab; delete it there under `Settings` → `CI/CD` → `Runners`.",
+        "Removes the runner from GitLab, the container and its volumes, including the cache. A stack the extension created goes with its last runner, a stack you picked stays. A running job is cancelled. If the container is already gone, the runner stays in GitLab; delete it there under `Settings` → `CI/CD` → `Runners`.",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty.heading": "No output yet",
     "runners.logs.empty.text":
@@ -129,6 +129,9 @@ export const en = {
     "form.summary.stack.label": "Stack: CI Runner: {target}",
     "form.summary.stack.text":
         "One stack per repository, organization or instance. Created with the first runner, shared by the others.",
+    "form.summary.stack.selected.label": "Stack: {name}",
+    "form.summary.stack.selected.text":
+        "The runner joins this stack and reaches its services by name. Deleting the runner leaves the stack untouched.",
     "form.summary.service.label": "Container: {service}",
     "form.summary.service.text": "Limited to {cpus} CPU and {memory} GB RAM.",
     "form.summary.dataVolume.label": "Volume: {service}-data",
@@ -176,6 +179,13 @@ export const en = {
     "form.tags.label": "Tags",
     "form.labels.description":
         "Comma separated. Reference them with runs-on: [self-hosted, mittwald].",
+    "form.stack.label": "Target stack",
+    "form.stack.automatic": "Automatic (one stack per target)",
+    "form.stack.option": "{name} ({services} services)",
+    "form.stack.description":
+        "Pick a stack when jobs need its services, for example a database for migrations. Stacks the extension created for runners are not listed.",
+    "form.stack.help":
+        "Containers of a stack reach each other by service name over the stack network. A runner in the stack of your application can run migrations or integration tests against its database. Without a choice the extension uses one stack per registration target and creates it with the first runner. A stack you pick here is never deleted by the extension; deleting the runner removes only its container.",
     "form.size.label": "Size",
     "form.size.description": "All jobs of this runner share these limits.",
     "form.size.small": "Small (0.5 CPU, 1 GB RAM)",
@@ -247,6 +257,8 @@ export const en = {
         "This installation is not registered with the extension yet. Reinstall the extension in mStudio, then try again.",
     "error.notFound.runner": "The runner was not found.",
     "error.notFound.runnerContainer": "The runner container was not found.",
+    "error.notFound.stack":
+        "The selected stack cannot be used. Pick another one from the list.",
     "error.upstream.stackCreate":
         "The stack could not be created (status {status}).",
     "error.upstream.stackDeclare":
@@ -260,6 +272,8 @@ export const en = {
         "The stack could not be deleted (status {status}).",
     "error.upstream.stackGet":
         "The runner stack could not be loaded (status {status}). Try again in a moment.",
+    "error.upstream.stackList":
+        "The stacks of the project could not be loaded (status {status}). Try again in a moment.",
     "error.upstream.projectGet":
         "The project could not be loaded (status {status}). Try again in a moment.",
     "error.containerHosting.unavailable":

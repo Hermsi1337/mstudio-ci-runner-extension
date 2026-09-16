@@ -1,8 +1,13 @@
+import { assertStatus } from "@mittwald/api-client";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CreateRunnerRequest, Runner } from "@/generated/extension-api";
-import { zRunner, zRunnerList } from "@/generated/extension-api/zod.gen";
+import {
+    zProjectStackList,
+    zRunner,
+    zRunnerList,
+} from "@/generated/extension-api/zod.gen";
 import { setTestEnvironment } from "../helpers/env.ts";
 import { startPostgres } from "../helpers/postgres.ts";
 import { type MockApi, startMockApi } from "../helpers/prism.ts";
@@ -368,6 +373,125 @@ describe("shared stacks", () => {
     });
 });
 
+/**
+ * Prism generates the ids of a stack, so the test reads the stack it is going
+ * to select and uses the project id that comes with it.
+ */
+describe("selected stack", () => {
+    const selectable = {
+        provider: "github" as const,
+        target: "acme/migrations",
+        tokenType: "registration" as const,
+        token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+    };
+
+    const readSelectableStack = async () => {
+        const response = await client.container.getStack({
+            stackId: "33333333-3333-3333-3333-333333333333",
+        });
+        assertStatus(response, 200);
+
+        return response.data;
+    };
+
+    it("lists the stacks of the project", async () => {
+        const stack = await import("@/domain/stack.ts");
+        const stacks = await stack.listProjectStacks(
+            client,
+            extensionInstanceId,
+            projectId,
+        );
+        expect(zProjectStackList.parse(stacks)).toEqual(stacks);
+    });
+
+    it("declares the runner in the selected stack without claiming it", async () => {
+        const selected = await readSelectableStack();
+        const created = await runner.createRunner(
+            client,
+            extensionInstanceId,
+            selected.projectId,
+            userId,
+            { ...selectable, name: "Migrations", stackId: selected.id },
+        );
+        expect(created.stackId).toBe(selected.id);
+
+        const [claimed] = await db
+            .select()
+            .from(schema.runnerStacks)
+            .where(eq(schema.runnerStacks.stackId, selected.id));
+        expect(claimed).toBeUndefined();
+
+        await runner.deleteRunner(client, extensionInstanceId, created.id);
+        expect(
+            (await runner.listRunners(client, extensionInstanceId)).some(
+                (r) => r.id === created.id,
+            ),
+        ).toBe(false);
+    });
+
+    it("rejects a stack that belongs to another project", async () => {
+        const selected = await readSelectableStack();
+        await expect(
+            runner.createRunner(
+                client,
+                extensionInstanceId,
+                "44444444-4444-4444-4444-444444444444",
+                userId,
+                { ...selectable, name: "Foreign", stackId: selected.id },
+            ),
+        ).rejects.toMatchObject({ messageKey: "error.notFound.stack" });
+    });
+
+    it("suffixes a service name that the stack already uses", async () => {
+        const stack = await import("@/domain/stack.ts");
+        const selected = await readSelectableStack();
+        await expect(
+            stack.uniqueServiceName(selected.id, "build", ["runner-build"]),
+        ).resolves.toBe("runner-build-2");
+    });
+
+    it("rejects a stack that the extension manages", async () => {
+        const selected = await readSelectableStack();
+        const otherInstanceId = "66666666-6666-6666-6666-666666666666";
+        await db.insert(schema.extensionInstances).values({
+            id: otherInstanceId,
+            contextId: selected.projectId,
+            context: "project",
+            active: true,
+            consentedScopes: ["stack:read", "stack:write", "stack:delete"],
+            secret: "other-instance-secret",
+        });
+        await db.insert(schema.runnerStacks).values({
+            stackId: selected.id,
+            extensionInstanceId: otherInstanceId,
+            projectId: selected.projectId,
+            targetUrl: "https://github.com/acme/owned-elsewhere",
+        });
+
+        await expect(
+            runner.createRunner(
+                client,
+                extensionInstanceId,
+                selected.projectId,
+                userId,
+                { ...selectable, name: "Guest", stackId: selected.id },
+            ),
+        ).rejects.toMatchObject({ messageKey: "error.notFound.stack" });
+
+        const stack = await import("@/domain/stack.ts");
+        const listed = await stack.listProjectStacks(
+            client,
+            extensionInstanceId,
+            selected.projectId,
+        );
+        expect(listed.some((entry) => entry.id === selected.id)).toBe(false);
+
+        await db
+            .delete(schema.extensionInstances)
+            .where(eq(schema.extensionInstances.id, otherInstanceId));
+    });
+});
+
 describe("instance cleanup", () => {
     it("removes every runner and stack of a removed instance", async () => {
         const created = await runner.createRunner(
@@ -389,7 +513,11 @@ describe("instance cleanup", () => {
             .where(eq(schema.runners.id, created.id));
         expect(rows).toHaveLength(1);
 
-        await runner.deleteAllRunnersOfInstance(client, rows);
+        const ownedStackIds =
+            await runner.findOwnedStackIds(extensionInstanceId);
+        expect(ownedStackIds).toContain(created.stackId);
+
+        await runner.deleteAllRunnersOfInstance(client, rows, ownedStackIds);
 
         const remaining = await runner.listRunners(client, extensionInstanceId);
         expect(remaining.some((r) => r.id === created.id)).toBe(true);

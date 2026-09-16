@@ -2,6 +2,7 @@ import type { MittwaldAPIV2, MittwaldAPIV2Client } from "@mittwald/api-client";
 import { and, eq } from "drizzle-orm";
 import { getDatabase } from "@/db";
 import { type RunnerStackRow, runnerStacks, runners } from "@/db/schema.ts";
+import type { ProjectStack } from "@/generated/extension-api";
 import {
     NotFoundError,
     PermissionsInsufficientError,
@@ -118,6 +119,127 @@ async function findStack(
             ),
         );
     return row;
+}
+
+export interface ResolvedStack {
+    stackId: string;
+    /** True when this call created the stack, false when it joined one. */
+    created: boolean;
+    /** Service names the stack already holds, ours and foreign ones alike. */
+    serviceNames: string[];
+}
+
+/**
+ * Without a selected stack the runner goes into the stack of its registration
+ * target. A selected stack gets no runner_stacks row, and that absence is what
+ * keeps every delete path from removing a stack the user picked.
+ */
+export async function resolveStack(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    projectId: string,
+    selectedStackId: string | undefined,
+    targetUrl: string,
+    description: string,
+): Promise<ResolvedStack> {
+    if (selectedStackId) {
+        const selected = await getStack(client, selectedStackId);
+        if (!selected || selected.projectId !== projectId) {
+            log.warn("selected stack is not available in this project", {
+                stackId: selectedStackId,
+                projectId,
+            });
+
+            throw new NotFoundError("stack");
+        }
+        // Stacks the extension manages belong to a registration target and are
+        // deleted with their last runner. Selecting one would break the promise
+        // that a selected stack outlives its runners, so only stacks without a
+        // runner_stacks row are offered and accepted.
+        if (await isManagedStack(selected.id)) {
+            log.warn("selected stack is managed by the extension", {
+                stackId: selected.id,
+            });
+
+            throw new NotFoundError("stack");
+        }
+        log.info("runner joins a selected stack", {
+            stackId: selected.id,
+            services: selected.services?.length ?? 0,
+        });
+
+        return {
+            stackId: selected.id,
+            created: false,
+            serviceNames: serviceNamesOf(selected),
+        };
+    }
+    const { stackId, created } = await findOrCreateStack(
+        client,
+        extensionInstanceId,
+        projectId,
+        targetUrl,
+        description,
+    );
+    if (created) {
+        return { stackId, created, serviceNames: [] };
+    }
+    const reused = await getStack(client, stackId);
+
+    return {
+        stackId,
+        created,
+        serviceNames: reused ? serviceNamesOf(reused) : [],
+    };
+}
+
+function serviceNamesOf(stack: StackResponse): string[] {
+    return (stack.services ?? []).map((service) => service.serviceName);
+}
+
+export async function listProjectStacks(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    projectId: string,
+): Promise<ProjectStack[]> {
+    const response = await client.container.listStacks({ projectId });
+    if ((response.status as number) === 403) {
+        throw new PermissionsInsufficientError(extensionInstanceId);
+    }
+    if (response.status !== 200) {
+        throw new UpstreamError("error.upstream.stackList", {
+            status: response.status,
+        });
+    }
+    const managed = new Set(
+        (
+            await getDatabase()
+                .select({ stackId: runnerStacks.stackId })
+                .from(runnerStacks)
+                .where(eq(runnerStacks.projectId, projectId))
+        ).map((row) => row.stackId),
+    );
+    const selectable = response.data.filter((stack) => !managed.has(stack.id));
+    log.debug("project stacks listed", {
+        projectId,
+        stacks: response.data.length,
+        selectable: selectable.length,
+    });
+
+    return selectable.map((stack) => ({
+        id: stack.id,
+        description: stack.description,
+        serviceCount: stack.services?.length ?? 0,
+    }));
+}
+
+async function isManagedStack(stackId: string): Promise<boolean> {
+    const [row] = await getDatabase()
+        .select({ stackId: runnerStacks.stackId })
+        .from(runnerStacks)
+        .where(eq(runnerStacks.stackId, stackId));
+
+    return Boolean(row);
 }
 
 /**
@@ -265,9 +387,23 @@ export async function removeService(
         });
     }
     await deleteVolumes(client, stackId, (name) =>
-        name.startsWith(`${serviceName}-`),
+        belongsToService(name, serviceName),
     );
     log.info("service removed", { stackId, serviceName });
+}
+
+/**
+ * Service names of the same runner name differ by a numeric suffix
+ * (runner-build, runner-build-2), so a plain prefix match on runner-build
+ * would also catch runner-build-2-data and delete the volumes of a sibling.
+ */
+function belongsToService(volumeName: string, serviceName: string): boolean {
+    const prefix = `${serviceName}-`;
+    if (!volumeName.startsWith(prefix)) {
+        return false;
+    }
+
+    return !/^\d+-/.test(volumeName.slice(prefix.length));
 }
 
 export async function deleteVolumes(
@@ -331,20 +467,24 @@ export async function deleteStackWithRow(
 
 /**
  * Service keys are unique per stack and limited to 63 characters. A second
- * runner with the same name in the same target gets a numeric suffix.
+ * runner with the same name in the same target gets a numeric suffix. The
+ * names the stack itself reports count too: declaring a service that a user
+ * already runs in a selected stack would overwrite it.
  */
 export async function uniqueServiceName(
     stackId: string,
     slug: string,
+    takenInStack: string[] = [],
 ): Promise<string> {
-    const taken = new Set(
-        (
+    const taken = new Set([
+        ...takenInStack,
+        ...(
             await getDatabase()
                 .select({ serviceName: runners.serviceName })
                 .from(runners)
                 .where(eq(runners.stackId, stackId))
         ).map((row) => row.serviceName),
-    );
+    ]);
     const base = `runner-${slug}`.slice(0, 60);
     if (!taken.has(base)) {
         return base;

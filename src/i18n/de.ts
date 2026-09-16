@@ -81,9 +81,9 @@ export const de: Messages = {
         "Der Container wird mit dem aktuellen Image neu erstellt. Ein Job, der gerade darauf läuft, schlägt fehl und wird nicht automatisch wiederholt.",
     "runners.delete.heading": "{name} löschen?",
     "runners.delete.text.github":
-        "Entfernt den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
+        "Entfernt den Container und seine Volumes inklusive Cache. Einen von der Extension angelegten Stack löscht der letzte Runner mit, einen selbst gewählten Stack nicht. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
-        "Entfernt den Runner aus GitLab, den Container und seine Volumes inklusive Cache. Der Stack verschwindet mit dem letzten Runner des Ziels. Ein laufender Job bricht ab. Ist der Container schon weg, bleibt der Runner in GitLab; lösche ihn dort unter `Settings` → `CI/CD` → `Runners`.",
+        "Entfernt den Runner aus GitLab, den Container und seine Volumes inklusive Cache. Einen von der Extension angelegten Stack löscht der letzte Runner mit, einen selbst gewählten Stack nicht. Ein laufender Job bricht ab. Ist der Container schon weg, bleibt der Runner in GitLab; lösche ihn dort unter `Settings` → `CI/CD` → `Runners`.",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty.heading": "Noch keine Ausgabe",
     "runners.logs.empty.text":
@@ -134,6 +134,9 @@ export const de: Messages = {
     "form.summary.stack.label": "Stack: CI Runner: {target}",
     "form.summary.stack.text":
         "Ein Stack pro Repository, Organisation oder Instanz. Entsteht mit dem ersten Runner, die weiteren teilen ihn.",
+    "form.summary.stack.selected.label": "Stack: {name}",
+    "form.summary.stack.selected.text":
+        "Der Runner läuft in diesem Stack und erreicht dessen Services über ihren Namen. Beim Löschen des Runners bleibt der Stack bestehen.",
     "form.summary.service.label": "Container: {service}",
     "form.summary.service.text": "Begrenzt auf {cpus} CPU und {memory} GB RAM.",
     "form.summary.dataVolume.label": "Volume: {service}-data",
@@ -181,6 +184,13 @@ export const de: Messages = {
     "form.tags.label": "Tags",
     "form.labels.description":
         "Kommagetrennt. Referenziere sie mit runs-on: [self-hosted, mittwald].",
+    "form.stack.label": "Ziel-Stack",
+    "form.stack.automatic": "Automatisch (ein Stack pro Ziel)",
+    "form.stack.option": "{name} ({services} Services)",
+    "form.stack.description":
+        "Wähl einen Stack, wenn deine Jobs dessen Services brauchen, zum Beispiel eine Datenbank für Migrations. Stacks, die die Extension für Runner angelegt hat, stehen nicht zur Wahl.",
+    "form.stack.help":
+        "Container eines Stacks erreichen sich über den Servicenamen im Stack-Netzwerk. Ein Runner im Stack deiner Anwendung kann Migrations oder Integrationstests gegen deren Datenbank fahren. Ohne Auswahl nutzt die Extension einen Stack pro Registrierungsziel und legt ihn mit dem ersten Runner an. Einen hier gewählten Stack löscht die Extension nie, beim Löschen des Runners verschwindet nur dessen Container.",
     "form.size.label": "Größe",
     "form.size.description":
         "Alle Jobs dieses Runners teilen sich diese Limits.",
@@ -254,6 +264,8 @@ export const de: Messages = {
     "error.notFound.runner": "Der Runner wurde nicht gefunden.",
     "error.notFound.runnerContainer":
         "Der Runner-Container wurde nicht gefunden.",
+    "error.notFound.stack":
+        "Der gewählte Stack lässt sich nicht verwenden. Wähl einen anderen aus der Liste.",
     "error.upstream.stackCreate":
         "Der Stack konnte nicht angelegt werden (Status {status}).",
     "error.upstream.stackDeclare":
@@ -268,6 +280,8 @@ export const de: Messages = {
         "Der Stack konnte nicht gelöscht werden (Status {status}).",
     "error.upstream.stackGet":
         "Der Runner-Stack konnte nicht geladen werden (Status {status}). Versuch es gleich noch mal.",
+    "error.upstream.stackList":
+        "Die Stacks des Projekts konnten nicht geladen werden (Status {status}). Versuch es gleich noch mal.",
     "error.upstream.projectGet":
         "Das Projekt konnte nicht geladen werden (Status {status}). Versuch es gleich noch mal.",
     "error.containerHosting.unavailable":

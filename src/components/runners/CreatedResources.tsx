@@ -24,6 +24,7 @@ interface CreatedResourcesProps {
     memoryGb: number;
     cache: boolean;
     cacheSizeGb: number;
+    selectedStackName?: string;
 }
 
 /**
@@ -40,6 +41,7 @@ export const CreatedResources = ({
     memoryGb,
     cache,
     cacheSizeGb,
+    selectedStackName,
 }: CreatedResourcesProps) => {
     const t = useTranslation();
     const serviceName = `runner-${
@@ -65,8 +67,14 @@ export const CreatedResources = ({
         {
             key: "stack",
             icon: <IconProject />,
-            label: t("form.summary.stack.label", { target: target || "…" }),
-            text: t("form.summary.stack.text"),
+            label: selectedStackName
+                ? t("form.summary.stack.selected.label", {
+                      name: selectedStackName,
+                  })
+                : t("form.summary.stack.label", { target: target || "…" }),
+            text: selectedStackName
+                ? t("form.summary.stack.selected.text")
+                : t("form.summary.stack.text"),
         },
         {
             key: "service",

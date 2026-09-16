@@ -12,7 +12,10 @@ import { PgExtensionStorage } from "@weissaufschwarz/mitthooks-drizzle/index";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "@/db";
 import { extensionInstances, runners } from "@/db/schema.ts";
-import { deleteAllRunnersOfInstance } from "@/domain/runner.ts";
+import {
+    deleteAllRunnersOfInstance,
+    findOwnedStackIds,
+} from "@/domain/runner.ts";
 import { getEnvironmentVariables } from "@/env.ts";
 import {
     addLogContext,
@@ -64,6 +67,7 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
             .select()
             .from(runners)
             .where(eq(runners.extensionInstanceId, extensionInstanceId));
+        const ownedStackIds = await findOwnedStackIds(extensionInstanceId);
 
         await next(content);
 
@@ -93,7 +97,7 @@ const cleanupRunnersOnRemoval: WebhookHandler = {
                     return;
                 }
                 const client = createMittwaldClient(auth.data.publicToken);
-                await deleteAllRunnersOfInstance(client, rows);
+                await deleteAllRunnersOfInstance(client, rows, ownedStackIds);
                 log.info("runner stacks of removed instance deleted", {
                     runners: rows.length,
                 });
