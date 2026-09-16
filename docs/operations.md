@@ -125,6 +125,12 @@ environment at its own project.
 images, so a deployment pins all three to the same release. `postgres` is excluded from the
 restart (`skip_recreation`); the extension runs its migrations on start.
 
+After the stack the job `fragment` runs `pnpm run fragment:icon` and writes icon and
+title of the frontend fragments again
+([mstudio-setup.md](mstudio-setup.md#icon-and-title-of-the-frontend-fragment)). They are
+not part of the extension form in mStudio, so the repository is their source. The job
+keeps the URL of every fragment, so a fragment added in mStudio survives.
+
 ### One-time setup
 
 1. GitHub environment `mstudio` with these secrets:
@@ -132,7 +138,8 @@ restart (`skip_recreation`); the extension runs its migrations on start.
    | Name | Kind | Source |
    |---|---|---|
    | `MITTWALD_STACK_ID` | secret | An empty stack created in the target project in mStudio (*Container → Stacks → Create*) |
-   | `MITTWALD_API_TOKEN` | secret | mStudio, *User → API tokens*, needs access to the project |
+   | `MITTWALD_API_TOKEN` | secret | mStudio, *User → API tokens*, needs access to the project and to the extension |
+   | `MITTWALD_CONTRIBUTOR_ID` | secret | Contributor of the extension, in mStudio under *Organization → Development* |
    | `EXTENSION_ID`, `EXTENSION_SECRET` | secret | Extension registration ([mstudio-setup.md](mstudio-setup.md)) |
    | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes the stored instance secrets unreadable, so the cleanup after an uninstall stops working. |
    | `POSTGRES_PASSWORD` | secret | Any strong value. Used by both services. |
