@@ -120,7 +120,6 @@ export async function ensureBuilder(
     log.info("builder declared", { stackId, image });
 }
 
-
 /**
  * Removes the builder once the last runner of the stack stops building images.
  * `ignoreServiceName` covers the runner whose declaration is not visible yet,
