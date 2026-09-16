@@ -151,7 +151,7 @@ to a release only once it is merged into `main`. A tag cut from a branch before 
 built and released, but nothing deploys it.
 
 `EXTENSION_VERSION` selects the extension image and, inside the extension, the runner
-images, so a deployment pins all three to the same release. `postgres` is excluded from the
+images and the builder image, so a deployment pins all four to the same release. `postgres` is excluded from the
 restart (`skip_recreation`); the extension runs its migrations on start.
 
 After the stack the job `metadata` runs `pnpm run extension:sync` and writes the

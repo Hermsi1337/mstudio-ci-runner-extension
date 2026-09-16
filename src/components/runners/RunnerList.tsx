@@ -167,6 +167,16 @@ const RunnerRow = ({
             </Content>
             <Content>
                 <LabeledValue>
+                    <Label>{t("runners.column.imageBuilds")}</Label>
+                    <Text>
+                        {runner.imageBuilds
+                            ? t("runners.imageBuilds.on")
+                            : t("runners.imageBuilds.off")}
+                    </Text>
+                </LabeledValue>
+            </Content>
+            <Content>
+                <LabeledValue>
                     <Label>{t("runners.column.version")}</Label>
                     <Text>
                         {runner.imageVersion ??

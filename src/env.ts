@@ -2,6 +2,7 @@ import { bool, cleanEnv, num, str, url } from "envalid";
 import packageJson from "../package.json";
 
 const RUNNER_IMAGE_REPOSITORY = "ghcr.io/hermsi1337/mstudio-ci-runner";
+const BUILDER_IMAGE_REPOSITORY = "ghcr.io/hermsi1337/mstudio-ci-builder";
 
 export const getEnvironmentVariables = () => {
     const extensionVersion =
@@ -26,6 +27,9 @@ export const getEnvironmentVariables = () => {
         }),
         RUNNER_IMAGE_GITLAB: str({
             default: `${RUNNER_IMAGE_REPOSITORY}-gitlab:${extensionVersion}`,
+        }),
+        BUILDER_IMAGE: str({
+            default: `${BUILDER_IMAGE_REPOSITORY}:${extensionVersion}`,
         }),
         MITTWALD_API_URL: url({ default: "https://api.mittwald.de/" }),
         GITHUB_API_URL: url({ default: "https://api.github.com" }),

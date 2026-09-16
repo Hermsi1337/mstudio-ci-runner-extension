@@ -65,6 +65,8 @@ components:
           $ref: '#/components/schemas/CacheEnabled'
         cacheSizeGb:
           $ref: '#/components/schemas/CacheSizeGb'
+        imageBuilds:
+          $ref: '#/components/schemas/ImageBuilds'
         concurrency:
           $ref: '#/components/schemas/Concurrency'
         size:
@@ -93,6 +95,10 @@ components:
       type: boolean
       default: false
       description: Adds a cache volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
+    ImageBuilds:
+      type: boolean
+      default: false
+      description: Lets jobs build container images with `docker build`. Mounts the build queue of the stack into the runner and adds the builder service to the stack if it is missing.
     CacheSizeGb:
       type: integer
       minimum: 1
@@ -194,6 +200,8 @@ components:
           $ref: '#/components/schemas/CacheEnabled'
         cacheSizeGb:
           $ref: '#/components/schemas/CacheSizeGb'
+        imageBuilds:
+          $ref: '#/components/schemas/ImageBuilds'
         concurrency:
           $ref: '#/components/schemas/Concurrency'
         size:
@@ -216,7 +224,7 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, tokenType, size, cpus, memoryMb, cache, cacheSizeGb, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, latestImageVersion, imageVersion, updateAvailable, createdAt]
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, tokenType, size, cpus, memoryMb, cache, cacheSizeGb, imageBuilds, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, latestImageVersion, imageVersion, updateAvailable, createdAt]
       properties:
         id:
           type: string
@@ -260,6 +268,9 @@ components:
         cacheSizeGb:
           type: integer
           description: Cache limit in GB. Carries the last configured value even while cache is false.
+        imageBuilds:
+          type: boolean
+          description: Jobs of this runner can build container images through the builder service of its stack.
           example: 10
         concurrency:
           type: integer
