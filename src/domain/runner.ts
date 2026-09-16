@@ -692,6 +692,16 @@ export async function updateRunner(
         row.stackId,
         updatedService ?? service,
     );
+    // The builder of the stack ships with the same release as the runner, so an
+    // update that only touched the runner would leave it behind.
+    if (row.imageBuilds) {
+        await ensureBuilder(
+            client,
+            extensionInstanceId,
+            row.stackId,
+            await buildQueueMount(client, row.projectId, row.stackId),
+        );
+    }
     const [updated] = await getDatabase()
         .update(runners)
         .set({ image, runnerVersion: provider.runnerVersion })

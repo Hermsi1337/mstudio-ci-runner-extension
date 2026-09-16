@@ -6,7 +6,9 @@ import { getProjectDirectory } from "./project.ts";
 import {
     declareService,
     getStack,
+    recreateService,
     removeService,
+    type ServiceResponse,
     type StackResponse,
 } from "./stack.ts";
 
@@ -36,15 +38,21 @@ export async function buildQueueMount(
     return queueMountFor(await getProjectDirectory(client, projectId), stackId);
 }
 
-function hasBuilder(stack: StackResponse): boolean {
-    return (stack.services ?? []).some(
+function findBuilder(stack: StackResponse): ServiceResponse | undefined {
+    return (stack.services ?? []).find(
         (service) => service.serviceName === BUILDER_SERVICE_NAME,
     );
 }
 
+function hasBuilder(stack: StackResponse): boolean {
+    return findBuilder(stack) !== undefined;
+}
+
 /**
- * Declares the builder of a stack unless it already runs. The service takes no
- * arguments: it polls the queue directory it shares with the runners.
+ * Declares the builder of a stack, and redeclares it when its image is behind
+ * the one this release ships. A runner update would otherwise leave the builder
+ * on the version it was created with. The service takes no arguments: it polls
+ * the queue directory it shares with the runners.
  */
 export async function ensureBuilder(
     client: MittwaldAPIV2Client,
@@ -52,11 +60,21 @@ export async function ensureBuilder(
     stackId: string,
     queueMount: string,
 ): Promise<void> {
+    const image = getEnvironmentVariables().BUILDER_IMAGE;
     const stack = await getStack(client, stackId);
-    if (stack && hasBuilder(stack)) {
-        log.debug("builder already declared", { stackId });
+    const existing = stack ? findBuilder(stack) : undefined;
+    if (existing) {
+        const state = existing.pendingState ?? existing.deployedState;
+        if (imageMatches(state?.image, image)) {
+            log.debug("builder already declared", { stackId });
 
-        return;
+            return;
+        }
+        log.info("builder image is behind, redeclaring", {
+            stackId,
+            from: state?.image,
+            to: image,
+        });
     }
     await declareService(
         client,
@@ -65,13 +83,28 @@ export async function ensureBuilder(
         BUILDER_SERVICE_NAME,
         {
             description: "Image builder",
-            image: getEnvironmentVariables().BUILDER_IMAGE,
+            image,
             restartPolicy: "always",
             deploy: { resources: { limits: BUILDER_LIMITS } },
             volumes: [queueMount],
         },
     );
-    log.info("builder declared", { stackId });
+    if (existing) {
+        await recreateService(client, extensionInstanceId, stackId, existing.id);
+    }
+    log.info("builder declared", { stackId, image });
+}
+
+/**
+ * mittwald reports the image of a service normalized ("library/alpine:3.20"
+ * for "alpine:3.20"), so a plain comparison would redeclare on every call.
+ */
+function imageMatches(deployed: string | undefined, configured: string): boolean {
+    if (!deployed) {
+        return false;
+    }
+
+    return deployed === configured || configured.endsWith(`/${deployed}`);
 }
 
 /**

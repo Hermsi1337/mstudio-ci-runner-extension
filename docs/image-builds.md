@@ -78,8 +78,10 @@ of the stack if it is missing:
 }
 ```
 
-One builder serves every runner of its stack. Turning the switch off for the last runner
-of that stack that builds removes it again, deleting that runner does the same. What stays
+One builder serves every runner of its stack. Updating a runner also brings the builder
+to the image of the release, because both ship together. Turning the switch off for the
+last runner of that stack that builds removes it again, deleting that runner does the
+same. What stays
 is the queue directory of the stack in the project file system; it is empty, because every
 job removes its own directory when it is done. No new scope is
 needed, the extension declares the service with `stack:write`. The image follows the
