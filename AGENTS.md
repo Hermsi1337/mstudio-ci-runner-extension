@@ -115,10 +115,11 @@ docker/runner/probes/        probe suite run inside the built images by the inte
 docker/runner/versions.json  runner software version per provider, single source for workflow, build and UI
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
 docs/                        documentation, one topic per file
-src/assets/                  logo (SVG inlined into the UI, PNG for the mStudio registration) and README banner
+src/assets/                  logo (SVG inlined into the UI, PNG for the mStudio registration), fragment icon for the mStudio menu and README banner
 openapi/extension-api.yaml   extension API contract (source for codegen)
 openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
 scripts/slim-openapi.ts      produces openapi/upstream
+scripts/set-fragment-icon.ts  sets icon and title of the frontend fragments through the mStudio API
 scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
 scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
 scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) reached the browser bundle

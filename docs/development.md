@@ -75,6 +75,7 @@ edit an applied migration; a fresh database gets `0000_initial.sql`.
 | `typecheck` | `tsc --noEmit` |
 | `codegen` | Types, zod schemas and the GitLab client from the specs ([codegen.md](codegen.md)) |
 | `spec:update` | Regenerate the upstream subsets in `openapi/upstream/` (run `codegen` afterwards) |
+| `fragment:icon` | Set icon and title of the frontend fragments in mStudio ([mstudio-setup.md](mstudio-setup.md#icon-and-title-of-the-frontend-fragment)) |
 | `test`, `test:integration`, `test:all` | Unit tests, Testcontainers tests, both ([testing.md](testing.md)) |
 | `db:start`, `db:stop` | Local PostgreSQL via `scripts/dev-db.sh` (`rm` also deletes the volume) |
 | `db:push`, `db:generate-migrations`, `db:migrate`, `db:studio` | Drizzle |

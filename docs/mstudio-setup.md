@@ -14,7 +14,7 @@ Details: [mittwald developer portal, contributor](https://developer.mittwald.de/
 | Context | **Project** (stacks belong to a project) |
 | Scopes | `project:read`, `stack:read`, `stack:write`, `stack:delete`, `cronjob:write`, `cronjob:delete` |
 | Webhooks (all four) | `https://<extension-host>/api/webhooks/mittwald` |
-| Frontend fragment | Anchor *project menu* (or the anchor of your choice), URL `https://<extension-host>/` |
+| Frontend fragment | Anchor `/projects/project/menu/section/extensions/item`, URL `https://<extension-host>/` |
 | Logo | `src/assets/logo.png` (512 px, rendered from `logo.svg`) |
 
 `project:read` is what the extension reads the supported features of the project with.
@@ -60,14 +60,25 @@ there. No PAT is involved.
 
 The PAT mode is disabled, see [providers.md](providers.md#existing-providers).
 
-## Icon of the frontend fragment
+## Icon and title of the frontend fragment
 
-The fragment icon is not part of the extension form in mStudio. It is set through the
-API: upload the icon as a file of the type `anchorIcon`, then write the file reference
-into `frontendFragments.<anchor>.additionalProperties` with
-`PATCH /v2/contributors/{contributorId}/extensions/{extensionId}`. The API documents
-`additionalProperties` as "some information needed for the mStudio like the icon" but
-does not name the key, so ask mittwald for it before setting the icon.
+Every anchor needs an `icon` (inline SVG) and a `title` (JSON with the language as key,
+currently only `de`). Both live in `frontendFragments.<anchor>.additionalProperties` and
+the extension form in mStudio does not offer them, so they are set through the API:
+
+```bash
+MITTWALD_API_TOKEN=... MITTWALD_CONTRIBUTOR_ID=... MITTWALD_EXTENSION_ID=... \
+  pnpm run fragment:icon
+```
+
+The script reads the fragments of the extension, keeps their URLs and writes
+`src/assets/fragment-icon.svg` plus the title into each one
+(`PATCH /v2/contributors/{contributorId}/extensions/{extensionId}`). The icon is
+monochrome and uses `currentColor`, so it follows the menu color in both themes.
+
+The list of anchors lives in mStudio under *Development* at the extension, not in the
+documentation ([anchor reference](https://developer.mittwald.de/docs/v2/contribution/reference/frontend-fragment-anchors/)).
+The project menu is `/projects/project/menu/section/extensions/item`.
 
 ## Testing a local extension
 
