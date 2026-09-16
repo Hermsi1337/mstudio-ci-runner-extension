@@ -125,6 +125,7 @@ scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) re
 scripts/generate-encryption-secrets.js  prints values for ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
 src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
+src/domain/project.ts        capabilities of the mStudio project (Container Hosting available?)
 src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
 src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
 src/domain/changelog.ts      GitHub releases for the changelog modal, cached in memory

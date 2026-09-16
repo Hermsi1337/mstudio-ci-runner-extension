@@ -59,8 +59,7 @@ Nach unter einer Minute nimmt der Runner Jobs an.
 - **Verwaltung:** Logs, Neustart, Einstellungen und Updates direkt in
   mStudio, inklusive Update-Hinweis und Changelog
 - **Sicherheit:** Die Extension speichert keine Tokens. Registrierungs-Tokens gehen
-  nur in den Runner-Container, ein GitLab-PAT wird einmal zum Anlegen des Runners
-  genutzt und danach verworfen
+  nur in den Runner-Container, ein Personal Access Token brauchst du nicht
 
 ## Gut zu wissen
 
@@ -102,7 +101,7 @@ The runner picks up jobs in under a minute.
 - **Management:** logs, restart, settings and updates inside mStudio,
   including an update hint and a changelog
 - **Security:** the extension stores no tokens. Registration tokens only go into the
-  runner container; a GitLab PAT is used once to create the runner and then discarded
+  runner container; no personal access token is needed
 
 ## Good to know
 

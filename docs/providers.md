@@ -56,17 +56,18 @@ from `input.provider` and knows no provider details beyond that.
 | Provider | Inputs | Registration | Credentials in the container | Cleanup |
 |---|---|---|---|---|
 | `github` | `target` (owner or owner/repo), `token` (registration token), `runnerGroup` | No API call. The container registers with the token from the "New self-hosted runner" page and keeps the registration in the `config` directory of its data volume | The registration token (`RUNNER_TOKEN`), useless after one hour and unset before the runner starts | None. The runner stays offline in GitHub until GitHub removes it after 14 days |
-| `gitlab` | `instanceUrl`, `tokenType` (`registration`, default, or `pat`), `token`, and with `pat`: `runnerType` (project/group/instance), `target` (path), `runUntagged` | `registration`: the runner token `glrt-...` from the "New runner" page is checked with `POST /api/v4/runners/verify`; scope and tags live in GitLab, `labels` is stored empty. `pat`: `POST /api/v4/user/runners` with the PAT creates the runner and returns its token | Runner token only (`CI_SERVER_TOKEN`), never the PAT | `DELETE /api/v4/runners?token=` with the token from the service environment, in both modes. Without a container (deleted in mStudio) the runner stays in GitLab |
+| `gitlab` | `instanceUrl` and `token`, both read from the `gitlab-runner register` command | The runner token `glrt-...` from the "New runner" page is checked with `POST /api/v4/runners/verify`. Scope and tags live in GitLab, `labels` is stored empty | Runner token only (`CI_SERVER_TOKEN`) | `DELETE /api/v4/runners?token=` with the token from the service environment. Without a container (deleted in mStudio) the runner stays in GitLab |
 
 GitLab client: generated from `openapi/upstream/gitlab.json` ([codegen.md](codegen.md)).
-Project and group ids are resolved via `GET /projects/{path}` and `GET /groups/{path}`.
+It covers two endpoints, `POST /api/v4/runners/verify` and `DELETE /api/v4/runners`.
 
 Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
 
-GitHub had a PAT mode with ephemeral runners. It is disabled because the PAT lived in the
-runner container where every job can read it. Runners created in that mode keep
-`tokenType: pat` and `ephemeral: true` in their row and keep running. The way back is
-server-side minting of registration tokens, tracked in
+Both providers had a PAT mode. They are disabled: for GitHub the PAT lived in the runner
+container where every job could read it, for GitLab it bought nothing over pasting the
+register command. Runners created in the GitHub PAT mode keep `tokenType: pat` and
+`ephemeral: true` in their row and keep running. The way back for GitHub is server-side
+minting of registration tokens, tracked in
 [issue #25](https://github.com/Hermsi1337/mstudio-ci-runner-extension/issues/25).
 
 ## Adding a provider

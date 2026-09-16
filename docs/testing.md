@@ -41,7 +41,7 @@ on import, so tests import them after the containers started via `await import(.
 | File | Verifies |
 |---|---|
 | `database.test.ts` | Migrations, encrypted instance secret, no secret column in `runners`, cascade delete |
-| `runner-lifecycle.test.ts` | Per provider case (GitHub repo, GitLab project, GitLab runner token, GitLab instance): `createRunner` → `listRunners` → logs/restart → update (declare and recreate) → settings → `deleteRunner` against the mittwald and GitLab Prism mocks; two runners sharing a stack; tenant isolation; input errors |
+| `runner-lifecycle.test.ts` | Per provider case (GitHub repo, three GitLab runner token variants): `createRunner` → `listRunners` → logs/restart → update (declare and recreate) → settings → `deleteRunner` against the mittwald and GitLab Prism mocks; two runners sharing a stack; tenant isolation; input errors |
 | `runner-image.test.ts` | Per image: builds with `RUNNER_VERSION` and the `RUNNER_SHA256_*` checksums from `docker/runner/versions.json`, entrypoint reaches registration with the configured values, runs as user `runner`, passes the probe suite, entrypoint rejects missing required variables with a clear message |
 | `changelog.test.ts` | `getChangelog` against the GitHub Prism mock: releases parsed and validated, second call served from the cache, releases newer than `EXTENSION_VERSION` hidden |
 
@@ -50,6 +50,10 @@ the same stack id and every stack reports the same example service. The domain m
 a service by name or by the id it stored, and treats a stack with a single service as
 its own, so the lifecycle tests pass against the mock; a test with two different
 targets cannot exist here.
+
+`scripts/slim-openapi.ts` gives the project schema `supportedFeatures` an example of
+`["container"]`, otherwise the mocked project would support no Container Hosting and
+every create would stop at the capability check ([codegen.md](codegen.md)).
 
 Prism rejects requests that contradict the upstream spec. The request bodies of the
 extension are therefore checked against the real API contracts without the real APIs.

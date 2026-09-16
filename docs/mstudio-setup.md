@@ -17,6 +17,10 @@ Details: [mittwald developer portal, contributor](https://developer.mittwald.de/
 | Frontend fragment | Anchor *project menu* (or the anchor of your choice), URL `https://<extension-host>/` |
 | Logo | `src/assets/logo.png` (512 px, rendered from `logo.svg`) |
 
+`project:read` is what the extension reads the supported features of the project with.
+Without the `container` feature it offers no runner and says so
+([architecture.md](architecture.md#data-flow-create-runner)).
+
 There are no `container:*` scopes. The container endpoints are named `container-*`,
 the scope is called `stack`; `stack:delete` also covers deleting the cache volume when
 the cache is turned off. The cronjob scopes cover the cache cleanup cronjob the
@@ -48,15 +52,22 @@ Ephemeral runners and the PAT mode are disabled, see
 
 ### GitLab
 
-Default: the register command from GitLab. Create the runner under *Settings → CI/CD →
-Runners → New project runner* (or group or instance runner), set tags there and paste
-the `gitlab-runner register --url ... --token glrt-...` line from the next page into the
+The register command from GitLab. Create the runner under *Settings → CI/CD → Runners →
+New project runner* (or group or instance runner), set tags there and paste the
+`gitlab-runner register --url ... --token glrt-...` line from the next page into the
 form. The token goes into the runner container only; deleting the runner reads it from
-there. No PAT is needed.
+there. No PAT is involved.
 
-Alternative: a personal access token with the scopes `create_runner` and `api`. Role
-maintainer (project) or owner (group); instance runners require an admin. The extension
-creates the runner via the API; the PAT is used once and is not stored.
+The PAT mode is disabled, see [providers.md](providers.md#existing-providers).
+
+## Icon of the frontend fragment
+
+The fragment icon is not part of the extension form in mStudio. It is set through the
+API: upload the icon as a file of the type `anchorIcon`, then write the file reference
+into `frontendFragments.<anchor>.additionalProperties` with
+`PATCH /v2/contributors/{contributorId}/extensions/{extensionId}`. The API documents
+`additionalProperties` as "some information needed for the mStudio like the icon" but
+does not name the key, so ask mittwald for it before setting the icon.
 
 ## Testing a local extension
 

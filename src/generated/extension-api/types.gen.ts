@@ -41,16 +41,16 @@ export type MemoryMb = number;
 
 /**
  * How the runner authenticated at creation. Decides whether the extension can remove the
- * registration on delete. GitHub runners created before the PAT mode was disabled still
- * carry `pat`.
+ * registration on delete. Runners created before the PAT mode was disabled still carry
+ * `pat`.
  *
  */
 export const TokenType = { REGISTRATION: 'registration', PAT: 'pat' } as const;
 
 /**
  * How the runner authenticated at creation. Decides whether the extension can remove the
- * registration on delete. GitHub runners created before the PAT mode was disabled still
- * carry `pat`.
+ * registration on delete. Runners created before the PAT mode was disabled still carry
+ * `pat`.
  *
  */
 export type TokenType = typeof TokenType[keyof typeof TokenType];
@@ -125,41 +125,22 @@ export type GitHubRunnerRequest = RunnerBase & {
     runnerGroup?: string;
 };
 
-export const GitLabRunnerType = {
-    PROJECT_TYPE: 'project_type',
-    GROUP_TYPE: 'group_type',
-    INSTANCE_TYPE: 'instance_type'
-} as const;
-
-export type GitLabRunnerType = typeof GitLabRunnerType[keyof typeof GitLabRunnerType];
-
 export type GitLabRunnerRequest = RunnerBase & {
     provider: 'gitlab';
     /**
-     * Base URL of the GitLab instance.
+     * Base URL of the GitLab instance, read from the register command.
      */
     instanceUrl: string;
     /**
-     * `registration`: the runner authentication token (`glrt-...`) from the "New runner" page on GitLab.
+     * The runner authentication token (`glrt-...`) from the "New runner" page on GitLab.
      * The runner, its tags and its scope already exist there; the container registers with the token.
-     * `pat`: a personal access token; the extension creates the runner via the API from `runnerType`,
-     * `target`, `labels` and `runUntagged`.
      *
      */
-    tokenType?: 'registration' | 'pat';
-    runnerType?: GitLabRunnerType;
+    tokenType?: 'registration';
     /**
-     * Project path (`group/project`) or group path for project/group runners. Empty for instance runners. Only with tokenType pat.
-     */
-    target?: string;
-    /**
-     * Runner authentication token or PAT, depending on `tokenType`.
+     * Runner authentication token from the register command.
      */
     token: string;
-    /**
-     * Only with tokenType pat.
-     */
-    runUntagged?: boolean;
 };
 
 export type CreateRunnerRequest = ({
@@ -256,6 +237,19 @@ export type Runner = {
 };
 
 export type RunnerList = Array<Runner>;
+
+/**
+ * What the project the extension runs in supports. Read before a runner is offered.
+ */
+export type ProjectCapabilities = {
+    /**
+     * True when the project supports Container Hosting (`container` in the project's
+     * `supportedFeatures`). Runners are containers, so everything else is pointless
+     * without it.
+     *
+     */
+    containerHosting: boolean;
+};
 
 export type Release = {
     /**

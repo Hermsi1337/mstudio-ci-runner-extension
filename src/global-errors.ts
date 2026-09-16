@@ -81,6 +81,16 @@ export class PermissionsInsufficientError extends PublicError {
     }
 }
 
+export class ContainerHostingUnavailableError extends PublicError {
+    public constructor(projectId: string) {
+        super(
+            "error.containerHosting.unavailable",
+            {},
+            { statusCode: 409, details: { projectId } },
+        );
+    }
+}
+
 export class NotFoundError extends PublicError {
     public constructor(what: "runner" | "runnerContainer") {
         super(

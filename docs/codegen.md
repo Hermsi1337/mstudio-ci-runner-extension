@@ -24,10 +24,11 @@ paths, because TanStack server functions have no HTTP routing in the OpenAPI sen
 - `RunnerIdRequest`, `RunnerLogsRequest`, `ConfigureRunnerRequest`: further inputs.
   Server functions use the generated zod schemas (`zCreateRunnerRequest`, ...) as
   `validator`.
-- `Runner`, `RunnerList`, `Changelog`, `Release`: outputs. Server functions check their
-  return value with `zRunner.parse` / `zRunnerList.parse`.
-- `RunnerSize`, `RunnerStatus`, `Provider`, `GitLabRunnerType`: enums, available in the UI
-  as types and constants.
+- `Runner`, `RunnerList`, `ProjectCapabilities`, `Changelog`, `Release`: outputs. Server
+  functions check their return value with `zRunner.parse` / `zRunnerList.parse` /
+  `zProjectCapabilities.parse`.
+- `RunnerSize`, `RunnerStatus`, `Provider`: enums, available in the UI as types and
+  constants.
 
 Workflow for changes:
 
@@ -45,6 +46,7 @@ and removes `security`. The results serve two purposes: input for client generat
 the path list in the script when new endpoints are used, then run
 `pnpm run spec:update` and commit the result.
 
-Upstream bugs are corrected in the script via `patch` and commented there. Currently:
-GitLab marks `group_id`/`project_id` on `POST /user/runners` as required although they
-depend on `runner_type`.
+Upstream documents are adjusted in the script via `patch` and commented there.
+Currently: the mittwald project schema gets `supportedFeatures` an example of
+`["container"]`, because Prism answers from the schema and a project without the
+container feature would fail the capability check of every mocked runner create.
