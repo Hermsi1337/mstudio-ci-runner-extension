@@ -55,13 +55,18 @@ Two Flow rules shape the components:
 4. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
    registration in the CI system where needed and returns image, environment and the
    data volume ([providers.md](providers.md)). Nothing secret is returned for storage.
-5. `src/domain/stack.ts` finds the stack of the registration target in `runner_stacks`
-   or creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
+5. `src/domain/stack.ts` resolves the stack (`resolveStack`). Without a `stackId` in
+   the request it finds the stack of the registration target in `runner_stacks` or
+   creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
    (extension instance, target URL) settles parallel creates: the loser deletes its
    duplicate stack and uses the winner's. If persisting the row fails, the extension
-   deletes the stack it just created, so no orphaned stack stays behind. A create for
-   an installation without an `extension_instance` row (webhook data missing) fails
-   before anything is created.
+   deletes the stack it just created, so no orphaned stack stays behind. With a
+   `stackId` the runner joins that stack, which the extension only reads: the stack
+   must belong to the project (otherwise `error.notFound.stack`) and gets no
+   `runner_stacks` row, so no delete path removes it. The service name is then
+   checked against the services the stack reports too, so a runner never overwrites a
+   service someone else declared. A create for an installation without an
+   `extension_instance` row (webhook data missing) fails before anything is created.
 6. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
    requested ([providers.md](providers.md#package-manager-cache)) and declares the
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
@@ -116,19 +121,26 @@ Tables in `src/db/schema.ts`:
   (`cpus` and `memoryMb` only for `size = custom`), `tokenType` records how the runner
   authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald
   cronjobs created for the runner (cache cleanup).
+- `runner_stacks`: one row per stack the extension created, unique per
+  (extension instance, target URL). The row is both the lock against parallel creates
+  and the record that the extension owns the stack. A stack the user picked in the
+  create form has no row and is never deleted by the extension.
 
-One stack per registration target, one service per runner. Deleting removes the
-service (`updateStack` with `{}`) and its volumes, then the stack when no runner row
-points at it any more. Deleting the stack in mStudio removes every runner of that
-target; the list shows them as `missing`.
+One stack per registration target, one service per runner, unless the user picked a
+stack when creating the runner. Deleting removes the service (`updateStack` with
+`{}`) and its volumes, then the stack when no runner row points at it any more and a
+`runner_stacks` row is still there to remove. That row is the ownership record: a
+picked stack has none, so it survives its runners. Deleting a stack in mStudio removes
+every runner in it; the list shows them as `missing`.
 
 ## Lifecycle webhooks
 
 `POST /api/webhooks/mittwald` receives all four events. mitthooks verifies the
 signature and maintains `extension_instance`. A handler in front of the chain
 (`cleanupRunnersOnRemoval`) reacts to `InstanceRemovedFromContext`: it reads the
-runners of the instance, lets the default chain run and then deletes all stacks with a
-token obtained from the instance secret (`extensionAuthenticateInstance`) plus the
+runners of the instance, lets the default chain run and then, with a token obtained
+from the instance secret (`extensionAuthenticateInstance`), deletes the stacks listed
+in `runner_stacks`, removes the runner service from every other stack and releases the
 registrations via `provider.release`. This happens detached because mStudio expects an
 answer within 6 seconds.
 

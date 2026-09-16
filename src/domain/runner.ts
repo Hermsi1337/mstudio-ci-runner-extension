@@ -1,5 +1,5 @@
 import { assertStatus, type MittwaldAPIV2Client } from "@mittwald/api-client";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import * as uuid from "uuid";
 import { getDatabase } from "@/db";
 import {
@@ -42,11 +42,11 @@ import {
     deleteStackUpstream,
     deleteStackWithRow,
     deleteVolumes,
-    findOrCreateStack,
     getStack,
     prefixMounts,
     recreateService,
     removeService,
+    resolveStack,
     type ServiceResponse,
     type StackResponse,
     uniqueServiceName,
@@ -430,14 +430,23 @@ export async function createRunner(
         volumes: mounts,
     });
 
-    const { stackId, created: createdStack } = await findOrCreateStack(
+    const {
+        stackId,
+        created: createdStack,
+        serviceNames,
+    } = await resolveStack(
         client,
         extensionInstanceId,
         projectId,
+        input.stackId,
         prepared.targetUrl,
         `CI Runner: ${prepared.target}`,
     );
-    const serviceName = await uniqueServiceName(stackId, runnerName);
+    const serviceName = await uniqueServiceName(
+        stackId,
+        runnerName,
+        serviceNames,
+    );
     addLogContext({ stackId, serviceName });
 
     const cronjobIds: string[] = [];
@@ -859,8 +868,9 @@ export async function deleteRunner(
     // empty, and, when it is, removes the runner_stacks row too. Deleting that
     // lock row here means a racing createRunner can no longer find the stack
     // and declares a fresh one instead of into the stack we are about to
-    // delete upstream. The mittwald deleteStack call stays outside.
-    const stackEmpty = await getDatabase().transaction(async (tx) => {
+    // delete upstream. The mittwald deleteStack call stays outside. A stack the
+    // user selected has no row, so nothing is removed and the stack survives.
+    const ownedStackReleased = await getDatabase().transaction(async (tx) => {
         await tx.delete(runners).where(eq(runners.id, row.id));
         const [remaining] = await tx
             .select({ id: runners.id })
@@ -870,13 +880,14 @@ export async function deleteRunner(
         if (remaining) {
             return false;
         }
-        await tx
+        const released = await tx
             .delete(runnerStacks)
-            .where(eq(runnerStacks.stackId, row.stackId));
+            .where(eq(runnerStacks.stackId, row.stackId))
+            .returning({ stackId: runnerStacks.stackId });
 
-        return true;
+        return released.length > 0;
     });
-    if (stackEmpty) {
+    if (ownedStackReleased) {
         await deleteStackUpstream(client, extensionInstanceId, row.stackId);
     }
     log.info("runner deleted", {
@@ -884,7 +895,7 @@ export async function deleteRunner(
         provider: row.provider,
         stackId: row.stackId,
         serviceName: row.serviceName,
-        stackDeleted: stackEmpty,
+        stackDeleted: ownedStackReleased,
     });
 }
 
@@ -921,10 +932,18 @@ async function releaseProviderRegistration(
     }
 }
 
+/**
+ * Stacks the extension created for a registration target are deleted whole.
+ * A stack the user selected keeps running with its own services, so only the
+ * runner service is removed from it.
+ */
 export async function deleteAllRunnersOfInstance(
     client: MittwaldAPIV2Client,
     rows: RunnerRow[],
 ): Promise<void> {
+    const ownedStackIds = await findOwnedStackIds(
+        rows.map((row) => row.stackId),
+    );
     for (const row of rows) {
         await deleteCronjobs(client, parseCronjobIds(row));
         let service: ServiceResponse | null | undefined;
@@ -937,8 +956,26 @@ export async function deleteAllRunnersOfInstance(
             });
         }
         await releaseProviderRegistration(row, service);
+        if (ownedStackIds.has(row.stackId)) {
+            continue;
+        }
+        try {
+            await removeService(
+                client,
+                row.extensionInstanceId,
+                row.stackId,
+                row.serviceName,
+            );
+        } catch (error) {
+            log.error("service removal failed during instance cleanup", {
+                runnerId: row.id,
+                stackId: row.stackId,
+                serviceName: row.serviceName,
+                error,
+            });
+        }
     }
-    for (const stackId of new Set(rows.map((row) => row.stackId))) {
+    for (const stackId of ownedStackIds) {
         try {
             await client.container.deleteStack({ stackId });
         } catch (error) {
@@ -948,4 +985,17 @@ export async function deleteAllRunnersOfInstance(
             });
         }
     }
+}
+
+async function findOwnedStackIds(stackIds: string[]): Promise<Set<string>> {
+    const unique = [...new Set(stackIds)];
+    if (unique.length === 0) {
+        return new Set();
+    }
+    const owned = await getDatabase()
+        .select({ stackId: runnerStacks.stackId })
+        .from(runnerStacks)
+        .where(inArray(runnerStacks.stackId, unique));
+
+    return new Set(owned.map((row) => row.stackId));
 }

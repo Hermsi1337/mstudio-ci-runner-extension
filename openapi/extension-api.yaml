@@ -73,6 +73,15 @@ components:
           $ref: '#/components/schemas/Cpus'
         memoryMb:
           $ref: '#/components/schemas/MemoryMb'
+        stackId:
+          type: string
+          format: uuid
+          description: |
+            Container stack the runner is declared in. Without it the extension uses the
+            stack of the registration target and creates it when it does not exist yet. With
+            it the runner joins that stack and reaches its other services over the stack
+            network.
+          example: 3f9a7c21-6d4e-4b8a-a1c2-7e5d9f0b2c4a
     Concurrency:
       type: integer
       minimum: 1
@@ -303,6 +312,31 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Runner'
+    ProjectStack:
+      type: object
+      required: [id, description, serviceCount, managedByExtension]
+      description: Container stack of the project, offered as a target for a new runner.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3f9a7c21-6d4e-4b8a-a1c2-7e5d9f0b2c4a
+        description:
+          type: string
+          description: Name of the stack in mStudio.
+          example: acme-app
+        serviceCount:
+          type: integer
+          description: Services the stack currently holds.
+          example: 3
+        managedByExtension:
+          type: boolean
+          description: True when the extension created the stack for a registration target.
+          example: false
+    ProjectStackList:
+      type: array
+      items:
+        $ref: '#/components/schemas/ProjectStack'
     ProjectCapabilities:
       type: object
       required: [containerHosting]

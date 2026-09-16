@@ -40,6 +40,11 @@ import { ParsedCommand } from "./ParsedCommand.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 import { providerLogos } from "./provider-logos.ts";
 import { ResourceFields } from "./ResourceFields.tsx";
+import {
+    AUTOMATIC_STACK,
+    StackField,
+    useProjectStacks,
+} from "./StackField.tsx";
 
 /**
  * Mirrors zRunnerBase.name from src/generated/extension-api/zod.gen.ts. The
@@ -62,12 +67,15 @@ interface FormValues {
     concurrency: number;
     configCommand: string;
     runnerGroup: string;
+    stackId: string;
 }
 
 function toRequest(values: FormValues): CreateRunnerRequest {
     const base = {
         name: values.name,
         labels: values.labels,
+        stackId:
+            values.stackId === AUTOMATIC_STACK ? undefined : values.stackId,
         size: values.size,
         cpus: values.size === "custom" ? values.cpus : undefined,
         memoryMb:
@@ -128,9 +136,11 @@ export const RunnerForm = ({
             concurrency: 1,
             configCommand: "",
             runnerGroup: "",
+            stackId: AUTOMATIC_STACK,
         },
     });
     const Field = typedField(form);
+    const stacks = useProjectStacks();
     const provider = form.watch("provider");
     const name = form.watch("name");
     const size = form.watch("size");
@@ -139,6 +149,8 @@ export const RunnerForm = ({
     const cache = form.watch("cache");
     const cacheSizeGb = form.watch("cacheSizeGb");
     const configCommand = form.watch("configCommand");
+    const stackId = form.watch("stackId");
+    const selectedStack = stacks.find((stack) => stack.id === stackId);
     const summaryTarget = (
         parseConfigCommand(provider, configCommand)?.target ?? ""
     ).replace(/^https?:\/\/(github\.com\/)?/, "");
@@ -354,6 +366,7 @@ export const RunnerForm = ({
                                 </TextField>
                             </Field>
                         )}
+                        <StackField form={form} stacks={stacks} />
                     </Section>
 
                     <Section>
@@ -387,6 +400,7 @@ export const RunnerForm = ({
                         memoryGb={memoryGb}
                         cache={cache}
                         cacheSizeGb={cacheSizeGb}
+                        selectedStackName={selectedStack?.description}
                     />
                 </AccentBox>
             </ColumnLayout>

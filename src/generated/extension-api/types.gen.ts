@@ -86,6 +86,14 @@ export type RunnerBase = {
     size?: RunnerSize;
     cpus?: Cpus;
     memoryMb?: MemoryMb;
+    /**
+     * Container stack the runner is declared in. Without it the extension uses the
+     * stack of the registration target and creates it when it does not exist yet. With
+     * it the runner joins that stack and reaches its other services over the stack
+     * network.
+     *
+     */
+    stackId?: string;
 };
 
 /**
@@ -237,6 +245,27 @@ export type Runner = {
 };
 
 export type RunnerList = Array<Runner>;
+
+/**
+ * Container stack of the project, offered as a target for a new runner.
+ */
+export type ProjectStack = {
+    id: string;
+    /**
+     * Name of the stack in mStudio.
+     */
+    description: string;
+    /**
+     * Services the stack currently holds.
+     */
+    serviceCount: number;
+    /**
+     * True when the extension created the stack for a registration target.
+     */
+    managedByExtension: boolean;
+};
+
+export type ProjectStackList = Array<ProjectStack>;
 
 /**
  * What the project the extension runs in supports. Read before a runner is offered.

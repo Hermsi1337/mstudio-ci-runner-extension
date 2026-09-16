@@ -91,15 +91,15 @@ export class ContainerHostingUnavailableError extends PublicError {
     }
 }
 
+const notFoundMessageKeys = {
+    runner: "error.notFound.runner",
+    runnerContainer: "error.notFound.runnerContainer",
+    stack: "error.notFound.stack",
+} as const satisfies Record<string, MessageKey>;
+
 export class NotFoundError extends PublicError {
-    public constructor(what: "runner" | "runnerContainer") {
-        super(
-            what === "runner"
-                ? "error.notFound.runner"
-                : "error.notFound.runnerContainer",
-            {},
-            { statusCode: 404 },
-        );
+    public constructor(what: keyof typeof notFoundMessageKeys) {
+        super(notFoundMessageKeys[what], {}, { statusCode: 404 });
     }
 }
 

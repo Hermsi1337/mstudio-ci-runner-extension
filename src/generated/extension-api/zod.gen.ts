@@ -72,7 +72,8 @@ export const zRunnerBase = z.object({
     concurrency: zConcurrency.optional(),
     size: zRunnerSize.optional(),
     cpus: zCpus.optional(),
-    memoryMb: zMemoryMb.optional()
+    memoryMb: zMemoryMb.optional(),
+    stackId: z.uuid().optional()
 });
 
 /**
@@ -156,6 +157,18 @@ export const zRunner = z.object({
 });
 
 export const zRunnerList = z.array(zRunner);
+
+/**
+ * Container stack of the project, offered as a target for a new runner.
+ */
+export const zProjectStack = z.object({
+    id: z.uuid(),
+    description: z.string(),
+    serviceCount: z.int(),
+    managedByExtension: z.boolean()
+});
+
+export const zProjectStackList = z.array(zProjectStack);
 
 /**
  * What the project the extension runs in supports. Read before a runner is offered.

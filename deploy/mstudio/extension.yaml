@@ -50,6 +50,8 @@ detailedDescriptions:
       RAM-Limits
     - **Cache:** Persistenter Cache für Paketmanager (npm, pnpm, Yarn, pip,
       Composer, Go) mit automatischem Aufräum-Cronjob
+    - **Ziel-Stack:** Runner in einen bestehenden Stack deines Projekts legen,
+      damit Jobs dessen Services erreichen, zum Beispiel für Migrations
     - **Verwaltung:** Logs, Neustart, Einstellungen und Updates direkt in
       mStudio, inklusive Update-Hinweis und Changelog
     - **Sicherheit:** Die Extension speichert keine Tokens. Registrierungs-Tokens gehen
@@ -88,6 +90,8 @@ detailedDescriptions:
     - **Sizes:** presets from small to large plus custom CPU and RAM limits
     - **Cache:** persistent cache for package managers (npm, pnpm, Yarn, pip,
       Composer, Go) with an automatic cleanup cronjob
+    - **Target stack:** put a runner into an existing stack of your project so
+      jobs reach its services, for example for migrations
     - **Management:** logs, restart, settings and updates inside mStudio,
       including an update hint and a changelog
     - **Security:** the extension stores no tokens. Registration tokens only go into the
