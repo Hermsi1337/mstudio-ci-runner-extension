@@ -62,8 +62,8 @@ COPY --chown=runner:runner github/entrypoint.sh /entrypoint.sh
 COPY --chown=runner:runner common/trim-cache.sh /usr/local/bin/trim-cache.sh
 RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh
 
-COPY --chown=runner:runner common/mstudio-build common/mstudio-build-metadata common/mstudio-crane common/mstudio-dockerfile-check common/mstudio-image-store common/mstudio-platform-check common/docker-shim /usr/local/bin/
-RUN chmod +x /usr/local/bin/mstudio-build /usr/local/bin/mstudio-build-metadata /usr/local/bin/mstudio-crane \
+COPY --chown=runner:runner common/mstudio-build common/mstudio-crane common/mstudio-dockerfile-check common/mstudio-image-store common/mstudio-platform-check common/docker-shim /usr/local/bin/
+RUN chmod +x /usr/local/bin/mstudio-build /usr/local/bin/mstudio-crane \
         /usr/local/bin/mstudio-dockerfile-check /usr/local/bin/mstudio-image-store \
         /usr/local/bin/mstudio-platform-check /usr/local/bin/docker-shim \
     && ln -s /usr/local/bin/docker-shim /usr/local/bin/docker

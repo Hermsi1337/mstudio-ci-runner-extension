@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Builds container images for the runners of this stack.
 #
 # The runner container and this container share a directory in the project file
@@ -18,7 +18,9 @@
 # the container is unusable afterwards and exits. The service runs with
 # restartPolicy "always", which gives the next job a clean root filesystem.
 # After kaniko has run, only shell builtins are left: every path that writes the
-# result uses redirections and `read`, never `mv`, `basename` or `date`.
+# result uses redirections and `read`, never `mv`, `basename` or `date`. bash
+# itself keeps running from the open file, and the script it reads lives in
+# /kaniko, which kaniko leaves alone.
 #
 # This container never receives registry credentials. It writes the image as a
 # tarball, the runner pushes it.

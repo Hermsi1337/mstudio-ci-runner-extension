@@ -27,10 +27,10 @@ LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-
 ENV BUILD_QUEUE_DIR=/builds \
     DOCKER_CONFIG=/kaniko/.docker
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates bash
 
 COPY --from=kaniko /out/executor /kaniko/executor
 COPY loop.sh /kaniko/loop.sh
 RUN chmod +x /kaniko/executor /kaniko/loop.sh && mkdir -p /kaniko/.docker
 
-ENTRYPOINT ["/bin/sh", "/kaniko/loop.sh"]
+ENTRYPOINT ["/bin/bash", "/kaniko/loop.sh"]
