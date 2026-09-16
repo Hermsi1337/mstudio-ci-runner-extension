@@ -72,11 +72,10 @@ jobs:
           skip_recreation: postgres
 
   # Marketplace texts, logo and the fragment properties live in the repository,
-  # so every deployment writes them into mStudio again. Needs no Docker, so it
-  # runs on the project's own runner.
+  # so every deployment writes them into mStudio again.
   metadata:
     needs: deploy
-    runs-on: [self-hosted, mittwald]
+    runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     concurrency:
       group: deploy-metadata-${{ inputs.environment }}

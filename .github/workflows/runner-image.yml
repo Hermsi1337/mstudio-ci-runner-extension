@@ -28,7 +28,6 @@ jobs:
             echo "sha256_amd64=$(jq -r '.${{ matrix.provider }}.sha256.amd64' docker/runner/versions.json)"
             echo "sha256_arm64=$(jq -r '.${{ matrix.provider }}.sha256.arm64' docker/runner/versions.json)"
           } >> "$GITHUB_OUTPUT"
-      - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4
         with:
@@ -49,7 +48,7 @@ jobs:
         with:
           context: docker/runner
           file: docker/runner/${{ matrix.provider }}/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           build-args: |
             RUNNER_VERSION=${{ steps.runner.outputs.version }}

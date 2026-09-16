@@ -47,7 +47,7 @@ jobs:
       packages: write
 
   release:
-    runs-on: [self-hosted, mittwald]
+    runs-on: ubuntu-latest
     needs: [extension-image, runner-images]
     permissions:
       contents: write
@@ -76,7 +76,7 @@ jobs:
 
   bump-version:
     if: ${{ !contains(github.ref_name, '-') }}
-    runs-on: [self-hosted, mittwald]
+    runs-on: ubuntu-latest
     needs: [release]
     permissions:
       contents: write
