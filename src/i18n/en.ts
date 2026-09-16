@@ -16,9 +16,9 @@ export const en = {
     "changelog.empty.heading": "No releases yet",
     "changelog.empty.text": "GitHub returned no releases. Try again later.",
     "app.title": "CI Runners",
-    "app.dockerNotice.title": "No Docker inside runners",
+    "app.dockerNotice.title": "What runs in a job, and what does not",
     "app.dockerNotice.text":
-        "Runners run on mittwald Container Hosting without a Docker daemon.\n\n**Fails**\n\n- GitHub Actions: `container:`, `services:`, `docker build`, Docker container actions\n- GitLab CI: `image:`, `services:`, anything that calls `docker`\n\n**Works**\n\n- Jobs that run directly on Ubuntu 24.04: Node via `actions/setup-node`, Python, `build-essential`\n- `git`, `curl`, `rsync`, SSH deploys\n- Installing packages with `sudo apt-get`",
+        "Runners run on mittwald Container Hosting without a Docker daemon. Jobs run directly on Ubuntu 24.04.\n\n**Works**\n\n- Node via `actions/setup-node`, Python, `build-essential`, `git`, `curl`, `rsync`, SSH deploys\n- Installing packages with `sudo apt-get`\n- `docker build` and `docker push`, including `docker/build-push-action`, when image builds are turned on for the runner. The build runs in a builder container of the stack\n\n**Fails**\n\n- `docker run`, `docker compose` and anything else that starts a container\n- GitHub Actions: `container:`, `services:`, Docker container actions\n- GitLab CI: `image:`, `services:`\n- BuildKit features in a Dockerfile: `RUN --mount`, `--secret`, `--ssh`, another architecture",
 
     "runners.heading": "Runners",
     "runners.containerHosting.missing.heading": "Container Hosting missing",

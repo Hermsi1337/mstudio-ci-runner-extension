@@ -136,8 +136,9 @@ Automated: `tests/integration/runner-image.test.ts` ([testing.md](testing.md)).
 
 ## Limitations
 
-No Docker daemon. GitHub: `container:`, `services:` and Docker container actions fail.
-GitLab: `image:` and `services:` are ignored by the shell executor; jobs run directly in
+No Docker daemon, so nothing that starts a container works: `docker run`, `docker
+compose`, `container:` and `services:` in GitHub Actions, Docker container actions. In
+GitLab `image:` and `services:` are ignored by the shell executor; jobs run directly in
 the Ubuntu userland.
 
 `docker build` works: the `docker` in the image is a shim that hands the build to the

@@ -19,9 +19,9 @@ export const de: Messages = {
     "changelog.empty.text":
         "GitHub hat keine Releases geliefert. Versuch es später noch mal.",
     "app.title": "CI Runner",
-    "app.dockerNotice.title": "Kein Docker in den Runnern",
+    "app.dockerNotice.title": "Was im Job geht und was nicht",
     "app.dockerNotice.text":
-        "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon.\n\n**Geht nicht**\n\n- GitHub Actions: `container:`, `services:`, `docker build`, Docker-Container-Actions\n- GitLab CI: `image:`, `services:`, alles was `docker` aufruft\n\n**Geht**\n\n- Jobs direkt auf Ubuntu 24.04: Node über `actions/setup-node`, Python, `build-essential`\n- `git`, `curl`, `rsync`, SSH-Deploys\n- Pakete nachinstallieren mit `sudo apt-get`",
+        "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon. Jobs laufen direkt auf Ubuntu 24.04.\n\n**Geht**\n\n- Node über `actions/setup-node`, Python, `build-essential`, `git`, `curl`, `rsync`, SSH-Deploys\n- Pakete nachinstallieren mit `sudo apt-get`\n- `docker build` und `docker push`, auch über `docker/build-push-action`, wenn Image-Builds für den Runner an sind. Gebaut wird in einem Builder-Container des Stacks\n\n**Geht nicht**\n\n- `docker run`, `docker compose` und alles andere, das einen Container startet\n- GitHub Actions: `container:`, `services:`, Docker-Container-Actions\n- GitLab CI: `image:`, `services:`\n- BuildKit-Funktionen im Dockerfile: `RUN --mount`, `--secret`, `--ssh`, eine andere Architektur",
 
     "runners.heading": "Runner",
     "runners.containerHosting.missing.heading": "Container Hosting fehlt",
