@@ -113,7 +113,7 @@ docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build 
 docker/runner/common/        scripts shared by all runner images (trim-cache.sh)
 docker/runner/probes/        probe suite run inside the built images by the integration tests
 docker/runner/versions.json  runner software version per provider, single source for workflow, build and UI
-deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
+deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml (dev and production)
 deploy/mstudio/extension.yaml  marketplace entry and fragment properties, applied by deploy.yml
 docs/                        documentation, one topic per file
 src/assets/                  logo (SVG inlined into the UI, PNG for the mStudio registration), fragment icon for the mStudio menu and README banner
