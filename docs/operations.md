@@ -72,15 +72,17 @@ GitHub-hosted images ship run there:
 | `ci.yml` `integration` | `ubuntu-latest` | Testcontainers needs a Docker daemon |
 | `release.yml` `verify` | `ubuntu-latest` | Runs the integration tests |
 | `release.yml` `release`, `bump-version` | `[self-hosted, mittwald]` | `jq`, `git` and Node via `actions/setup-node` |
-| `extension-image.yml`, `runner-image.yml`, `deploy.yml` | `ubuntu-latest` | Buildx with QEMU, Docker container action |
+| `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx with QEMU |
+| `deploy.yml` `deploy` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
+| `deploy.yml` `metadata` | `[self-hosted, mittwald]` | Node via `actions/setup-node`, one API call, no Docker |
 | `pr-title.yml` | `ubuntu-latest` | Needs `gh`, which the runner image does not ship |
 
 Pull requests from forks never run on the self-hosted runner: `runs-on` switches to
 `ubuntu-latest` when `github.event.pull_request.head.repo.fork` is true, because the
 runner has passwordless sudo and reaches the project network
 ([architecture.md](architecture.md#trust-model-of-a-runner)). When the runner is
-offline, `check`, `release` and `bump-version` wait in the queue until it is back; the
-integration tests and image builds are not affected.
+offline, `check`, `release`, `bump-version` and `metadata` wait in the queue until it is
+back; the integration tests, the image builds and the stack deployment are not affected.
 
 ## Release notes and dependencies
 
