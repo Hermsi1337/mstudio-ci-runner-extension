@@ -28,6 +28,7 @@ done
 
 expect_output "docker is the shim" "docker shim" docker version
 expect_output "buildx version parses like the real one" "github.com/docker/buildx v" docker buildx version
+expect "bare docker buildx succeeds quietly" bash -c "docker buildx 2>/tmp/buildx.err && ! test -s /tmp/buildx.err"
 expect_output "docker context inspect answers with the builder" "mstudio-builder" \
     docker context inspect --format "{{.Name}}"
 expect_output "buildx create returns the builder name" "probe-builder" \

@@ -258,8 +258,18 @@ command_context() {
 }
 
 command_buildx() {
-    local subcommand="${1:-build}"
-    shift || true
+    # `docker/build-push-action` probes for buildx with a bare `docker buildx`
+    # and reads a non-zero exit or anything on stderr as "buildx is missing".
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: docker buildx COMMAND"
+        echo
+        echo "Builds run in the builder service of this stack (kaniko)."
+        echo "Commands: build, create, inspect, ls, version, imagetools"
+
+        return 0
+    fi
+    local subcommand="$1"
+    shift
     case "${subcommand}" in
         build | b) command_build "$@" ;;
         create)
