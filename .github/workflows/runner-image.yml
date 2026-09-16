@@ -27,6 +27,9 @@ jobs:
             echo "version=$(jq -r '.${{ matrix.provider }}.version' docker/runner/versions.json)"
             echo "sha256_amd64=$(jq -r '.${{ matrix.provider }}.sha256.amd64' docker/runner/versions.json)"
             echo "sha256_arm64=$(jq -r '.${{ matrix.provider }}.sha256.arm64' docker/runner/versions.json)"
+            echo "crane_version=$(jq -r '.crane.version' docker/runner/versions.json)"
+            echo "crane_sha256_amd64=$(jq -r '.crane.sha256.amd64' docker/runner/versions.json)"
+            echo "crane_sha256_arm64=$(jq -r '.crane.sha256.arm64' docker/runner/versions.json)"
           } >> "$GITHUB_OUTPUT"
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
@@ -55,6 +58,9 @@ jobs:
             RUNNER_VERSION=${{ steps.runner.outputs.version }}
             RUNNER_SHA256_AMD64=${{ steps.runner.outputs.sha256_amd64 }}
             RUNNER_SHA256_ARM64=${{ steps.runner.outputs.sha256_arm64 }}
+            CRANE_VERSION=${{ steps.runner.outputs.crane_version }}
+            CRANE_SHA256_AMD64=${{ steps.runner.outputs.crane_sha256_amd64 }}
+            CRANE_SHA256_ARM64=${{ steps.runner.outputs.crane_sha256_arm64 }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.provider }}
