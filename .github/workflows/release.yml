@@ -1,5 +1,9 @@
 name: Release
 
+# Tags are cut from any branch. A pre-release tag (v1.2.3-beta.1) builds the
+# same images and creates a GitHub pre-release, but it never writes its version
+# back to main and it never reaches production (deploy-production.yml refuses
+# it).
 on:
   push:
     tags: ["v*"]
@@ -68,8 +72,10 @@ jobs:
         with:
           body_path: notes.md
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   bump-version:
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: [self-hosted, mittwald]
     needs: [release]
     permissions:
