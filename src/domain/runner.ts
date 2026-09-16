@@ -1,5 +1,5 @@
 import { assertStatus, type MittwaldAPIV2Client } from "@mittwald/api-client";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import * as uuid from "uuid";
 import { getDatabase } from "@/db";
 import {
@@ -882,7 +882,12 @@ export async function deleteRunner(
         }
         const released = await tx
             .delete(runnerStacks)
-            .where(eq(runnerStacks.stackId, row.stackId))
+            .where(
+                and(
+                    eq(runnerStacks.stackId, row.stackId),
+                    eq(runnerStacks.extensionInstanceId, extensionInstanceId),
+                ),
+            )
             .returning({ stackId: runnerStacks.stackId });
 
         return released.length > 0;
@@ -941,9 +946,7 @@ export async function deleteAllRunnersOfInstance(
     client: MittwaldAPIV2Client,
     rows: RunnerRow[],
 ): Promise<void> {
-    const ownedStackIds = await findOwnedStackIds(
-        rows.map((row) => row.stackId),
-    );
+    const ownedStackIds = await findOwnedStackIds(rows);
     for (const row of rows) {
         await deleteCronjobs(client, parseCronjobIds(row));
         let service: ServiceResponse | null | undefined;
@@ -987,15 +990,27 @@ export async function deleteAllRunnersOfInstance(
     }
 }
 
-async function findOwnedStackIds(stackIds: string[]): Promise<Set<string>> {
-    const unique = [...new Set(stackIds)];
-    if (unique.length === 0) {
+/**
+ * Ownership is per extension instance: another installation may have created
+ * the stack and only selected it here, and that stack is not ours to delete.
+ */
+async function findOwnedStackIds(rows: RunnerRow[]): Promise<Set<string>> {
+    const stackIds = [...new Set(rows.map((row) => row.stackId))];
+    const instanceIds = [
+        ...new Set(rows.map((row) => row.extensionInstanceId)),
+    ];
+    if (stackIds.length === 0) {
         return new Set();
     }
     const owned = await getDatabase()
         .select({ stackId: runnerStacks.stackId })
         .from(runnerStacks)
-        .where(inArray(runnerStacks.stackId, unique));
+        .where(
+            and(
+                inArray(runnerStacks.stackId, stackIds),
+                inArray(runnerStacks.extensionInstanceId, instanceIds),
+            ),
+        );
 
     return new Set(owned.map((row) => row.stackId));
 }

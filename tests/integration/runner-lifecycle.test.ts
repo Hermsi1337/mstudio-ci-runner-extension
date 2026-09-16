@@ -449,6 +449,44 @@ describe("selected stack", () => {
             stack.uniqueServiceName(selected.id, "build", ["runner-build"]),
         ).resolves.toBe("runner-build-2");
     });
+
+    it("keeps a stack that another installation owns", async () => {
+        const selected = await readSelectableStack();
+        const otherInstanceId = "66666666-6666-6666-6666-666666666666";
+        await db.insert(schema.extensionInstances).values({
+            id: otherInstanceId,
+            contextId: selected.projectId,
+            context: "project",
+            active: true,
+            consentedScopes: ["stack:read", "stack:write", "stack:delete"],
+            secret: "other-instance-secret",
+        });
+        await db.insert(schema.runnerStacks).values({
+            stackId: selected.id,
+            extensionInstanceId: otherInstanceId,
+            projectId: selected.projectId,
+            targetUrl: "https://github.com/acme/owned-elsewhere",
+        });
+
+        const created = await runner.createRunner(
+            client,
+            extensionInstanceId,
+            selected.projectId,
+            userId,
+            { ...selectable, name: "Guest", stackId: selected.id },
+        );
+        await runner.deleteRunner(client, extensionInstanceId, created.id);
+
+        const [stillOwned] = await db
+            .select()
+            .from(schema.runnerStacks)
+            .where(eq(schema.runnerStacks.stackId, selected.id));
+        expect(stillOwned?.extensionInstanceId).toBe(otherInstanceId);
+
+        await db
+            .delete(schema.extensionInstances)
+            .where(eq(schema.extensionInstances.id, otherInstanceId));
+    });
 });
 
 describe("instance cleanup", () => {
