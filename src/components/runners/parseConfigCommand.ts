@@ -20,7 +20,7 @@ const patterns: Record<Provider, { url: RegExp; token: RegExp }> = {
     },
     gitlab: {
         url: /--url[\s=]+["']?(https?:\/\/[A-Za-z0-9_.:-]+(?:\/[A-Za-z0-9_.-]+)*)/,
-        token: /--token[\s=]+["']?(glrt-[A-Za-z0-9_-]{16,})/,
+        token: /--token[\s=]+["']?(glrt-[A-Za-z0-9_.-]{16,})/,
     },
 };
 

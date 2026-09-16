@@ -55,4 +55,16 @@ describe("parseConfigCommand", () => {
             ),
         ).toBeNull();
     });
+
+    it("keeps the dotted suffix of a GitLab runner token", () => {
+        expect(
+            parseConfigCommand(
+                "gitlab",
+                "gitlab-runner register  --url https://gitlab.com  --token glrt-8D541XbfrvFvo5FdcSPUu2M6MQpvOjEKcDpoYXY2NQp0OjMKdTo5ZGVzGg.02.3m0efevhc",
+            ),
+        ).toEqual({
+            target: "https://gitlab.com",
+            token: "glrt-8D541XbfrvFvo5FdcSPUu2M6MQpvOjEKcDpoYXY2NQp0OjMKdTo5ZGVzGg.02.3m0efevhc",
+        });
+    });
 });
