@@ -90,7 +90,12 @@ export async function ensureBuilder(
         },
     );
     if (existing) {
-        await recreateService(client, extensionInstanceId, stackId, existing.id);
+        await recreateService(
+            client,
+            extensionInstanceId,
+            stackId,
+            existing.id,
+        );
     }
     log.info("builder declared", { stackId, image });
 }
@@ -99,7 +104,10 @@ export async function ensureBuilder(
  * mittwald reports the image of a service normalized ("library/alpine:3.20"
  * for "alpine:3.20"), so a plain comparison would redeclare on every call.
  */
-function imageMatches(deployed: string | undefined, configured: string): boolean {
+function imageMatches(
+    deployed: string | undefined,
+    configured: string,
+): boolean {
     if (!deployed) {
         return false;
     }
