@@ -490,7 +490,7 @@ export async function createRunner(
 
     let mountsWithQueue = mounts;
     if (imageBuilds) {
-        const queueMount = await buildQueueMount(client, projectId);
+        const queueMount = await buildQueueMount(client, projectId, stackId);
         mountsWithQueue = withBuildQueue(mounts, queueMount);
         try {
             await ensureBuilder(
@@ -780,7 +780,11 @@ export async function configureRunner(
             : withoutCache(state.envs ?? {}, plainMounts);
         let mountsWithQueue = withoutBuildQueue(mounts);
         if (imageBuilds) {
-            const queueMount = await buildQueueMount(client, row.projectId);
+            const queueMount = await buildQueueMount(
+                client,
+                row.projectId,
+                row.stackId,
+            );
             mountsWithQueue = withBuildQueue(mountsWithQueue, queueMount);
             await ensureBuilder(
                 client,
