@@ -100,22 +100,19 @@ const cases: {
         },
     },
     {
-        title: "GitLab project runner",
+        title: "GitLab runner with size and concurrency",
         input: {
             provider: "gitlab",
             name: "GitLab Runner",
             instanceUrl: "https://gitlab.example.com",
-            tokenType: "pat",
-            runnerType: "project_type",
-            target: "group/project",
-            token: "glpat-0123456789abcdef",
-            labels: "mittwald",
+            tokenType: "registration",
+            token: "glrt-t1_AbCdEfGhIjKlMnOpQrSt",
             size: "medium",
             concurrency: 2,
         },
         expect: {
             provider: "gitlab",
-            labels: ["mittwald"],
+            labels: [],
             ephemeral: false,
             size: "medium",
             cache: false,
@@ -141,21 +138,19 @@ const cases: {
         },
     },
     {
-        title: "GitLab instance runner",
+        title: "GitLab runner on an instance URL with a trailing slash",
         input: {
             provider: "gitlab",
             name: "Shared Runner",
             instanceUrl: "https://gitlab.example.com/",
-            tokenType: "pat",
-            runnerType: "instance_type",
-            token: "glpat-0123456789abcdef",
-            runUntagged: false,
+            tokenType: "registration",
+            token: "glrt-t1_AbCdEfGhIjKlMnOpQrSt",
         },
         expect: {
             provider: "gitlab",
             target: "gitlab.example.com",
             targetUrl: "https://gitlab.example.com",
-            labels: ["mittwald"],
+            labels: [],
         },
     },
 ];
@@ -425,26 +420,5 @@ describe("input validation", () => {
                 },
             ),
         ).rejects.toMatchObject({ messageKey: "error.instance.unknown" });
-    });
-
-    it("rejects a GitLab project runner without a path", async () => {
-        await expect(
-            runner.createRunner(
-                client,
-                extensionInstanceId,
-                projectId,
-                userId,
-                {
-                    provider: "gitlab",
-                    name: "broken",
-                    instanceUrl: "https://gitlab.example.com",
-                    tokenType: "pat",
-                    runnerType: "project_type",
-                    token: "glpat-0123456789abcdef",
-                },
-            ),
-        ).rejects.toMatchObject({
-            messageKey: "error.gitlab.projectPathRequired",
-        });
     });
 });

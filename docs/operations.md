@@ -72,15 +72,17 @@ GitHub-hosted images ship run there:
 | `ci.yml` `integration` | `ubuntu-latest` | Testcontainers needs a Docker daemon |
 | `release.yml` `verify` | `ubuntu-latest` | Runs the integration tests |
 | `release.yml` `release`, `bump-version` | `[self-hosted, mittwald]` | `jq`, `git` and Node via `actions/setup-node` |
-| `extension-image.yml`, `runner-image.yml`, `deploy.yml` | `ubuntu-latest` | Buildx with QEMU, Docker container action |
+| `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx with QEMU |
+| `deploy.yml` `deploy` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
+| `deploy.yml` `metadata` | `[self-hosted, mittwald]` | Node via `actions/setup-node`, one API call, no Docker |
 | `pr-title.yml` | `ubuntu-latest` | Needs `gh`, which the runner image does not ship |
 
 Pull requests from forks never run on the self-hosted runner: `runs-on` switches to
 `ubuntu-latest` when `github.event.pull_request.head.repo.fork` is true, because the
 runner has passwordless sudo and reaches the project network
 ([architecture.md](architecture.md#trust-model-of-a-runner)). When the runner is
-offline, `check`, `release` and `bump-version` wait in the queue until it is back; the
-integration tests and image builds are not affected.
+offline, `check`, `release`, `bump-version` and `metadata` wait in the queue until it is
+back; the integration tests, the image builds and the stack deployment are not affected.
 
 ## Release notes and dependencies
 
@@ -125,6 +127,14 @@ environment at its own project.
 images, so a deployment pins all three to the same release. `postgres` is excluded from the
 restart (`skip_recreation`); the extension runs its migrations on start.
 
+After the stack the job `metadata` runs `pnpm run extension:sync` and writes the
+marketplace texts, the logo and the fragment properties from
+`deploy/mstudio/extension.yaml` into mStudio
+([mstudio-setup.md](mstudio-setup.md#marketplace-entry-and-frontend-fragment)). Changes
+made in mStudio are overwritten on the next deployment; scopes and webhook URLs are
+untouched. For a published extension a changed text can trigger another review by
+mittwald.
+
 ### One-time setup
 
 1. GitHub environment `mstudio` with these secrets:
@@ -132,7 +142,8 @@ restart (`skip_recreation`); the extension runs its migrations on start.
    | Name | Kind | Source |
    |---|---|---|
    | `MITTWALD_STACK_ID` | secret | An empty stack created in the target project in mStudio (*Container → Stacks → Create*) |
-   | `MITTWALD_API_TOKEN` | secret | mStudio, *User → API tokens*, needs access to the project |
+   | `MITTWALD_API_TOKEN` | secret | mStudio, *User → API tokens*, needs access to the project and to the extension |
+   | `MITTWALD_CONTRIBUTOR_ID` | secret | Contributor of the extension, in mStudio under *Organization → Development* |
    | `EXTENSION_ID`, `EXTENSION_SECRET` | secret | Extension registration ([mstudio-setup.md](mstudio-setup.md)) |
    | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes the stored instance secrets unreadable, so the cleanup after an uninstall stops working. |
    | `POSTGRES_PASSWORD` | secret | Any strong value. Used by both services. |

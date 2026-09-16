@@ -47,3 +47,26 @@ jobs:
           stack_id: ${{ secrets.MITTWALD_STACK_ID }}
           stack_file: deploy/mstudio/stack.yaml
           skip_recreation: postgres
+
+  # Marketplace texts, logo and the fragment properties live in the repository,
+  # so every deployment writes them into mStudio again. Needs no Docker, so it
+  # runs on the project's own runner.
+  metadata:
+    needs: deploy
+    runs-on: [self-hosted, mittwald]
+    environment: mstudio
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.version && format('v{0}', inputs.version) || github.event.workflow_run.head_branch }}
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run extension:sync
+        env:
+          MITTWALD_API_TOKEN: ${{ secrets.MITTWALD_API_TOKEN }}
+          MITTWALD_CONTRIBUTOR_ID: ${{ secrets.MITTWALD_CONTRIBUTOR_ID }}
+          MITTWALD_EXTENSION_ID: ${{ secrets.EXTENSION_ID }}

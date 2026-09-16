@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiV4GroupsIdData, DeleteApiV4GroupsIdResponses, DeleteApiV4ProjectsIdData, DeleteApiV4ProjectsIdErrors, DeleteApiV4ProjectsIdResponses, DeleteApiV4RunnersData, DeleteApiV4RunnersErrors, DeleteApiV4RunnersResponses, GetApiV4GroupsIdData, GetApiV4GroupsIdResponses, GetApiV4ProjectsIdData, GetApiV4ProjectsIdResponses, GetApiV4RunnersData, GetApiV4RunnersErrors, GetApiV4RunnersResponses, PostApiV4RunnersData, PostApiV4RunnersErrors, PostApiV4RunnersResponses, PostApiV4RunnersVerifyData, PostApiV4RunnersVerifyErrors, PostApiV4RunnersVerifyResponses, PostApiV4UserRunnersData, PostApiV4UserRunnersErrors, PostApiV4UserRunnersResponses, PutApiV4GroupsIdData, PutApiV4GroupsIdResponses, PutApiV4ProjectsIdData, PutApiV4ProjectsIdErrors, PutApiV4ProjectsIdResponses } from './types.gen';
+import type { DeleteApiV4RunnersData, DeleteApiV4RunnersErrors, DeleteApiV4RunnersResponses, GetApiV4RunnersData, GetApiV4RunnersErrors, GetApiV4RunnersResponses, PostApiV4RunnersData, PostApiV4RunnersErrors, PostApiV4RunnersResponses, PostApiV4RunnersVerifyData, PostApiV4RunnersVerifyErrors, PostApiV4RunnersVerifyResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -17,20 +17,6 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
-
-/**
- * Create a runner owned by currently authenticated user
- *
- * Create a new runner
- */
-export const postApiV4UserRunners = <ThrowOnError extends boolean = false>(options: Options<PostApiV4UserRunnersData, ThrowOnError>): RequestResult<PostApiV4UserRunnersResponses, PostApiV4UserRunnersErrors, ThrowOnError> => (options.client ?? client).post<PostApiV4UserRunnersResponses, PostApiV4UserRunnersErrors, ThrowOnError>({
-    url: '/api/v4/user/runners',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
 
 /**
  * Delete a runner by authentication token
@@ -71,62 +57,6 @@ export const postApiV4Runners = <ThrowOnError extends boolean = false>(options: 
  */
 export const postApiV4RunnersVerify = <ThrowOnError extends boolean = false>(options: Options<PostApiV4RunnersVerifyData, ThrowOnError>): RequestResult<PostApiV4RunnersVerifyResponses, PostApiV4RunnersVerifyErrors, ThrowOnError> => (options.client ?? client).post<PostApiV4RunnersVerifyResponses, PostApiV4RunnersVerifyErrors, ThrowOnError>({
     url: '/api/v4/runners/verify',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete a project
- *
- * Deletes a specified project.
- */
-export const deleteApiV4ProjectsId = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV4ProjectsIdData, ThrowOnError>): RequestResult<DeleteApiV4ProjectsIdResponses, DeleteApiV4ProjectsIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteApiV4ProjectsIdResponses, DeleteApiV4ProjectsIdErrors, ThrowOnError>({ url: '/api/v4/projects/{id}', ...options });
-
-/**
- * Retrieve a project
- *
- * Retrieves details on a specified project. This endpoint can be accessed without authentication if the project is publicly accessible.
- */
-export const getApiV4ProjectsId = <ThrowOnError extends boolean = false>(options: Options<GetApiV4ProjectsIdData, ThrowOnError>): RequestResult<GetApiV4ProjectsIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV4ProjectsIdResponses, unknown, ThrowOnError>({ url: '/api/v4/projects/{id}', ...options });
-
-/**
- * Update a project
- *
- * Updates an existing project. If your HTTP repository is not publicly accessible, add authentication information to the URL `https://username:password@gitlab.company.com/group/project.git`, where `password` is a public access key with the `api` scope.
- */
-export const putApiV4ProjectsId = <ThrowOnError extends boolean = false>(options: Options<PutApiV4ProjectsIdData, ThrowOnError>): RequestResult<PutApiV4ProjectsIdResponses, PutApiV4ProjectsIdErrors, ThrowOnError> => (options.client ?? client).put<PutApiV4ProjectsIdResponses, PutApiV4ProjectsIdErrors, ThrowOnError>({
-    url: '/api/v4/projects/{id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Schedule a group for deletion
- *
- * Schedules a group for deletion. Groups are deleted at the end of the retention period (30 days by default). Use the `permanently_remove` param to override the retention period.
- */
-export const deleteApiV4GroupsId = <ThrowOnError extends boolean = false>(options: Options<DeleteApiV4GroupsIdData, ThrowOnError>): RequestResult<DeleteApiV4GroupsIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteApiV4GroupsIdResponses, unknown, ThrowOnError>({ url: '/api/v4/groups/{id}', ...options });
-
-/**
- * Retrieve a group
- *
- * Retrieves a specified group by ID or path.
- */
-export const getApiV4GroupsId = <ThrowOnError extends boolean = false>(options: Options<GetApiV4GroupsIdData, ThrowOnError>): RequestResult<GetApiV4GroupsIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiV4GroupsIdResponses, unknown, ThrowOnError>({ url: '/api/v4/groups/{id}', ...options });
-
-/**
- * Update group attributes
- *
- * Updates the attributes for a specified group. You must be an administrator or have the Owner role for the group.
- */
-export const putApiV4GroupsId = <ThrowOnError extends boolean = false>(options: Options<PutApiV4GroupsIdData, ThrowOnError>): RequestResult<PutApiV4GroupsIdResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutApiV4GroupsIdResponses, unknown, ThrowOnError>({
-    url: '/api/v4/groups/{id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',

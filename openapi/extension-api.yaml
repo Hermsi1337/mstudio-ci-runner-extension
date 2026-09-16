@@ -38,8 +38,8 @@ components:
       enum: [registration, pat]
       description: |
         How the runner authenticated at creation. Decides whether the extension can remove the
-        registration on delete. GitHub runners created before the PAT mode was disabled still
-        carry `pat`.
+        registration on delete. Runners created before the PAT mode was disabled still carry
+        `pat`.
       example: registration
     RunnerStatus:
       type: string
@@ -127,10 +127,6 @@ components:
               type: string
               maxLength: 128
               example: Default
-    GitLabRunnerType:
-      type: string
-      enum: [project_type, group_type, instance_type]
-      default: project_type
     GitLabRunnerRequest:
       allOf:
         - $ref: '#/components/schemas/RunnerBase'
@@ -144,34 +140,21 @@ components:
               type: string
               format: uri
               default: https://gitlab.com
-              description: Base URL of the GitLab instance.
+              description: Base URL of the GitLab instance, read from the register command.
               example: https://gitlab.example.com
             tokenType:
               type: string
-              enum: [registration, pat]
+              enum: [registration]
               default: registration
               description: |
-                `registration`: the runner authentication token (`glrt-...`) from the "New runner" page on GitLab.
+                The runner authentication token (`glrt-...`) from the "New runner" page on GitLab.
                 The runner, its tags and its scope already exist there; the container registers with the token.
-                `pat`: a personal access token; the extension creates the runner via the API from `runnerType`,
-                `target`, `labels` and `runUntagged`.
-            runnerType:
-              $ref: '#/components/schemas/GitLabRunnerType'
-            target:
-              type: string
-              maxLength: 300
-              description: Project path (`group/project`) or group path for project/group runners. Empty for instance runners. Only with tokenType pat.
-              example: acme/app
             token:
               type: string
               minLength: 10
               maxLength: 500
-              description: Runner authentication token or PAT, depending on `tokenType`.
+              description: Runner authentication token from the register command.
               example: glrt-t1_AbCdEfGhIjKlMnOpQrSt
-            runUntagged:
-              type: boolean
-              default: true
-              description: Only with tokenType pat.
     CreateRunnerRequest:
       oneOf:
         - $ref: '#/components/schemas/GitHubRunnerRequest'
@@ -320,6 +303,18 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Runner'
+    ProjectCapabilities:
+      type: object
+      required: [containerHosting]
+      description: What the project the extension runs in supports. Read before a runner is offered.
+      properties:
+        containerHosting:
+          type: boolean
+          description: |
+            True when the project supports Container Hosting (`container` in the project's
+            `supportedFeatures`). Runners are containers, so everything else is pointless
+            without it.
+          example: true
     Release:
       type: object
       required: [version, publishedAt, notes, url]

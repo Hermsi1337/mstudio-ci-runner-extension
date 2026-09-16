@@ -17,6 +17,7 @@ import type {
     RunnerSize,
 } from "@/generated/extension-api";
 import {
+    ContainerHostingUnavailableError,
     NotFoundError,
     PermissionsInsufficientError,
     UnknownInstanceError,
@@ -30,6 +31,7 @@ import {
     withCache,
     withoutCache,
 } from "./cache.ts";
+import { getProjectCapabilities } from "./project.ts";
 import {
     getProvider,
     getProviderById,
@@ -373,6 +375,19 @@ async function assertInstanceExists(
     }
 }
 
+async function assertContainerHosting(
+    client: MittwaldAPIV2Client,
+    projectId: string,
+): Promise<void> {
+    const { containerHosting } = await getProjectCapabilities(
+        client,
+        projectId,
+    );
+    if (!containerHosting) {
+        throw new ContainerHostingUnavailableError(projectId);
+    }
+}
+
 export async function createRunner(
     client: MittwaldAPIV2Client,
     extensionInstanceId: string,
@@ -381,6 +396,7 @@ export async function createRunner(
     input: CreateRunnerRequest,
 ): Promise<Runner> {
     await assertInstanceExists(extensionInstanceId);
+    await assertContainerHosting(client, projectId);
     const provider = getProvider(input);
     const resources = resolveResources(input);
     const labels = (input.labels ?? "mittwald")
@@ -414,41 +430,13 @@ export async function createRunner(
         volumes: mounts,
     });
 
-    // A user-supplied registration token (GitLab glrt, GitHub registration
-    // token) belongs to a runner the user created by hand; rolling it back
-    // would delete their runner and invalidate the token they pasted. Only
-    // release registrations this extension created (PAT mode).
-    const registrationIsUserSupplied = input.tokenType !== "pat";
-    const releaseOnRollback = async () => {
-        if (registrationIsUserSupplied) {
-            return;
-        }
-        try {
-            await provider.release(prepared.environment);
-        } catch (error) {
-            log.error("rollback: provider registration release failed", {
-                provider: provider.id,
-                error,
-            });
-        }
-    };
-
-    let stackId: string;
-    let createdStack: boolean;
-    try {
-        const stack = await findOrCreateStack(
-            client,
-            extensionInstanceId,
-            projectId,
-            prepared.targetUrl,
-            `CI Runner: ${prepared.target}`,
-        );
-        stackId = stack.stackId;
-        createdStack = stack.created;
-    } catch (error) {
-        await releaseOnRollback();
-        throw error;
-    }
+    const { stackId, created: createdStack } = await findOrCreateStack(
+        client,
+        extensionInstanceId,
+        projectId,
+        prepared.targetUrl,
+        `CI Runner: ${prepared.target}`,
+    );
     const serviceName = await uniqueServiceName(stackId, runnerName);
     addLogContext({ stackId, serviceName });
 
@@ -481,7 +469,6 @@ export async function createRunner(
                 });
             }
         }
-        await releaseOnRollback();
     };
 
     let service: ServiceResponse | undefined;

@@ -1,5 +1,138 @@
 {
   "paths": {
+    "/v2/projects/{projectId}": {
+      "delete": {
+        "operationId": "project-delete-project",
+        "parameters": [
+          {
+            "description": "The ID of the Project.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "412": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Delete a Project.",
+        "tags": [
+          "Project"
+        ]
+      },
+      "get": {
+        "operationId": "project-get-project",
+        "parameters": [
+          {
+            "description": "ID of the Project to be retrieved.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/de.mittwald.v1.project.Project"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Get a Project.",
+        "tags": [
+          "Project"
+        ]
+      },
+      "patch": {
+        "operationId": "project-update-project",
+        "parameters": [
+          {
+            "description": "ID of the Project to be updated.",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "description": {
+                    "example": "My new description!",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "204": {
+            "description": "NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          },
+          "429": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.RateLimitError"
+          },
+          "default": {
+            "$ref": "#/components/responses/de.mittwald.v1.commons.DefaultError"
+          }
+        },
+        "summary": "Update a Project.",
+        "tags": [
+          "Project"
+        ]
+      }
+    },
     "/v2/projects/{projectId}/stacks": {
       "post": {
         "operationId": "container-create-stack",
@@ -1547,7 +1680,221 @@
     }
   ],
   "components": {
+    "responses": {
+      "de.mittwald.v1.commons.ValidationError": {
+        "description": "Validation Error caused by invalid input data in the request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/de.mittwald.v1.commons.ValidationErrors"
+            }
+          }
+        }
+      },
+      "de.mittwald.v1.commons.DefaultError": {
+        "description": "An unexpected Error that occurred while handling the request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/de.mittwald.v1.commons.Error"
+            }
+          }
+        }
+      },
+      "de.mittwald.v1.commons.RateLimitError": {
+        "description": "Your request ran into a rate limit. You have to wait until rate limit expires\n",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "too many requests"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "RateLimitError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "de.mittwald.v1.commons.NotFoundError": {
+        "description": "The requested resource was not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/de.mittwald.v1.commons.Error"
+            }
+          }
+        }
+      }
+    },
     "schemas": {
+      "de.mittwald.v1.project.Project": {
+        "properties": {
+          "backupStorageUsageInBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "backupStorageUsageInBytesSetAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "clusterDomain": {
+            "example": "project.host",
+            "format": "hostname",
+            "type": "string"
+          },
+          "clusterID": {
+            "deprecated": true,
+            "description": "deprecated by property clusterId",
+            "example": "espelkamp",
+            "type": "string"
+          },
+          "clusterId": {
+            "example": "espelkamp",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "customerId": {
+            "example": "f282f1a8-2b15-4b08-9850-6788e3b20136",
+            "type": "string"
+          },
+          "deletionRequested": {
+            "type": "boolean"
+          },
+          "description": {
+            "example": "My first Project!",
+            "type": "string"
+          },
+          "directories": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "Home": "/home/p-4e7tz3"
+            },
+            "type": "object"
+          },
+          "disableReason": {
+            "$ref": "#/components/schemas/de.mittwald.v1.project.DisableReason"
+          },
+          "disabledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "features": {
+            "deprecated": true,
+            "description": "Deprecated by 'supportedFeatures'.",
+            "items": {
+              "$ref": "#/components/schemas/de.mittwald.v1.project.ProjectFeature"
+            },
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "imageRefId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "isReady": {
+            "deprecated": true,
+            "description": "deprecated by property status",
+            "type": "boolean"
+          },
+          "projectHostingId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/de.mittwald.v1.project.DeprecatedProjectReadinessStatus"
+          },
+          "serverGroupId": {
+            "type": "string"
+          },
+          "serverId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "serverShortId": {
+            "type": "string"
+          },
+          "shortId": {
+            "example": "s-4e7tz3",
+            "type": "string"
+          },
+          "spec": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.project.VisitorSpec"
+              },
+              {
+                "$ref": "#/components/schemas/de.mittwald.v1.project.HardwareSpec"
+              }
+            ]
+          },
+          "statisticsBaseDomain": {
+            "example": "pe-prod.staging.mcloud.services",
+            "format": "hostname",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/de.mittwald.v1.project.ProjectStatus"
+          },
+          "statusSetAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "supportedFeatures": {
+            "items": {
+              "$ref": "#/components/schemas/de.mittwald.v1.project.ProjectFeature"
+            },
+            "type": "array",
+            "example": [
+              "container"
+            ]
+          },
+          "webStorageUsageInBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "webStorageUsageInBytesSetAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "shortId",
+          "description",
+          "enabled",
+          "customerId",
+          "directories",
+          "createdAt",
+          "isReady",
+          "readiness",
+          "status",
+          "statusSetAt",
+          "webStorageUsageInBytes",
+          "webStorageUsageInBytesSetAt",
+          "backupStorageUsageInBytes",
+          "backupStorageUsageInBytesSetAt",
+          "supportedFeatures",
+          "serverGroupId"
+        ],
+        "type": "object"
+      },
       "de.mittwald.v1.container.CreateStack": {
         "properties": {
           "description": {
@@ -2325,6 +2672,87 @@
           }
         }
       },
+      "de.mittwald.v1.project.DisableReason": {
+        "enum": [
+          "maliciousCode",
+          "illegalContent",
+          "maliciousConduct",
+          "suspended"
+        ],
+        "type": "string"
+      },
+      "de.mittwald.v1.project.ProjectFeature": {
+        "enum": [
+          "redis",
+          "node",
+          "runtimeApps",
+          "container"
+        ],
+        "type": "string"
+      },
+      "de.mittwald.v1.project.DeprecatedProjectReadinessStatus": {
+        "deprecated": true,
+        "description": "deprecated by property status",
+        "enum": [
+          "creating",
+          "ready",
+          "unready"
+        ],
+        "type": "string"
+      },
+      "de.mittwald.v1.project.VisitorSpec": {
+        "properties": {
+          "storage": {
+            "type": "string"
+          },
+          "visitors": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "visitors",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.project.HardwareSpec": {
+        "properties": {
+          "cpu": {
+            "example": "2",
+            "type": "string"
+          },
+          "mem": {
+            "deprecated": true,
+            "description": "deprecated by memory",
+            "example": "4Gi",
+            "type": "string"
+          },
+          "memory": {
+            "example": "4Gi",
+            "type": "string"
+          },
+          "storage": {
+            "example": "50Gi",
+            "type": "string"
+          }
+        },
+        "required": [
+          "storage"
+        ],
+        "type": "object"
+      },
+      "de.mittwald.v1.project.ProjectStatus": {
+        "enum": [
+          "pending",
+          "ready",
+          "preparingForVolumeMigration",
+          "migratingVolume",
+          "error",
+          "disabled"
+        ],
+        "type": "string"
+      },
       "de.mittwald.v1.container.Deploy": {
         "properties": {
           "resources": {
@@ -2572,58 +3000,6 @@
             "description": "Memory limit for the container. The value can be specified in bytes or using a suffix to indicate\nthe unit.\n\nThe format matches the one [used by Docker Compose](https://docs.docker.com/reference/compose-file/extension/#specifying-byte-values):\n\n> Values express a byte value as a string in `{amount}{byte unit}` format: The supported units are\n`b` (bytes), `k` or `kb` (kilo bytes), `m` or `mb` (mega bytes) and `g` or `gb` (giga bytes).\n",
             "example": "1gb",
             "type": "string"
-          }
-        }
-      }
-    },
-    "responses": {
-      "de.mittwald.v1.commons.ValidationError": {
-        "description": "Validation Error caused by invalid input data in the request",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/de.mittwald.v1.commons.ValidationErrors"
-            }
-          }
-        }
-      },
-      "de.mittwald.v1.commons.DefaultError": {
-        "description": "An unexpected Error that occurred while handling the request",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/de.mittwald.v1.commons.Error"
-            }
-          }
-        }
-      },
-      "de.mittwald.v1.commons.NotFoundError": {
-        "description": "The requested resource was not found",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/de.mittwald.v1.commons.Error"
-            }
-          }
-        }
-      },
-      "de.mittwald.v1.commons.RateLimitError": {
-        "description": "Your request ran into a rate limit. You have to wait until rate limit expires\n",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string",
-                  "example": "too many requests"
-                },
-                "type": {
-                  "type": "string",
-                  "example": "RateLimitError"
-                }
-              }
-            }
           }
         }
       }

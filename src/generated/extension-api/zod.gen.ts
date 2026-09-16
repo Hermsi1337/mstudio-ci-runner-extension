@@ -29,8 +29,8 @@ export const zMemoryMb = z.int().gte(512).lte(16384);
 
 /**
  * How the runner authenticated at creation. Decides whether the extension can remove the
- * registration on delete. GitHub runners created before the PAT mode was disabled still
- * carry `pat`.
+ * registration on delete. Runners created before the PAT mode was disabled still carry
+ * `pat`.
  *
  */
 export const zTokenType = z.enum(['registration', 'pat']);
@@ -88,20 +88,11 @@ export const zGitHubRunnerRequest = zRunnerBase.and(z.object({
     runnerGroup: z.string().max(128).optional()
 }));
 
-export const zGitLabRunnerType = z.enum([
-    'project_type',
-    'group_type',
-    'instance_type'
-]).default('project_type');
-
 export const zGitLabRunnerRequest = zRunnerBase.and(z.object({
     provider: z.enum(['gitlab']),
     instanceUrl: z.url().default('https://gitlab.com'),
-    tokenType: z.enum(['registration', 'pat']).optional().default('registration'),
-    runnerType: zGitLabRunnerType.optional(),
-    target: z.string().max(300).optional(),
-    token: z.string().min(10).max(500),
-    runUntagged: z.boolean().optional().default(true)
+    tokenType: z.enum(['registration']).optional().default('registration'),
+    token: z.string().min(10).max(500)
 }));
 
 export const zCreateRunnerRequest = z.union([
@@ -165,6 +156,13 @@ export const zRunner = z.object({
 });
 
 export const zRunnerList = z.array(zRunner);
+
+/**
+ * What the project the extension runs in supports. Read before a runner is offered.
+ */
+export const zProjectCapabilities = z.object({
+    containerHosting: z.boolean()
+});
 
 export const zRelease = z.object({
     version: z.string(),

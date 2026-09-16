@@ -1,5 +1,6 @@
 import { makeGhost } from "@mittwald/react-ghostmaker";
 import { getChangelogServerFunction } from "@/serverFunctions/changelog/get-changelog.ts";
+import { getProjectCapabilitiesServerFunction } from "@/serverFunctions/project/get-project-capabilities.ts";
 import { configureRunnerServerFunction } from "@/serverFunctions/runners/configure-runner.ts";
 import { createRunnerServerFunction } from "@/serverFunctions/runners/create-runner.ts";
 import { deleteRunnerServerFunction } from "@/serverFunctions/runners/delete-runner.ts";
@@ -19,6 +20,10 @@ const runnerClient = {
 };
 
 export const RunnerClientGhost = makeGhost(runnerClient);
+
+export const ProjectClientGhost = makeGhost({
+    getProjectCapabilities: getProjectCapabilitiesServerFunction,
+});
 
 export const ChangelogClientGhost = makeGhost({
     getChangelog: getChangelogServerFunction,

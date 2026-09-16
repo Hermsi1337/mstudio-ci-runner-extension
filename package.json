@@ -12,6 +12,7 @@
     "serve": "vite preview --config config/vite.config.ts",
     "codegen": "openapi-ts -f config/openapi-ts.config.ts",
     "spec:update": "node scripts/slim-openapi.ts",
+    "extension:sync": "node scripts/sync-extension.ts",
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "lint": "biome lint .",

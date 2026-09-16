@@ -6,7 +6,7 @@
 |---|---|---|
 | Frontend fragment inside mStudio | React 19, Flow remote React components, TanStack Router (CSR) | `src/routes/`, `src/components/` |
 | Server functions | TanStack Start | `src/serverFunctions/` |
-| Domain logic | TypeScript, `@mittwald/api-client` | `src/domain/runner.ts` |
+| Domain logic | TypeScript, `@mittwald/api-client` | `src/domain/runner.ts`, `src/domain/project.ts` |
 | Changelog | GitHub releases via `@octokit/rest`, cached for ten minutes, cut at the running version | `src/domain/changelog.ts` |
 | CI providers | `@octokit/rest`, generated GitLab client | `src/domain/providers/` ([providers.md](providers.md)) |
 | Persistence | PostgreSQL, Drizzle ORM | `src/db/` |
@@ -47,26 +47,31 @@ Two Flow rules shape the components:
    builds the `MittwaldAPIV2Client` via `src/mittwald/client.ts`.
 2. Input is validated with `zCreateRunnerRequest` (generated, see [codegen.md](codegen.md)),
    a discriminated union over `provider`.
-3. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
+3. `src/domain/project.ts` reads `supportedFeatures` of the project (`project.getProject`).
+   Without the `container` feature the project cannot host containers and the create
+   fails with `error.containerHosting.unavailable` before anything is created. The UI
+   asks the same through `getProjectCapabilitiesServerFunction` and shows a hint instead
+   of the create button.
+4. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
    registration in the CI system where needed and returns image, environment and the
    data volume ([providers.md](providers.md)). Nothing secret is returned for storage.
-4. `src/domain/stack.ts` finds the stack of the registration target in `runner_stacks`
+5. `src/domain/stack.ts` finds the stack of the registration target in `runner_stacks`
    or creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
    (extension instance, target URL) settles parallel creates: the loser deletes its
    duplicate stack and uses the winner's. If persisting the row fails, the extension
    deletes the stack it just created, so no orphaned stack stays behind. A create for
    an installation without an `extension_instance` row (webhook data missing) fails
    before anything is created.
-5. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
+6. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
    requested ([providers.md](providers.md#package-manager-cache)) and declares the
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
    runners of the stack stay untouched) with `restartPolicy: always` and the resource
    limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
    `custom`). Volumes carry the service name as prefix (`runner-<slug>-data`, `runner-<slug>-cache`).
-6. A row in `runners` links extension instance, provider, stack and service. The API
+7. A row in `runners` links extension instance, provider, stack and service. The API
    derives `studioUrl` from them, the detail page of the container in mStudio, linked
    from the runner name in the list.
-7. The container registers itself on start ([runner-image.md](runner-image.md)).
+8. The container registers itself on start ([runner-image.md](runner-image.md)).
 
 Other operations: list with live status (`container.getStack`), logs
 (`container.getServiceLogs`), restart (`container.restartService`), update to the
@@ -134,11 +139,11 @@ answer within 6 seconds.
   after one hour and is not stored in the database. The runner credentials live in the
   data volume of the runner. The PAT mode is disabled, see
   [providers.md](providers.md#existing-providers).
-- GitLab: with a runner token from GitLab nothing else is involved. With a PAT it is
-  used once to create the runner and is not stored. In both modes the container only
-  receives the runner token (`CI_SERVER_TOKEN`). Deleting the runner reads that token
-  from the service state at mittwald; when the container is already gone, the runner
-  stays in GitLab until someone removes it there.
+- GitLab: only the runner token from GitLab is involved. It reaches the container as
+  `CI_SERVER_TOKEN` and is not stored in the database. Deleting the runner reads that
+  token from the service state at mittwald; when the container is already gone, the
+  runner stays in GitLab until someone removes it there. The PAT mode is disabled, see
+  [providers.md](providers.md#existing-providers).
 - The database holds one secret: the instance secret in `extension_instance`, encrypted
   with `ENCRYPTION_MASTER_PASSWORD` and `ENCRYPTION_SALT` (AES-256-GCM via
   mitthooks-drizzle). It authenticates the cleanup after an uninstall.

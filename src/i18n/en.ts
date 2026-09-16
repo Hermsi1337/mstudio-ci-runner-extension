@@ -21,6 +21,9 @@ export const en = {
         "Runners run on mittwald Container Hosting without a Docker daemon.\n\n**Fails**\n\n- GitHub Actions: `container:`, `services:`, `docker build`, Docker container actions\n- GitLab CI: `image:`, `services:`, anything that calls `docker`\n\n**Works**\n\n- Jobs that run directly on Ubuntu 24.04: Node via `actions/setup-node`, Python, `build-essential`\n- `git`, `curl`, `rsync`, SSH deploys\n- Installing packages with `sudo apt-get`",
 
     "runners.heading": "Runners",
+    "runners.containerHosting.missing.heading": "Container Hosting missing",
+    "runners.containerHosting.missing":
+        "This project does not support Container Hosting, so it cannot run CI runners. Install the extension in a project on a server that offers Container Hosting.",
     "runners.intro.heading": "How runners work",
     "runners.intro":
         "Runners of the same repository, organization or GitLab instance share one container stack in this project; every runner is a container in it and registers itself on start. Jobs run directly in the container. Create as many runners as you need.",
@@ -163,38 +166,16 @@ export const en = {
     "form.github.configCommand.invalid":
         "Paste the full command with --url https://github.com/... and --token.",
     "form.github.runnerGroup.label": "Runner group",
-    "form.gitlab.tokenType.label": "Authentication",
-    "form.gitlab.tokenType.registration": "Runner token from GitLab",
-    "form.gitlab.tokenType.pat": "Personal access token (PAT)",
     "form.gitlab.configCommand.label": "Register command from GitLab",
     "form.gitlab.configCommand.description":
         "Paste the gitlab-runner register command from the New runner page. Instance URL and runner token are read from it; tags and scope were set on that page.",
     "form.gitlab.configCommand.required": "Register command is required",
     "form.gitlab.configCommand.invalid":
         "Paste the full command with --url https://... and --token glrt-...",
-    "form.gitlab.instanceUrl.label": "GitLab instance",
-    "form.gitlab.instanceUrl.description":
-        "https://gitlab.com or the URL of your own instance.",
-    "form.gitlab.instanceUrl.required": "GitLab URL is required",
-    "form.gitlab.runnerType.label": "Runner type",
-    "form.gitlab.runnerType.project": "Project",
-    "form.gitlab.runnerType.group": "Group",
-    "form.gitlab.runnerType.instance": "Instance (admin)",
-    "form.gitlab.projectPath.label": "Project path",
-    "form.gitlab.groupPath.label": "Group path",
-    "form.gitlab.path.placeholder": "group/project",
-    "form.gitlab.path.required": "Path is required",
-    "form.gitlab.token.label": "GitLab token (PAT)",
-    "form.gitlab.token.description":
-        "Personal access token with the scopes create_runner and api. Only used to create the runner; the container receives the runner token only.",
-    "form.gitlab.token.required": "GitLab token is required",
-    "form.gitlab.runUntagged.label": "Also run jobs without tags",
     "form.labels.label": "Labels",
     "form.tags.label": "Tags",
     "form.labels.description":
         "Comma separated. Reference them with runs-on: [self-hosted, mittwald].",
-    "form.tags.description":
-        "Comma separated. Reference them with tags: [mittwald].",
     "form.size.label": "Size",
     "form.size.description": "All jobs of this runner share these limits.",
     "form.size.small": "Small (0.5 CPU, 1 GB RAM)",
@@ -222,25 +203,10 @@ export const en = {
         "On GitHub open the repository or organization, then `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Under `Configure` copy the line starting with `./config.sh` (or `./config.cmd`) and paste it here. Only `--url` and `--token` are used. The token expires after one hour, so create the runner right away. After you delete the runner here, GitHub lists it as offline until it removes it after 14 days.",
     "form.github.runnerGroup.help":
         "Only for organizations. Runner groups control which repositories may use the runner. Leave empty for the group Default.",
-    "form.gitlab.tokenType.help":
-        "Runner token: create the runner on GitLab under `Settings` → `CI/CD` → `Runners` → `New project runner` (or group or instance runner), choose its tags there and copy the `gitlab-runner register` command from the next page. The runner exists in GitLab already, the container registers with its token. No PAT is needed and the token goes into the runner container only.\nPersonal access token: the extension creates the runner via the API with the scope, path, tags and untagged setting from this form. The PAT is used once and not stored.",
     "form.gitlab.configCommand.help":
         "On GitLab open the project or group, then `Settings` → `CI/CD` → `Runners` → `New project runner`. Set tags and whether untagged jobs run, click `Create runner` and copy the `gitlab-runner register` line from step 1. Only `--url` and `--token` are used. The token belongs to that runner; deleting the runner here removes it from GitLab.",
-    "form.gitlab.instanceUrl.help":
-        "https://gitlab.com for the hosted service, or the base URL of your self-managed instance, for example https://gitlab.example.com.",
-    "form.gitlab.runnerType.help":
-        "Project: serves one project, you need the maintainer role. Group: serves every project of a group, you need the owner role. Instance: serves the whole instance, you need to be an administrator.",
-    "form.gitlab.path.help":
-        "The path as shown in the URL of the project or group, for example my-group/my-project or my-group/sub-group.",
-    "form.gitlab.token.help":
-        "Create a personal access token under User settings, Access tokens with the scopes create_runner and api. The token is used once to register the runner and is not stored. The container only receives the runner token.",
-    "form.gitlab.token.link": "Create a token on GitLab",
-    "form.gitlab.runUntagged.help":
-        "Enabled: the runner also picks up jobs that specify no tags. Disabled: only jobs that list one of the runner's tags run here.",
     "form.labels.help":
         "Comma separated labels the runner registers with. Reference them in the workflow with runs-on: [self-hosted, mittwald]. Jobs whose labels do not match never reach this runner.",
-    "form.tags.help":
-        "Comma separated tags the runner registers with. Reference them in the pipeline with tags: [mittwald]. Jobs whose tags do not match never reach this runner unless untagged jobs are allowed.",
     "form.cache.label": "Persistent cache for package managers",
     "form.cache.help":
         "Adds a cache volume at /home/runner/.cache and points npm, pnpm, yarn, pip, Composer and Go at it (XDG_CACHE_HOME plus the tool specific variables). Downloads from earlier jobs are reused, which speeds up installs. The volume survives jobs, restarts and updates. You can turn the cache on or off later in the runner settings; turning it off deletes the volume.",
@@ -294,27 +260,19 @@ export const en = {
         "The stack could not be deleted (status {status}).",
     "error.upstream.stackGet":
         "The runner stack could not be loaded (status {status}). Try again in a moment.",
+    "error.upstream.projectGet":
+        "The project could not be loaded (status {status}). Try again in a moment.",
+    "error.containerHosting.unavailable":
+        "This project does not support Container Hosting, so it cannot run CI runners. Move the extension to a project on a server that offers Container Hosting.",
     "error.upstream.cronjobCreate":
         "mittwald could not create the cleanup cronjob for the cache (status {status}). The extension needs the cronjob scopes.",
     "error.upstream.cronjobUpdate":
         "mittwald could not update the cleanup cronjob for the cache (status {status}).",
-    "error.gitlab.tokenInvalid": "The GitLab token is invalid.",
     "error.gitlab.instanceUrlInvalid":
         "The GitLab URL must be a public https address.",
     "error.gitlab.runnerTokenInvalid":
         "GitLab does not accept the runner token. Paste the full register command from the New runner page; the token starts with glrt-.",
-    "error.gitlab.noAccessProject":
-        "The token cannot manage project {path}. Required scopes: create_runner and api (maintainer).",
-    "error.gitlab.noAccessGroup":
-        "The token cannot manage group {path}. Required scopes: create_runner and api (owner).",
-    "error.gitlab.noAccessRunner":
-        "The token cannot create runners. Required scopes: create_runner and api.",
-    "error.gitlab.projectNotFound": "Project {path} was not found.",
-    "error.gitlab.groupNotFound": "Group {path} was not found.",
     "error.gitlab.status": "GitLab responded with status {status}.",
-    "error.gitlab.projectPathRequired":
-        "Project path is required (for example group/project).",
-    "error.gitlab.groupPathRequired": "Group path is required.",
     "error.gitlab.removeFailed":
         "The GitLab runner could not be removed (status {status}).",
 } as const;

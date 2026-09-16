@@ -23,6 +23,7 @@ const sources: Source[] = [
         url: "https://api.mittwald.de/v2/openapi.json",
         serverUrl: "https://api.mittwald.de",
         paths: [
+            "/v2/projects/{projectId}",
             "/v2/projects/{projectId}/stacks",
             "/v2/stacks/{stackId}",
             "/v2/stacks/{stackId}/services/{serviceId}",
@@ -37,6 +38,16 @@ const sources: Source[] = [
             "/v2/authenticate-session-token",
             "/v2/public-keys/{serial}",
         ],
+        patch: (doc) => {
+            // Prism answers from the schema, and a project without the
+            // container feature would make every mocked runner create fail the
+            // capability check.
+            const project = (doc.components as Json).schemas as Json;
+            const properties = (
+                project["de.mittwald.v1.project.Project"] as Json
+            ).properties as Json;
+            (properties.supportedFeatures as Json).example = ["container"];
+        },
     },
     {
         name: "github",
@@ -55,19 +66,7 @@ const sources: Source[] = [
     {
         name: "gitlab",
         url: "https://gitlab.com/gitlab-org/gitlab/-/raw/master/doc/api/openapi/openapi_v2.yaml",
-        paths: [
-            "/api/v4/user/runners",
-            "/api/v4/runners",
-            "/api/v4/runners/verify",
-            "/api/v4/projects/{id}",
-            "/api/v4/groups/{id}",
-        ],
-        patch: (doc) => {
-            // upstream marks group_id and project_id as required although they depend on runner_type
-            const create = (doc.definitions as Json)
-                .postApiV4UserRunners as Json;
-            create.required = ["runner_type"];
-        },
+        paths: ["/api/v4/runners", "/api/v4/runners/verify"],
     },
 ];
 

@@ -81,7 +81,7 @@ into this file. Every file has exactly one topic and links to the others.
 | `docs/operations.md` | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | `docs/i18n.md` | Languages: how the locale is chosen, catalogs, adding texts |
 | `docs/styleguide.md` | UI rules: components, layout, modals, forms, lists, texts, colors |
-| `docs/marketplace/listing.md` | Marketplace entry: texts in both languages, logo, screenshots |
+| `docs/marketplace/listing.md` | Marketplace entry: where the texts live, logo, screenshots |
 
 Checklist before every commit:
 
@@ -114,17 +114,20 @@ docker/runner/common/        scripts shared by all runner images (trim-cache.sh)
 docker/runner/probes/        probe suite run inside the built images by the integration tests
 docker/runner/versions.json  runner software version per provider, single source for workflow, build and UI
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
+deploy/mstudio/extension.yaml  marketplace entry and fragment properties, applied by deploy.yml
 docs/                        documentation, one topic per file
-src/assets/                  logo (SVG inlined into the UI, PNG for the mStudio registration) and README banner
+src/assets/                  logo (SVG inlined into the UI, PNG for the mStudio registration), fragment icon for the mStudio menu and README banner
 openapi/extension-api.yaml   extension API contract (source for codegen)
 openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
 scripts/slim-openapi.ts      produces openapi/upstream
+scripts/sync-extension.ts    writes marketplace texts, logo and fragment properties into mStudio
 scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
 scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
 scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) reached the browser bundle
 scripts/generate-encryption-secrets.js  prints values for ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
 src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
+src/domain/project.ts        capabilities of the mStudio project (Container Hosting available?)
 src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
 src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
 src/domain/changelog.ts      GitHub releases for the changelog modal, cached in memory

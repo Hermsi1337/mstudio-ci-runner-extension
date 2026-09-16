@@ -14,8 +14,12 @@ Details: [mittwald developer portal, contributor](https://developer.mittwald.de/
 | Context | **Project** (stacks belong to a project) |
 | Scopes | `project:read`, `stack:read`, `stack:write`, `stack:delete`, `cronjob:write`, `cronjob:delete` |
 | Webhooks (all four) | `https://<extension-host>/api/webhooks/mittwald` |
-| Frontend fragment | Anchor *project menu* (or the anchor of your choice), URL `https://<extension-host>/` |
+| Frontend fragment | Anchor `/projects/project/menu/section/extensions/item`, URL `https://<extension-host>/` |
 | Logo | `src/assets/logo.png` (512 px, rendered from `logo.svg`) |
+
+`project:read` is what the extension reads the supported features of the project with.
+Without the `container` feature it offers no runner and says so
+([architecture.md](architecture.md#data-flow-create-runner)).
 
 There are no `container:*` scopes. The container endpoints are named `container-*`,
 the scope is called `stack`; `stack:delete` also covers deleting the cache volume when
@@ -48,15 +52,46 @@ Ephemeral runners and the PAT mode are disabled, see
 
 ### GitLab
 
-Default: the register command from GitLab. Create the runner under *Settings → CI/CD →
-Runners → New project runner* (or group or instance runner), set tags there and paste
-the `gitlab-runner register --url ... --token glrt-...` line from the next page into the
+The register command from GitLab. Create the runner under *Settings → CI/CD → Runners →
+New project runner* (or group or instance runner), set tags there and paste the
+`gitlab-runner register --url ... --token glrt-...` line from the next page into the
 form. The token goes into the runner container only; deleting the runner reads it from
-there. No PAT is needed.
+there. No PAT is involved.
 
-Alternative: a personal access token with the scopes `create_runner` and `api`. Role
-maintainer (project) or owner (group); instance runners require an admin. The extension
-creates the runner via the API; the PAT is used once and is not stored.
+The PAT mode is disabled, see [providers.md](providers.md#existing-providers).
+
+## Marketplace entry and frontend fragment
+
+Name, tags, support address, subtitle, descriptions, logo, fragment icon and fragment
+title live in `deploy/mstudio/extension.yaml`. The extension form in mStudio offers some
+of them and the fragment properties not at all, so the repository is the source and the
+deployment writes them back ([operations.md](operations.md#deployment-to-mittwald-container-hosting)).
+
+Manually:
+
+```bash
+MITTWALD_API_TOKEN=... MITTWALD_CONTRIBUTOR_ID=... MITTWALD_EXTENSION_ID=... \
+  pnpm run extension:sync
+```
+
+What the script does not touch: scopes and webhook URLs. A new scope makes every
+installation consent again, and the webhook URL belongs to the deployment, not to the
+repository.
+
+Notes on the fields:
+
+- `description` exists once in the API without a language. The script sends the German
+  text, the English one stays in the file for the marketplace form.
+- `subTitle` is limited to 40 characters per language.
+- The fragment `title` currently supports German only.
+- The fragment URL stays as registered in mStudio; the script only writes icon and title
+  into every fragment it finds.
+- The icon is monochrome and uses `currentColor`, so it follows the menu color in both
+  themes.
+
+The list of anchors lives in mStudio under *Development* at the extension, not in the
+documentation ([anchor reference](https://developer.mittwald.de/docs/v2/contribution/reference/frontend-fragment-anchors/)).
+The project menu is `/projects/project/menu/section/extensions/item`.
 
 ## Testing a local extension
 
