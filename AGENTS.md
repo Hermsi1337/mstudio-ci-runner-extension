@@ -165,6 +165,9 @@ Everything else lives in a subdirectory.
 
 - TypeScript strict, Biome for lint and format (`pnpm run check`). Generated files are
   excluded in `biome.json`.
+- Scripts in images and in `scripts/` are bash (`#!/usr/bin/env bash`, `set -euo pipefail`),
+  never sh, never Python. JSON is read and written with `jq`, which every image ships.
+  The builder image installs bash for this.
 - Domain code in `src/domain/` receives the `MittwaldAPIV2Client` as a parameter and
   never creates it, so it stays testable against mock servers.
 - Errors reach the client only through subclasses of `PublicError`
