@@ -28,9 +28,16 @@ import {
     ConcurrencyField,
     type ConcurrencyFormValues,
 } from "./ConcurrencyField.tsx";
+import {
+    ImageBuildsField,
+    type ImageBuildsFormValues,
+} from "./ImageBuildsField.tsx";
 import { ResourceFields, type ResourceFormValues } from "./ResourceFields.tsx";
 
-type FormValues = CacheFormValues & ConcurrencyFormValues & ResourceFormValues;
+type FormValues = CacheFormValues &
+    ImageBuildsFormValues &
+    ConcurrencyFormValues &
+    ResourceFormValues;
 
 function pipelineSnippet(runner: Runner): string | null {
     if (runner.labels.length === 0) {
@@ -51,6 +58,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
         defaultValues: {
             cache: runner.cache,
             cacheSizeGb: runner.cacheSizeGb,
+            imageBuilds: runner.imageBuilds,
             concurrency: runner.concurrency,
             size: runner.size,
             cpus: runner.cpus,
@@ -65,6 +73,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                     runnerId: runner.id,
                     cache: values.cache,
                     cacheSizeGb: values.cacheSizeGb,
+                    imageBuilds: values.imageBuilds,
                     concurrency: values.concurrency,
                     size: values.size,
                     cpus: values.size === "custom" ? values.cpus : undefined,
@@ -108,6 +117,8 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                 <Section>
                     <Heading>{t("form.section.cache")}</Heading>
                     <CacheFields form={form} />
+
+                    <ImageBuildsField form={form} />
                 </Section>
                 {changed && (
                     <Alert status="warning">

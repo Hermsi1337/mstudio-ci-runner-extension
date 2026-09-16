@@ -7,6 +7,7 @@
 | Frontend fragment inside mStudio | React 19, Flow remote React components, TanStack Router (CSR) | `src/routes/`, `src/components/` |
 | Server functions | TanStack Start | `src/serverFunctions/` |
 | Domain logic | TypeScript, `@mittwald/api-client` | `src/domain/runner.ts`, `src/domain/project.ts` |
+| Image builds | kaniko in a builder service per stack, crane in the runner | `src/domain/builder.ts`, `src/build-queue.ts` ([image-builds.md](image-builds.md)) |
 | Changelog | GitHub releases via `@octokit/rest`, cached for ten minutes, cut at the running version | `src/domain/changelog.ts` |
 | CI providers | `@octokit/rest`, generated GitLab client | `src/domain/providers/` ([providers.md](providers.md)) |
 | Persistence | PostgreSQL, Drizzle ORM | `src/db/` |
@@ -70,7 +71,9 @@ Two Flow rules shape the components:
    overwrites a service someone else declared. A create for an installation without an
    `extension_instance` row (webhook data missing) fails before anything is created.
 6. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
-   requested ([providers.md](providers.md#package-manager-cache)) and declares the
+   requested ([providers.md](providers.md#package-manager-cache)), mounts the build
+   queue and declares the builder service of the stack when the runner may build
+   images (`src/domain/builder.ts`, [image-builds.md](image-builds.md)), and declares the
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
    runners of the stack stay untouched) with `restartPolicy: always` and the resource
    limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
@@ -119,7 +122,7 @@ Tables in `src/db/schema.ts`:
   user can get. Opened from the header, the modal marks the current release; opened
   from a runner, it names the runner's image version and the update target and
   shows the releases between them.
-  `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb` and `concurrency` hold the settings
+  `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb`, `imageBuilds` and `concurrency` hold the settings
   (`cpus` and `memoryMb` only for `size = custom`), `tokenType` records how the runner
   authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald
   cronjobs created for the runner (cache cleanup).

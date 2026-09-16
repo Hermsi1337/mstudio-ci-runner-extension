@@ -44,6 +44,7 @@ export const de: Messages = {
     "runners.filter.provider": "CI-System",
     "runners.column.size": "Größe",
     "runners.column.cache": "Cache",
+    "runners.column.imageBuilds": "Image-Builds",
     "runners.column.version": "Version",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Neustart",
@@ -59,6 +60,8 @@ export const de: Messages = {
     "runners.labels.inCiSystem": "In GitLab festgelegt",
     "runners.cache.off": "Aus",
     "runners.cache.limit": "{size} GB",
+    "runners.imageBuilds.on": "An",
+    "runners.imageBuilds.off": "Aus",
     "runners.notice.created": "Runner {name} angelegt",
     "runners.notice.createdText":
         "Der Container startet jetzt und registriert sich innerhalb einer Minute.",
@@ -150,6 +153,9 @@ export const de: Messages = {
     "form.summary.cronjob.label": "Cronjob: Cache aufräumen",
     "form.summary.cronjob.text":
         "Kürzt das Cache-Volume stündlich auf {size} GB.",
+    "form.summary.builder.label": "Container: builder",
+    "form.summary.builder.text":
+        "Baut die Images aller Runner in diesem Stack. Ein zusätzlicher Container im Stack, gemeinsam genutzt.",
     "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Ressourcen",
@@ -233,6 +239,9 @@ export const de: Messages = {
     "form.cacheSize.range": "Gib einen Wert zwischen 1 und 500 GB an",
     "form.cacheSize.help":
         "mittwald-Volumes haben selbst kein Größenlimit, daher legt die Extension im Projekt einen Cronjob an, der stündlich im Runner-Container läuft. Er löscht die am längsten nicht geänderten Dateien, bis der Cache ins Limit passt. Der Cronjob wird mit dem Runner entfernt.",
+    "form.imageBuilds.label": "Image-Builds in Jobs",
+    "form.imageBuilds.help":
+        "Erlaubt docker build in Jobs, obwohl der Container keinen Docker-Daemon hat. Gebaut wird in einem Builder-Container desselben Stacks (kaniko), gepusht wird vom Runner mit den Zugangsdaten aus docker login. Der Builder kommt einmal in den Stack und bedient alle Runner darin. Es gibt keinen Layer-Cache, jeder Build startet beim Base-Image. BuildKit-Funktionen wie RUN --mount, --secret, --ssh und Builds für eine andere Architektur gehen nicht; der docker-Befehl sagt das, statt etwas anderes zu bauen.",
     "form.concurrency.label": "Jobs gleichzeitig",
     "form.concurrency.required": "Gib an, wie viele Jobs gleichzeitig laufen",
     "form.concurrency.range": "Gib einen Wert zwischen 1 und 8 an",

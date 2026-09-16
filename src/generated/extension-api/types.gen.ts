@@ -82,6 +82,7 @@ export type RunnerBase = {
     labels?: string;
     cache?: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
+    imageBuilds?: ImageBuilds;
     concurrency?: Concurrency;
     size?: RunnerSize;
     cpus?: Cpus;
@@ -105,6 +106,11 @@ export type Concurrency = number;
  * Adds a cache volume for package manager caches (npm, pnpm, yarn, pip, Composer, Go) that survives jobs, restarts and updates.
  */
 export type CacheEnabled = boolean;
+
+/**
+ * Lets jobs build container images with `docker build`. Mounts the build queue of the stack into the runner and adds the builder service to the stack if it is missing.
+ */
+export type ImageBuilds = boolean;
 
 /**
  * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
@@ -168,6 +174,7 @@ export type ConfigureRunnerRequest = {
     runnerId: string;
     cache: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
+    imageBuilds?: ImageBuilds;
     concurrency?: Concurrency;
     size?: RunnerSize;
     cpus?: Cpus;
@@ -208,6 +215,10 @@ export type Runner = {
      * Cache limit in GB. Carries the last configured value even while cache is false.
      */
     cacheSizeGb: number;
+    /**
+     * Jobs of this runner can build container images through the builder service of its stack.
+     */
+    imageBuilds: boolean;
     concurrency: number;
     stackId: string;
     serviceId: string | null;
