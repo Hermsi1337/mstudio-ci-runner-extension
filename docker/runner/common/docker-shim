@@ -29,6 +29,13 @@ fail() {
 
 BUILDER_NAME="mstudio-builder"
 
+# `docker/setup-buildx-action` parses this line and stops with "Cannot parse
+# buildx version" on anything that is not "github.com/docker/buildx v<semver>".
+# The version decides which flags the docker actions pass; the shim warns about
+# or refuses the ones it cannot serve, so the number only has to be plausible.
+BUILDX_VERSION="v0.17.1"
+DOCKER_VERSION="27.3.1"
+
 require_crane() {
     command -v crane >/dev/null || fail "crane is missing from this image"
 }
@@ -276,7 +283,7 @@ command_buildx() {
         use | stop | rm | prune | du)
             warn "buildx ${subcommand} does nothing here, every build runs in the builder service of this stack"
             ;;
-        version) echo "github.com/docker/buildx mstudio-builder (kaniko)" ;;
+        version) echo "github.com/docker/buildx ${BUILDX_VERSION} mstudio-builder" ;;
         imagetools)
             require_crane
             [[ "${1:-}" == "inspect" ]] || fail "buildx imagetools ${1:-} is not supported"
@@ -312,7 +319,14 @@ case "${command}" in
         [[ "${1:-}" == "inspect" ]] || fail "manifest ${1:-} is not supported"
         mstudio-crane "${2:?usage: docker manifest inspect <image>}" manifest "${2}"
         ;;
-    version) echo "mstudio-ci-runner docker shim, builds run in the builder service (kaniko), registry access through crane" ;;
+    version)
+        if [[ "$*" == *--format* ]]; then
+            echo "${DOCKER_VERSION}"
+        else
+            echo "Client: mstudio-ci-runner docker shim ${DOCKER_VERSION}"
+            echo " Builds run in the builder service of this stack (kaniko), registry access through crane"
+        fi
+        ;;
     info) echo "mstudio-ci-runner docker shim: no daemon, no containers, images are built by the builder service of this stack" ;;
     "" | -h | --help)
         sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
