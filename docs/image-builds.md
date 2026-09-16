@@ -62,19 +62,24 @@ runner with the credentials from `docker login`.
 
 ## Setting it up
 
-The builder is one more service in the stack of the runner:
+Turn on *Image builds in jobs* when creating a runner or later in its settings. The
+extension then mounts the build queue into the runner and declares the builder service
+of the stack if it is missing:
 
 ```json
 {
   "image": "ghcr.io/hermsi1337/mstudio-ci-builder:<version>",
   "restartPolicy": "always",
   "volumes": ["/home/<project>/ci-builds:/builds"],
-  "deploy": { "resources": { "limits": { "cpus": "2", "memory": "4gb" } } }
+  "deploy": { "resources": { "limits": { "cpus": "2", "memory": "4096mb" } } }
 }
 ```
 
-Every runner that should build gets the same mount. Scope wise nothing changes, the
-extension declares the service with `stack:write`.
+One builder serves every runner of its stack. Turning the switch off for the last
+runner that builds removes it again, deleting the runner does the same. No new scope is
+needed, the extension declares the service with `stack:write`. The image follows the
+extension release like the runner images do (`BUILDER_IMAGE`,
+[development.md](development.md)).
 
 Environment of the builder:
 

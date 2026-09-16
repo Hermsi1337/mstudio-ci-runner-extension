@@ -133,6 +133,8 @@ src/generated/               generated types, zod schemas, GitLab client (do not
 src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
 src/domain/project.ts        capabilities of the mStudio project (Container Hosting available?)
 src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
+src/domain/builder.ts        builder service of a stack: declare it, remove it once no runner builds images
+src/build-queue.ts           mount of the build queue shared by runners and builder (no server dependencies)
 src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
 src/domain/changelog.ts      GitHub releases for the changelog modal, cached in memory
 src/version-compare.ts       semver comparison for the update hint of the changelog

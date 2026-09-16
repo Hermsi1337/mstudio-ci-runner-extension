@@ -41,6 +41,7 @@ export const en = {
     "runners.filter.provider": "CI system",
     "runners.column.size": "Size",
     "runners.column.cache": "Cache",
+    "runners.column.imageBuilds": "Image builds",
     "runners.column.version": "Version",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Restart",
@@ -56,6 +57,8 @@ export const en = {
     "runners.labels.inCiSystem": "Set in GitLab",
     "runners.cache.off": "Off",
     "runners.cache.limit": "{size} GB",
+    "runners.imageBuilds.on": "On",
+    "runners.imageBuilds.off": "Off",
     "runners.notice.created": "Runner {name} created",
     "runners.notice.createdText":
         "The container starts now and registers within a minute.",
@@ -145,6 +148,9 @@ export const en = {
     "form.summary.cronjob.label": "Cronjob: cache cleanup",
     "form.summary.cronjob.text":
         "Trims the cache volume to {size} GB every hour.",
+    "form.summary.builder.label": "Container: builder",
+    "form.summary.builder.text":
+        "Runs the image builds of every runner in this stack. One more container in the stack, shared.",
     "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Resources",
@@ -227,6 +233,9 @@ export const en = {
     "form.cacheSize.range": "Enter a value between 1 and 500 GB",
     "form.cacheSize.help":
         "mittwald volumes have no size limit of their own, so the extension creates a cronjob in the project that runs every hour inside the runner container. It deletes the least recently modified files until the cache fits the limit. The cronjob is removed with the runner.",
+    "form.imageBuilds.label": "Image builds in jobs",
+    "form.imageBuilds.help":
+        "Lets jobs run docker build although the container has no Docker daemon. The build runs in a builder container of the same stack (kaniko) and the runner pushes the image with the credentials from docker login. The builder is added to the stack once and serves every runner in it. Without a layer cache, every build starts from the base image. BuildKit features such as RUN --mount, --secret, --ssh and builds for another architecture do not work; the docker command says so instead of building something else.",
     "form.concurrency.label": "Jobs at once",
     "form.concurrency.required": "Enter how many jobs run at once",
     "form.concurrency.range": "Enter a value between 1 and 8",

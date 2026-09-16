@@ -126,7 +126,7 @@ environment at its own project.
 - Manually via *Actions → Deploy → Run workflow* with a version such as `0.1.0`.
 
 `EXTENSION_VERSION` selects the extension image and, inside the extension, the runner
-images, so a deployment pins all three to the same release. `postgres` is excluded from the
+images and the builder image, so a deployment pins all four to the same release. `postgres` is excluded from the
 restart (`skip_recreation`); the extension runs its migrations on start.
 
 After the stack the job `metadata` runs `pnpm run extension:sync` and writes the

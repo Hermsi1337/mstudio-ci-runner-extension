@@ -29,3 +29,23 @@ export async function getProjectCapabilities(
 
     return { containerHosting };
 }
+
+/**
+ * Home directory of the project in the file system every container of the
+ * project shares. The build queue lives below it, see builder.ts.
+ */
+export async function getProjectDirectory(
+    client: MittwaldAPIV2Client,
+    projectId: string,
+): Promise<string> {
+    const response = await client.project.getProject({ projectId });
+    if (response.status !== 200) {
+        throw new UpstreamError("error.upstream.projectGet", {
+            status: response.status,
+        });
+    }
+    const home = response.data.directories.Home;
+    log.debug("project directory read", { projectId, home });
+
+    return home ?? `/home/${response.data.shortId}`;
+}
