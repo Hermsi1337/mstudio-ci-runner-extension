@@ -268,10 +268,10 @@ components:
         cacheSizeGb:
           type: integer
           description: Cache limit in GB. Carries the last configured value even while cache is false.
+          example: 10
         imageBuilds:
           type: boolean
           description: Jobs of this runner can build container images through the builder service of its stack.
-          example: 10
         concurrency:
           type: integer
           example: 1

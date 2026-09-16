@@ -191,6 +191,14 @@ job:
 - The container reaches everything in the mittwald project network, such as
   databases and apps of that project. That is the point of the extension, and it means
   a job can reach them too.
+- With image builds turned on, the runners of a stack share a queue directory in the
+  project file system (mode `1777`, because the uid of the runner user depends on its base
+  image). A job can read the build context of a job running at the same time in another
+  runner of that stack, and it can change an image tarball before its runner pushes it.
+  The build itself runs as root in the builder container, which is replaced after every
+  build ([image-builds.md](image-builds.md)).
+- `docker login` in a job writes the registry credentials to `~/.docker/config.json` in
+  the runner, where the next job on the same container can read them.
 
 What follows for operating runners:
 

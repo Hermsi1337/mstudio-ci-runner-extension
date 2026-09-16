@@ -54,14 +54,27 @@ Protocol, one directory per job:
 |---|---|---|
 | `queue/<job>/context/` | runner | build context |
 | `queue/<job>/build-args`, `labels` | runner | one `KEY=VALUE` per line |
-| `queue/<job>/request` | runner | job parameters, written last, claims the job |
+| `queue/<job>/request` | runner | job parameters, written last, offers the job |
+| `queue/<job>/request.claimed` | builder | the same file renamed, which is how one builder takes a job |
 | `queue/<job>/log` | builder | kaniko output, streamed into the job log |
 | `queue/<job>/image.tar` | builder | the built image |
-| `queue/<job>/result` | builder | `exit=<code>`, written last |
+| `queue/<job>/exit-code`, `queue/<job>/result` | builder | exit code of kaniko, `result` written last and polled by the runner |
 
-The job directory belongs to the runner, so it can delete the whole job afterwards. The
-builder never receives registry credentials: it writes a tarball, the push happens in the
-runner with the credentials from `docker login`.
+The job directory belongs to the runner, which deletes it once a result is in. A job that
+was abandoned, because the runner was killed or the builder died while building, stays
+behind; the builder deletes such directories when they are older than `BUILD_MAX_AGE`.
+Nothing offers a claimed job a second time, a build that lost its builder has to be
+started again.
+
+The builder never receives registry credentials: it writes a tarball, the push happens in
+the runner with the credentials from `docker login`.
+
+Every runner of a stack writes into the same queue, and every job in those runners is root
+in its own container. A job can therefore read the build context of a job that runs at the
+same time in another runner of that stack, and it can change an image tarball before its
+runner pushes it. That is the same boundary as the rest of the runner
+([architecture.md](architecture.md#trust-model-of-a-runner)): one stack per trust
+boundary, and no untrusted pull requests.
 
 ## Setting it up
 
@@ -94,15 +107,18 @@ Environment of the builder:
 |---|---|---|
 | `BUILD_QUEUE_DIR` | shared directory | `/builds` |
 | `BUILD_TIMEOUT` | seconds a single build may take | `3600` |
+| `BUILD_HEARTBEAT` | seconds between "idle" lines in the log | `300` |
+| `BUILD_MAX_AGE` | hours after which a leftover job directory is deleted | `24` |
 
-Environment of the runner:
+Environment of the runner. The extension sets none of them, the defaults work; change one
+by editing the service in mStudio or by exporting it in the job:
 
 | Variable | Meaning | Default |
 |---|---|---|
 | `BUILD_QUEUE_DIR` | shared directory | `/builds` |
 | `MSTUDIO_IMAGE_STORE` | where built images are kept | `RUNNER_DATA_DIR/images` |
-| `MSTUDIO_INSECURE_REGISTRIES` | comma separated hosts that speak plain HTTP | |
-| `MSTUDIO_BUILD_TIMEOUT` | seconds the runner waits for the builder | `3600` |
+| `MSTUDIO_INSECURE_REGISTRIES` | comma separated hosts that speak plain HTTP, for a registry inside the project | |
+| `MSTUDIO_BUILD_TIMEOUT` | seconds the runner waits for a result, a little above `BUILD_TIMEOUT` so it never gives up on a build that still runs | `3900` |
 
 ## Using it
 
@@ -147,12 +163,14 @@ mstudio-build --push -t ghcr.io/me/app:1 --build-arg VERSION=1 .
 | `--metadata-file` | `containerimage.config.digest`, `containerimage.digest` (only after a push), `image.name` |
 | `docker images`, `docker inspect`, `docker tag`, `docker rmi` | served from the image store on the data volume |
 | `docker push`, `docker pull`, `docker manifest inspect` | crane |
-| `docker save`, `docker load` | copies the tarball in and out of the store |
+| `docker save`, `docker load` | copies the tarball in and out of the store. `docker load` needs `-i <file>`, it does not read from a pipe |
 | `docker login`, `docker logout` | `crane auth login`, writes the usual `~/.docker/config.json` |
 | `docker buildx create/inspect/ls`, `docker context inspect/ls` | answer with one fixed builder, so `setup-buildx-action` runs through |
 | `docker version`, `docker buildx version` | report a docker version and buildx `v0.12.1`, which the docker actions parse before they do anything |
 | `docker buildx` without a subcommand | prints its subcommands and exits 0, which is how `docker/build-push-action` probes for buildx |
-| `docker buildx use/stop/rm/prune` | does nothing and says so |
+| `docker buildx use/stop/rm/prune/du`, `docker context use/create/rm` | does nothing and says so |
+| `docker builder` | the same as `docker buildx` |
+| `docker info` | one line about the shim, enough for the actions that print it |
 | `docker buildx imagetools inspect` | `crane manifest` |
 
 ### Why buildx 0.12.1
@@ -200,6 +218,12 @@ is untested with the second.
   Parallel jobs queue up, each build waits for the container to come back.
 - **One architecture.** The builder builds for the architecture it runs on.
 - **No attestations, no SBOM.**
+- **Base images come from public registries.** The builder has no credentials and no
+  `--insecure-pull`, so `FROM` a private registry or a registry inside the project fails
+  while pushing to the same registry works.
+- **Images stay on the data volume.** Every build leaves its tarball in the image store.
+  `docker rmi` deletes the tarball with its last reference, `docker image prune` deletes
+  everything nothing points at any more.
 
 ## What the builder logs
 
@@ -224,8 +248,19 @@ the container log.
 `image builds are turned off for this stack` means `/builds/queue` does not exist: the
 builder service is missing from the stack or does not run.
 
-`the builder did not finish within 3600s` means the job was never claimed. Check the logs
-of the builder service in mStudio.
+`the builder did not finish within 3600s` means no result arrived. Either no builder
+claimed the job, or one claimed it (the `request` file is then called `request.claimed`)
+and died before it wrote the result. Nothing offers a claimed job a second time, so the
+job has to be started again. The log of the builder service in mStudio says which of the
+two happened.
+
+`/builds/queue is not writable by runner` means the builder never started: it is the
+service that creates the directory and makes it writable.
+
+`The stack already has a container called builder` means the stack you picked has a
+service of that name that this extension did not create. The extension does not touch it,
+because declaring over it would replace the image and removing it later would delete its
+volumes. Rename it or pick another stack.
 
 Between two builds the builder service shows `error` with the message
 `Container terminated with exit code 0`. That is the platform describing a container that

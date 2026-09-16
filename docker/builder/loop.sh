@@ -29,11 +29,14 @@
 #   BUILD_QUEUE_DIR  shared directory (default: /builds)
 #   BUILD_TIMEOUT    seconds a single build may take (default: 3600)
 #   BUILD_HEARTBEAT  seconds between "still waiting" lines (default: 300)
+#   BUILD_MAX_AGE    hours after which a leftover job directory is deleted
+#                    (default: 24)
 set -u
 
 queue_dir="${BUILD_QUEUE_DIR:-/builds}"
 build_timeout="${BUILD_TIMEOUT:-3600}"
 heartbeat="${BUILD_HEARTBEAT:-300}"
+max_age_hours="${BUILD_MAX_AGE:-24}"
 
 # The runner images run as a user whose uid depends on the base image, and the
 # API has no field to set the user of a container, so the queue is writable for
@@ -41,6 +44,21 @@ heartbeat="${BUILD_HEARTBEAT:-300}"
 # reach the directory at all.
 mkdir -p "${queue_dir}/queue"
 chmod 1777 "${queue_dir}/queue"
+
+# A runner that was killed mid job, and a builder that died while building,
+# both leave a directory behind that nobody comes back for. Contexts are whole
+# workspaces, so they would fill the project file system.
+collect_leftovers() {
+    local old
+    while IFS= read -r old; do
+        [ -n "${old}" ] || continue
+        echo "[builder] removing leftover job ${old##*/}, older than ${max_age_hours}h"
+        rm -rf "${old}"
+    done < <(find "${queue_dir}/queue" -mindepth 1 -maxdepth 1 -type d \
+        -mmin "+$((max_age_hours * 60))" 2>/dev/null)
+}
+
+collect_leftovers
 
 job=""
 job_id=""

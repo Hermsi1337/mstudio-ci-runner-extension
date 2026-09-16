@@ -185,7 +185,11 @@ command_load() {
         esac
     done
     [[ -n "${input}" ]] || fail "docker load needs -i <file>, reading an image from stdin is not supported"
-    mstudio-image-store put "${input}"
+    # The store takes the references out of the tarball, so the loaded image is
+    # addressable by the name it was saved under.
+    local image_id
+    image_id="$(mstudio-image-store put "${input}")"
+    echo "Loaded image: ${image_id}"
 }
 
 command_login() {
@@ -201,7 +205,10 @@ command_login() {
         esac
     done
     [[ -n "${user}" ]] || fail "docker login needs -u <user>"
-    crane auth login "${registry}" --username "${user}" --password "${password}"
+    [[ -n "${password}" ]] || fail "docker login needs a password, either with -p or on stdin"
+    # Through stdin, so the password never sits in the command line of a process
+    # that every other job in this container can read.
+    printf '%s' "${password}" | crane auth login "${registry}" --username "${user}" --password-stdin
 }
 
 command_image() {
@@ -211,6 +218,7 @@ command_image() {
         ls | list) mstudio-image-store list ;;
         inspect) mstudio-image-store config "${1:?usage: docker image inspect <image>}" ;;
         rm | remove) mstudio-image-store untag "${1:?usage: docker image rm <image>}" ;;
+        prune) mstudio-image-store prune ;;
         tag) mstudio-image-store tag "${1:?}" "${2:?}" ;;
         push) command_push "$@" ;;
         pull) command_pull "$@" ;;

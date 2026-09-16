@@ -1,6 +1,11 @@
 import type { MittwaldAPIV2Client } from "@mittwald/api-client";
-import { isBuildQueueMount, queueMountFor } from "@/build-queue.ts";
+import {
+    imageMatches,
+    isQueueMountOfStack,
+    queueMountFor,
+} from "@/build-queue.ts";
 import { getEnvironmentVariables } from "@/env";
+import { BuilderNameTakenError } from "@/global-errors.ts";
 import { createLogger } from "@/logger.ts";
 import { getProjectDirectory } from "./project.ts";
 import {
@@ -49,6 +54,18 @@ function hasBuilder(stack: StackResponse): boolean {
 }
 
 /**
+ * A stack the user picked may already have a container called `builder`. That
+ * one belongs to the user: declaring over it would replace their image and
+ * removing it later would delete their volumes.
+ */
+function isOurBuilder(service: ServiceResponse): boolean {
+    const image = (service.pendingState ?? service.deployedState)?.image;
+    const repository = getEnvironmentVariables().BUILDER_IMAGE.split(":")[0];
+
+    return image !== undefined && imageMatches(image.split(":")[0], repository);
+}
+
+/**
  * Declares the builder of a stack, and redeclares it when its image is behind
  * the one this release ships. A runner update would otherwise leave the builder
  * on the version it was created with. The service takes no arguments: it polls
@@ -64,6 +81,9 @@ export async function ensureBuilder(
     const stack = await getStack(client, stackId);
     const existing = stack ? findBuilder(stack) : undefined;
     if (existing) {
+        if (!isOurBuilder(existing)) {
+            throw new BuilderNameTakenError(stackId);
+        }
         const state = existing.pendingState ?? existing.deployedState;
         if (imageMatches(state?.image, image)) {
             log.debug("builder already declared", { stackId });
@@ -100,20 +120,6 @@ export async function ensureBuilder(
     log.info("builder declared", { stackId, image });
 }
 
-/**
- * mittwald reports the image of a service normalized ("library/alpine:3.20"
- * for "alpine:3.20"), so a plain comparison would redeclare on every call.
- */
-function imageMatches(
-    deployed: string | undefined,
-    configured: string,
-): boolean {
-    if (!deployed) {
-        return false;
-    }
-
-    return deployed === configured || configured.endsWith(`/${deployed}`);
-}
 
 /**
  * Removes the builder once the last runner of the stack stops building images.
@@ -130,6 +136,10 @@ export async function removeBuilderIfUnused(
     if (!stack || !hasBuilder(stack)) {
         return;
     }
+    const builder = findBuilder(stack);
+    if (!builder || !isOurBuilder(builder)) {
+        return;
+    }
     const stillBuilding = (stack.services ?? []).some((service) => {
         if (
             service.serviceName === BUILDER_SERVICE_NAME ||
@@ -139,7 +149,9 @@ export async function removeBuilderIfUnused(
         }
         const state = service.pendingState ?? service.deployedState;
 
-        return (state?.volumes ?? []).some(isBuildQueueMount);
+        return (state?.volumes ?? []).some((mount) =>
+            isQueueMountOfStack(mount, stackId),
+        );
     });
     if (stillBuilding) {
         log.debug("builder stays, another runner builds images", { stackId });

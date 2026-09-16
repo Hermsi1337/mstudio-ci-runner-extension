@@ -285,6 +285,8 @@ export const en = {
         "The stacks of the project could not be loaded (status {status}). Try again in a moment.",
     "error.upstream.projectGet":
         "The project could not be loaded (status {status}). Try again in a moment.",
+    "error.builder.nameTaken":
+        "The stack already has a container called builder that this extension did not create. Image builds need that name. Rename your container or pick another stack.",
     "error.containerHosting.unavailable":
         "This project does not support Container Hosting, so it cannot run CI runners. Move the extension to a project on a server that offers Container Hosting.",
     "error.upstream.cronjobCreate":

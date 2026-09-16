@@ -474,6 +474,21 @@ export async function createRunner(
                 error,
             });
         }
+        if (imageBuilds) {
+            try {
+                await removeBuilderIfUnused(
+                    client,
+                    extensionInstanceId,
+                    stackId,
+                    serviceName,
+                );
+            } catch (error) {
+                log.error("rollback: builder removal failed", {
+                    stackId,
+                    error,
+                });
+            }
+        }
         // Only tear down the stack this call created; a shared stack may hold
         // an in-flight sibling create whose row is not committed yet.
         if (createdStack) {
@@ -489,20 +504,10 @@ export async function createRunner(
     };
 
     let mountsWithQueue = mounts;
+    let queueMount = "";
     if (imageBuilds) {
-        const queueMount = await buildQueueMount(client, projectId, stackId);
+        queueMount = await buildQueueMount(client, projectId, stackId);
         mountsWithQueue = withBuildQueue(mounts, queueMount);
-        try {
-            await ensureBuilder(
-                client,
-                extensionInstanceId,
-                stackId,
-                queueMount,
-            );
-        } catch (error) {
-            await rollback();
-            throw error;
-        }
     }
 
     let service: ServiceResponse | undefined;
@@ -525,6 +530,17 @@ export async function createRunner(
                 volumes: prefixMounts(serviceName, mountsWithQueue),
             },
         );
+        // After the runner, never before: a sibling that turns image builds off
+        // at the same time looks at the declared services to decide whether the
+        // builder is still needed, and it has to see this runner's queue mount.
+        if (imageBuilds) {
+            await ensureBuilder(
+                client,
+                extensionInstanceId,
+                stackId,
+                queueMount,
+            );
+        }
         if (cache && service) {
             cronjobIds.push(
                 await createTrimCronjob(
@@ -789,19 +805,14 @@ export async function configureRunner(
             ? withCache(state.envs ?? {}, plainMounts)
             : withoutCache(state.envs ?? {}, plainMounts);
         let mountsWithQueue = withoutBuildQueue(mounts);
+        let queueMount = "";
         if (imageBuilds) {
-            const queueMount = await buildQueueMount(
+            queueMount = await buildQueueMount(
                 client,
                 row.projectId,
                 row.stackId,
             );
             mountsWithQueue = withBuildQueue(mountsWithQueue, queueMount);
-            await ensureBuilder(
-                client,
-                extensionInstanceId,
-                row.stackId,
-                queueMount,
-            );
         }
         updatedService =
             (await declareService(
@@ -828,6 +839,16 @@ export async function configureRunner(
                     entrypoint: state.entrypoint,
                 },
             )) ?? service;
+        // The builder comes after the runner, so a sibling that turns image
+        // builds off at the same moment sees this runner's queue mount.
+        if (imageBuilds) {
+            await ensureBuilder(
+                client,
+                extensionInstanceId,
+                row.stackId,
+                queueMount,
+            );
+        }
         await recreateIfRequired(
             client,
             extensionInstanceId,

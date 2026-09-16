@@ -244,3 +244,12 @@ under the container `extension`.
 3. Push a tag. Existing runners show an update in the UI once the new extension release
    is deployed; *Update* moves them to the new image. Running GitHub runners also update
    themselves unless `DISABLE_AUTO_UPDATE` is set.
+
+`crane` in the runner images and `kaniko` in the builder image follow the same path.
+`crane.version` and its two checksums live in `docker/runner/versions.json`
+([releases](https://github.com/google/go-containerregistry/releases), file
+`checksums.txt`), `kaniko.version` and the Go version that compiles it in
+`docker/builder/versions.json`
+([releases](https://github.com/chainguard-forks/kaniko/releases)). Both are read by the
+workflow, by `pnpm run runner:build` and by the integration tests; a bump needs a tag
+like any other change.

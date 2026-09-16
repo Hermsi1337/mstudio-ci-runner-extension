@@ -29,7 +29,10 @@ queue_dir="${BUILD_QUEUE_DIR:-/builds}"
 context="."
 dockerfile="Dockerfile"
 target=""
-timeout_seconds="${MSTUDIO_BUILD_TIMEOUT:-3600}"
+# The builder stops a build after BUILD_TIMEOUT (3600s by default) and writes a
+# result, so the runner waits a little longer than that and never gives up on a
+# build that is still running.
+timeout_seconds="${MSTUDIO_BUILD_TIMEOUT:-3900}"
 push=false
 quiet=false
 iidfile=""
@@ -88,13 +91,20 @@ if [[ "${push}" == true && ${#tags[@]} -eq 0 ]]; then
     fail "--push needs at least one --tag"
 fi
 
-job_id="build-$(date +%s)-$$"
-job="${queue_dir}/queue/${job_id}"
+# mktemp makes the directory, so two runners of the same stack cannot pick the
+# same name in the same second.
+job="$(mktemp -d "${queue_dir}/queue/build-$(date +%s)-XXXXXX")"
+job_id="${job##*/}"
 result="${job}/result"
 mkdir -p "${job}/context"
 
+# The builder reads the job directory while it works, so it is only removed
+# once a result is in. A job left behind by a timeout or a killed runner is
+# collected by the builder, see docs/image-builds.md.
 cleanup() {
-    rm -rf "${job}" 2>/dev/null || true
+    if [[ -f "${result}" || ! -f "${job}/request" ]]; then
+        rm -rf "${job}" 2>/dev/null || true
+    fi
 }
 trap cleanup EXIT
 
@@ -124,7 +134,7 @@ while [[ ! -f "${result}" ]]; do
     fi
     if ((SECONDS > deadline)); then
         [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null
-        fail "the builder did not finish within ${timeout_seconds}s"
+        fail "no result after ${timeout_seconds}s. The job stays in ${job} for the builder, check the log of the builder service in mStudio."
     fi
     sleep 1
 done

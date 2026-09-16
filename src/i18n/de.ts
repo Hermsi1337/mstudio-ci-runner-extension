@@ -293,6 +293,8 @@ export const de: Messages = {
         "Die Stacks des Projekts konnten nicht geladen werden (Status {status}). Versuch es gleich noch mal.",
     "error.upstream.projectGet":
         "Das Projekt konnte nicht geladen werden (Status {status}). Versuch es gleich noch mal.",
+    "error.builder.nameTaken":
+        "Im Stack gibt es schon einen Container namens builder, der nicht von dieser Extension stammt. Image-Builds brauchen diesen Namen. Benenne deinen Container um oder nimm einen anderen Stack.",
     "error.containerHosting.unavailable":
         "Dieses Projekt unterstützt kein Container Hosting und kann deshalb keine CI-Runner betreiben. Installier die Extension in einem Projekt auf einem Server mit Container Hosting.",
     "error.upstream.cronjobCreate":

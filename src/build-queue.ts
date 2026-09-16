@@ -32,3 +32,27 @@ export function withBuildQueue(mounts: string[], queueMount: string): string[] {
 export function withoutBuildQueue(mounts: string[]): string[] {
     return mounts.filter((mount) => !isBuildQueueMount(mount));
 }
+
+/**
+ * The queue of this stack, not any directory someone mounted at the same place.
+ * Used to decide whether a service still builds images.
+ */
+export function isQueueMountOfStack(mount: string, stackId: string): boolean {
+    return mount.endsWith(`/${QUEUE_DIRECTORY}/${stackId}:${QUEUE_MOUNT_PATH}`);
+}
+
+/**
+ * mittwald reports the image of a service normalized ("library/alpine:3.20" for
+ * "alpine:3.20"), so a plain comparison would redeclare a service that already
+ * runs what it should.
+ */
+export function imageMatches(
+    deployed: string | undefined,
+    configured: string,
+): boolean {
+    if (!deployed) {
+        return false;
+    }
+
+    return deployed === configured || deployed.endsWith(`/${configured}`);
+}
