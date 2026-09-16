@@ -1,0 +1,32 @@
+name: Deploy dev
+
+# Every release lands in the development installation right away. Production
+# is a manual step (deploy-production.yml), so a tag can be tried in mStudio
+# before users get it.
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image version to deploy, e.g. 0.1.0"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ inputs.version && format('v{0}', inputs.version) || github.event.workflow_run.head_branch }}
+      environment: mstudio-dev
+      name_suffix: " (DEV)"
+      allow_prerelease: true
+    secrets: inherit

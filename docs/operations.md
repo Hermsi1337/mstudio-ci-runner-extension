@@ -16,6 +16,22 @@ After the release, `release.yml` commits the tag version to `package.json` on `m
 (`chore: bump package.json to X.Y.Z`), so the fallback for local development stays
 current on the next pull.
 
+### Pre-releases
+
+A tag with a suffix (`v0.5.0-beta.1`) may be cut from any branch, a pull request
+branch included, and is the way to try a change inside mStudio before it is merged:
+
+```bash
+git tag v0.5.0-beta.1
+git push origin v0.5.0-beta.1
+```
+
+It builds the same four images, creates a GitHub release marked as pre-release and is
+deployed into the development installation like any other tag. Three things it does not
+do: no `latest` tag on the images, no `1.2` alias, and no version bump on `main`.
+`deploy.yml` refuses a version containing `-` unless the caller allows it, and only
+`deploy-dev.yml` does, so a pre-release never reaches users.
+
 The tag triggers `release.yml`, which runs `extension-image.yml` and
 `runner-image.yml` as reusable workflows and creates the GitHub release once both
 succeeded. Both image workflows use `docker/metadata-action` and tag:
@@ -56,7 +72,9 @@ Package visibility is independent of the repository and can only be changed on t
 | `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
 | `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers, multi-arch |
-| `deploy.yml` | After `release.yml` on a tag, manual | Stack update on mittwald Container Hosting |
+| `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
+| `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
+| `deploy-production.yml` | Manual | Deploys into the production installation |
 | `release.yml` | Tags `v*` | Runs both image workflows as jobs, creates the GitHub release via `softprops/action-gh-release` (generated notes plus an image table with pull commands and the runner software versions), then commits the tag version to `package.json` on `main` |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
@@ -105,6 +123,11 @@ Ubuntu LTS of the runner images, `nitro` (pinned to the last alpha whose build o
 
 ## Deployment to mittwald Container Hosting
 
+There are two installations of the same stack: development and production. Both use
+`deploy/mstudio/stack.yaml` and differ only in the GitHub environment they read their
+secrets from (`mstudio-dev` and `mstudio`), so a release can be tried in mStudio before
+users get it.
+
 The extension runs on Container Hosting itself. The stack is declared in
 `deploy/mstudio/stack.yaml` and applied by `deploy.yml` through
 [mittwald/deploy-container-action](https://github.com/mittwald/deploy-container-action).
@@ -119,9 +142,20 @@ environment at its own project.
 
 ### Trigger
 
-- Automatically after `release.yml` succeeded for a `v*` tag, so the images and the
-  GitHub release exist before the deployment starts.
-- Manually via *Actions → Deploy → Run workflow* with a version such as `0.1.0`.
+| Workflow | Trigger | Installation |
+|---|---|---|
+| `deploy-dev.yml` | Automatically after `release.yml` succeeded for a `v*` tag, so the images and the GitHub release exist before the deployment starts. Manually with a version such as `0.1.0`. | `mstudio-dev` |
+| `deploy-production.yml` | Manually only, *Actions → Deploy production → Run workflow* with a version such as `0.1.0`. A version containing `-` is rejected. | `mstudio` |
+
+Both call `deploy.yml`, which holds the steps and takes the tag, the environment, the
+name suffix of the marketplace entry and `allow_prerelease` as inputs. Only the
+development installation sets `allow_prerelease`, so a tag with a `-` fails in the first
+step of every other deployment, whatever triggered it. The development installation also
+gets `EXTENSION_NAME_SUFFIX=" (DEV)"`, so both entries are distinguishable in mStudio.
+
+`workflow_run` only fires for workflows on the default branch, so `deploy-dev.yml` reacts
+to a release only once it is merged into `main`. A tag cut from a branch before that is
+built and released, but nothing deploys it.
 
 `EXTENSION_VERSION` selects the extension image and, inside the extension, the runner
 images, so a deployment pins all three to the same release. `postgres` is excluded from the
@@ -137,7 +171,8 @@ mittwald.
 
 ### One-time setup
 
-1. GitHub environment `mstudio` with these secrets:
+1. GitHub environment, `mstudio` for production and `mstudio-dev` for development,
+   each with these secrets and its own project, stack and extension registration:
 
    | Name | Kind | Source |
    |---|---|---|
@@ -152,7 +187,8 @@ mittwald.
    `mstudio-ci-runner-extension` to public, or create a registry in the project
    (*Container → Registries*, host `ghcr.io`, GitHub user plus a PAT with `read:packages`)
    before the first deployment. The runner images must be public in any case.
-3. First deployment: run *Deploy* manually with the version to install.
+3. First deployment: run *Deploy dev* or *Deploy production* manually with the version
+   to install.
 4. Ingress: in mStudio create a domain or a mittwald subdomain for the project and route
    it to the container `extension`, port 3000. mittwald terminates TLS.
 5. Enter that URL in the extension registration: webhooks

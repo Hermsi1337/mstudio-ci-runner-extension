@@ -1,38 +1,61 @@
 name: Deploy
 
+# Deploys one tag into one mStudio installation. Called by deploy-dev.yml
+# (automatic after a release) and deploy-production.yml (manual). Everything
+# that differs between the two lives in the GitHub environment: extension id
+# and secret, stack id, API token, database password.
+
 on:
-  workflow_run:
-    workflows: ["Release"]
-    types: [completed]
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      version:
-        description: "Image version to deploy, e.g. 0.1.0"
+      ref:
+        description: "Tag to deploy, e.g. v0.1.0"
         required: true
+        type: string
+      environment:
+        description: "GitHub environment holding the secrets of the installation"
+        required: true
+        type: string
+      name_suffix:
+        description: "Appended to the extension name in the marketplace entry"
+        required: false
+        default: ""
+        type: string
+      allow_prerelease:
+        description: "Whether this installation accepts tags like v1.2.3-beta.1"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
-concurrency:
-  group: deploy-mstudio
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-latest
-    environment: mstudio
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
     steps:
+      # The check sits here and not in the calling workflow, so it holds
+      # whatever triggers the deployment.
+      - name: Refuse a pre-release in an installation that does not take one
+        if: ${{ !inputs.allow_prerelease }}
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          if [[ "${REF}" == *-* ]]; then
+            echo "${REF} is a pre-release and ${{ inputs.environment }} does not take pre-releases" >&2
+            exit 1
+          fi
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.version && format('v{0}', inputs.version) || github.event.workflow_run.head_branch }}
+          ref: ${{ inputs.ref }}
       - name: Resolve image version
         id: version
         env:
-          REF: ${{ inputs.version || github.event.workflow_run.head_branch }}
+          REF: ${{ inputs.ref }}
         run: echo "version=${REF#v}" >> "$GITHUB_OUTPUT"
       - uses: mittwald/deploy-container-action@bc2fb8ccf6340a04da8a148f99c6eacc1a7b69fa # v1
         env:
@@ -54,11 +77,14 @@ jobs:
   metadata:
     needs: deploy
     runs-on: [self-hosted, mittwald]
-    environment: mstudio
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-metadata-${{ inputs.environment }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.version && format('v{0}', inputs.version) || github.event.workflow_run.head_branch }}
+          ref: ${{ inputs.ref }}
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@v7
         with:
@@ -70,3 +96,4 @@ jobs:
           MITTWALD_API_TOKEN: ${{ secrets.MITTWALD_API_TOKEN }}
           MITTWALD_CONTRIBUTOR_ID: ${{ secrets.MITTWALD_CONTRIBUTOR_ID }}
           MITTWALD_EXTENSION_ID: ${{ secrets.EXTENSION_ID }}
+          EXTENSION_NAME_SUFFIX: ${{ inputs.name_suffix }}

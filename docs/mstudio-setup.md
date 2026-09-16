@@ -37,6 +37,17 @@ After creation:
    ([operations.md](operations.md#deployment-to-mittwald-container-hosting)) or locally
    into `.env` ([development.md](development.md)).
 
+## Second extension for development
+
+Parts of the extension only show their real behaviour inside mStudio, so there is a
+second registration that every release is deployed into before production
+([operations.md](operations.md#deployment-to-mittwald-container-hosting)). It is created
+exactly like the one above, with its own project, its own stack, its own domain and its
+own secret, and its ids go into the GitHub environment `mstudio-dev`. Both entries sit in
+the same organization, so the development one carries the suffix `(DEV)` in its name,
+which `deploy-dev.yml` passes to `extension:sync` as `EXTENSION_NAME_SUFFIX`. Install it
+in a project of your own, never publish it.
+
 ## Tokens
 
 ### GitHub

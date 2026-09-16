@@ -1,0 +1,24 @@
+name: Deploy production
+
+# Manual on purpose: the version has to run in the development installation
+# first (deploy-dev.yml), this workflow puts it in front of users. Pre-release
+# versions stay in development: deploy.yml refuses them unless the caller sets
+# allow_prerelease.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image version to deploy, e.g. 0.1.0"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: v${{ inputs.version }}
+      environment: mstudio
+    secrets: inherit

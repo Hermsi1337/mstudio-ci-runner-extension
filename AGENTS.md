@@ -38,8 +38,9 @@ the [README](README.md), details in [docs/](docs/README.md).
    configuration, scripts, environment variables, scopes, flows or structure updates
    the affected docs in the same commit. Stale docs are bugs. See below.
 9. **Conventional Commits.** `feat:`, `fix:`, `docs:`, `ci:`, `chore:`, `refactor:`, `test:`.
-10. **Images are built from tags only.** Never from pushes to `main`
-    ([docs/operations.md](docs/operations.md)).
+10. **Images are built from tags only.** Never from pushes to `main`. A pre-release tag
+    (`v1.2.3-beta.1`) may come from any branch, goes into the development installation
+    only and never bumps `main` ([docs/operations.md](docs/operations.md)).
 11. **Writing style.** All text, in every language, follows the rules below.
 12. **UI follows the style guide.** Every screen, modal, list and text in mStudio
     follows [docs/styleguide.md](docs/styleguide.md): Flow components only, one
@@ -113,7 +114,7 @@ docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build 
 docker/runner/common/        scripts shared by all runner images (trim-cache.sh)
 docker/runner/probes/        probe suite run inside the built images by the integration tests
 docker/runner/versions.json  runner software version per provider, single source for workflow, build and UI
-deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml
+deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml (dev and production)
 deploy/mstudio/extension.yaml  marketplace entry and fragment properties, applied by deploy.yml
 docs/                        documentation, one topic per file
 src/assets/                  logo (SVG inlined into the UI, PNG for the mStudio registration), fragment icon for the mStudio menu and README banner
