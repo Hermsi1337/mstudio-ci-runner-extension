@@ -150,6 +150,7 @@ mstudio-build --push -t ghcr.io/me/app:1 --build-arg VERSION=1 .
 | `docker save`, `docker load` | copies the tarball in and out of the store |
 | `docker login`, `docker logout` | `crane auth login`, writes the usual `~/.docker/config.json` |
 | `docker buildx create/inspect/ls`, `docker context inspect/ls` | answer with one fixed builder, so `setup-buildx-action` runs through |
+| `docker version`, `docker buildx version` | report a plausible docker and buildx version, which the docker actions parse before they do anything |
 | `docker buildx use/stop/rm/prune` | does nothing and says so |
 | `docker buildx imagetools inspect` | `crane manifest` |
 

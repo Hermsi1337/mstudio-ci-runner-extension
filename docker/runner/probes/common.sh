@@ -27,6 +27,7 @@ for tool in crane docker mstudio-build mstudio-image-store mstudio-crane; do
 done
 
 expect_output "docker is the shim" "docker shim" docker version
+expect_output "buildx version parses like the real one" "github.com/docker/buildx v" docker buildx version
 expect_output "docker context inspect answers with the builder" "mstudio-builder" \
     docker context inspect --format "{{.Name}}"
 expect_output "buildx create returns the builder name" "probe-builder" \
