@@ -60,21 +60,34 @@ there. No PAT is involved.
 
 The PAT mode is disabled, see [providers.md](providers.md#existing-providers).
 
-## Icon and title of the frontend fragment
+## Marketplace entry and frontend fragment
 
-Every anchor needs an `icon` (inline SVG) and a `title` (JSON with the language as key,
-currently only `de`). Both live in `frontendFragments.<anchor>.additionalProperties` and
-the extension form in mStudio does not offer them, so they are set through the API:
+Name, tags, support address, subtitle, descriptions, logo, fragment icon and fragment
+title live in `deploy/mstudio/extension.yaml`. The extension form in mStudio offers some
+of them and the fragment properties not at all, so the repository is the source and the
+deployment writes them back ([operations.md](operations.md#deployment-to-mittwald-container-hosting)).
+
+Manually:
 
 ```bash
 MITTWALD_API_TOKEN=... MITTWALD_CONTRIBUTOR_ID=... MITTWALD_EXTENSION_ID=... \
-  pnpm run fragment:icon
+  pnpm run extension:sync
 ```
 
-The script reads the fragments of the extension, keeps their URLs and writes
-`src/assets/fragment-icon.svg` plus the title into each one
-(`PATCH /v2/contributors/{contributorId}/extensions/{extensionId}`). The icon is
-monochrome and uses `currentColor`, so it follows the menu color in both themes.
+What the script does not touch: scopes and webhook URLs. A new scope makes every
+installation consent again, and the webhook URL belongs to the deployment, not to the
+repository.
+
+Notes on the fields:
+
+- `description` exists once in the API without a language. The script sends the German
+  text, the English one stays in the file for the marketplace form.
+- `subTitle` is limited to 40 characters per language.
+- The fragment `title` currently supports German only.
+- The fragment URL stays as registered in mStudio; the script only writes icon and title
+  into every fragment it finds.
+- The icon is monochrome and uses `currentColor`, so it follows the menu color in both
+  themes.
 
 The list of anchors lives in mStudio under *Development* at the extension, not in the
 documentation ([anchor reference](https://developer.mittwald.de/docs/v2/contribution/reference/frontend-fragment-anchors/)).

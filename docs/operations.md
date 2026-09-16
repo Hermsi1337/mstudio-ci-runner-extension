@@ -125,11 +125,13 @@ environment at its own project.
 images, so a deployment pins all three to the same release. `postgres` is excluded from the
 restart (`skip_recreation`); the extension runs its migrations on start.
 
-After the stack the job `fragment` runs `pnpm run fragment:icon` and writes icon and
-title of the frontend fragments again
-([mstudio-setup.md](mstudio-setup.md#icon-and-title-of-the-frontend-fragment)). They are
-not part of the extension form in mStudio, so the repository is their source. The job
-keeps the URL of every fragment, so a fragment added in mStudio survives.
+After the stack the job `metadata` runs `pnpm run extension:sync` and writes the
+marketplace texts, the logo and the fragment properties from
+`deploy/mstudio/extension.yaml` into mStudio
+([mstudio-setup.md](mstudio-setup.md#marketplace-entry-and-frontend-fragment)). Changes
+made in mStudio are overwritten on the next deployment; scopes and webhook URLs are
+untouched. For a published extension a changed text can trigger another review by
+mittwald.
 
 ### One-time setup
 
