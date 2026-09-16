@@ -85,7 +85,9 @@ const result = await client.marketplace.extensionPatchExtension({
     contributorId,
     extensionId,
     data: {
-        name: config.name,
+        // EXTENSION_NAME_SUFFIX separates the development installation from
+        // the published one; both sit in the same mStudio account.
+        name: `${config.name}${process.env.EXTENSION_NAME_SUFFIX ?? ""}`,
         tags: config.tags,
         support: config.support,
         subTitle: config.subTitle,

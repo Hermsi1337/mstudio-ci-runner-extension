@@ -58,7 +58,9 @@ Package visibility is independent of the repository and can only be changed on t
 | `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
 | `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)), multi-arch |
-| `deploy.yml` | After `release.yml` on a tag, manual | Stack update on mittwald Container Hosting |
+| `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
+| `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
+| `deploy-production.yml` | Manual | Deploys into the production installation |
 | `release.yml` | Tags `v*` | Runs both image workflows as jobs, creates the GitHub release via `softprops/action-gh-release` (generated notes plus an image table with pull commands and the runner software versions), then commits the tag version to `package.json` on `main` |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
@@ -107,6 +109,11 @@ Ubuntu LTS of the runner images, `nitro` (pinned to the last alpha whose build o
 
 ## Deployment to mittwald Container Hosting
 
+There are two installations of the same stack: development and production. Both use
+`deploy/mstudio/stack.yaml` and differ only in the GitHub environment they read their
+secrets from (`mstudio-dev` and `mstudio`), so a release can be tried in mStudio before
+users get it.
+
 The extension runs on Container Hosting itself. The stack is declared in
 `deploy/mstudio/stack.yaml` and applied by `deploy.yml` through
 [mittwald/deploy-container-action](https://github.com/mittwald/deploy-container-action).
@@ -121,9 +128,14 @@ environment at its own project.
 
 ### Trigger
 
-- Automatically after `release.yml` succeeded for a `v*` tag, so the images and the
-  GitHub release exist before the deployment starts.
-- Manually via *Actions → Deploy → Run workflow* with a version such as `0.1.0`.
+| Workflow | Trigger | Installation |
+|---|---|---|
+| `deploy-dev.yml` | Automatically after `release.yml` succeeded for a `v*` tag, so the images and the GitHub release exist before the deployment starts. Manually with a version such as `0.1.0`. | `mstudio-dev` |
+| `deploy-production.yml` | Manually only, *Actions → Deploy production → Run workflow* with a version such as `0.1.0`. | `mstudio` |
+
+Both call `deploy.yml`, which holds the steps and takes the tag, the environment and the
+name suffix of the marketplace entry as inputs. The development installation gets
+`EXTENSION_NAME_SUFFIX=" (DEV)"`, so both entries are distinguishable in mStudio.
 
 `EXTENSION_VERSION` selects the extension image and, inside the extension, the runner
 images and the builder image, so a deployment pins all four to the same release. `postgres` is excluded from the
@@ -139,7 +151,8 @@ mittwald.
 
 ### One-time setup
 
-1. GitHub environment `mstudio` with these secrets:
+1. GitHub environment, `mstudio` for production and `mstudio-dev` for development,
+   each with these secrets and its own project, stack and extension registration:
 
    | Name | Kind | Source |
    |---|---|---|
@@ -154,7 +167,8 @@ mittwald.
    `mstudio-ci-runner-extension` to public, or create a registry in the project
    (*Container → Registries*, host `ghcr.io`, GitHub user plus a PAT with `read:packages`)
    before the first deployment. The runner images must be public in any case.
-3. First deployment: run *Deploy* manually with the version to install.
+3. First deployment: run *Deploy dev* or *Deploy production* manually with the version
+   to install.
 4. Ingress: in mStudio create a domain or a mittwald subdomain for the project and route
    it to the container `extension`, port 3000. mittwald terminates TLS.
 5. Enter that URL in the extension registration: webhooks
