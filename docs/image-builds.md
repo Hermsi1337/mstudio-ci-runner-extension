@@ -150,9 +150,19 @@ mstudio-build --push -t ghcr.io/me/app:1 --build-arg VERSION=1 .
 | `docker save`, `docker load` | copies the tarball in and out of the store |
 | `docker login`, `docker logout` | `crane auth login`, writes the usual `~/.docker/config.json` |
 | `docker buildx create/inspect/ls`, `docker context inspect/ls` | answer with one fixed builder, so `setup-buildx-action` runs through |
-| `docker version`, `docker buildx version` | report a plausible docker and buildx version, which the docker actions parse before they do anything |
+| `docker version`, `docker buildx version` | report a docker version and buildx `v0.12.1`, which the docker actions parse before they do anything |
+| `docker buildx` without a subcommand | prints its subcommands and exits 0, which is how `docker/build-push-action` probes for buildx |
 | `docker buildx use/stop/rm/prune` | does nothing and says so |
 | `docker buildx imagetools inspect` | `crane manifest` |
+
+### Why buildx 0.12.1
+
+The reported buildx version decides how much the docker actions do on their own. From
+0.13 on, `docker/build-push-action` exports a build record with `docker buildx history`
+after every build and waits for the answer; there are no build records here, so the post
+step of the action hung until the job was killed. Reporting 0.12.1 keeps those actions on
+the plain build path. `docker buildx history` is answered quietly anyway, in case
+something asks.
 
 ## What it warns about
 
@@ -191,6 +201,24 @@ is untested with the second.
 - **One architecture.** The builder builds for the architecture it runs on.
 - **No attestations, no SBOM.**
 
+## What the builder logs
+
+The builder writes into the log of its service in mStudio, which is the place to look
+when a build behaves oddly:
+
+```
+[builder] ready, watching /builds/queue, one build per container, timeout 3600s
+[builder] idle, queue empty for 300s
+[builder] claimed build-1789578335-178
+[builder] build-1789578335-178: destination=ghcr.io/me/app:1 dockerfile=Dockerfile
+[builder] build-1789578335-178: context 1.2M, 34 files
+[builder] build-1789578335-178: running kaniko, output goes to the job log and to the runner
+[builder] build-1789578335-178: exit=0 after 7s, replacing this container
+```
+
+The kaniko output itself goes to both places: into the job log of the pipeline and into
+the container log.
+
 ## Troubleshooting
 
 `image builds are turned off for this stack` means `/builds/queue` does not exist: the
@@ -206,3 +234,7 @@ has ended; the restart follows within about a second.
 A container that exits again and again gets a restart backoff (1 s, 13 s, 28 s, 50 s).
 Only a builder that crashes on start hits this, because a builder that waits for jobs
 runs long enough to reset it.
+
+A build that never starts although the runner sent it: compare the queue directory of the
+runner with the one of the builder. Both mount `ci-builds/<stack id>`, so a runner that
+was created before the stack got its own directory would write somewhere else.
