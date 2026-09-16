@@ -1,5 +1,5 @@
 import { assertStatus, type MittwaldAPIV2Client } from "@mittwald/api-client";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import * as uuid from "uuid";
 import { getDatabase } from "@/db";
 import {
@@ -941,12 +941,16 @@ async function releaseProviderRegistration(
  * Stacks the extension created for a registration target are deleted whole.
  * A stack the user selected keeps running with its own services, so only the
  * runner service is removed from it.
+ *
+ * Both lists are read before the default webhook chain removes the instance,
+ * because the rows go with it through the foreign key cascade.
  */
 export async function deleteAllRunnersOfInstance(
     client: MittwaldAPIV2Client,
     rows: RunnerRow[],
+    ownedStackIds: string[],
 ): Promise<void> {
-    const ownedStackIds = await findOwnedStackIds(rows);
+    const owned = new Set(ownedStackIds);
     for (const row of rows) {
         await deleteCronjobs(client, parseCronjobIds(row));
         let service: ServiceResponse | null | undefined;
@@ -959,7 +963,7 @@ export async function deleteAllRunnersOfInstance(
             });
         }
         await releaseProviderRegistration(row, service);
-        if (ownedStackIds.has(row.stackId)) {
+        if (owned.has(row.stackId)) {
             continue;
         }
         try {
@@ -978,7 +982,7 @@ export async function deleteAllRunnersOfInstance(
             });
         }
     }
-    for (const stackId of ownedStackIds) {
+    for (const stackId of owned) {
         try {
             await client.container.deleteStack({ stackId });
         } catch (error) {
@@ -994,23 +998,13 @@ export async function deleteAllRunnersOfInstance(
  * Ownership is per extension instance: another installation may have created
  * the stack and only selected it here, and that stack is not ours to delete.
  */
-async function findOwnedStackIds(rows: RunnerRow[]): Promise<Set<string>> {
-    const stackIds = [...new Set(rows.map((row) => row.stackId))];
-    const instanceIds = [
-        ...new Set(rows.map((row) => row.extensionInstanceId)),
-    ];
-    if (stackIds.length === 0) {
-        return new Set();
-    }
+export async function findOwnedStackIds(
+    extensionInstanceId: string,
+): Promise<string[]> {
     const owned = await getDatabase()
         .select({ stackId: runnerStacks.stackId })
         .from(runnerStacks)
-        .where(
-            and(
-                inArray(runnerStacks.stackId, stackIds),
-                inArray(runnerStacks.extensionInstanceId, instanceIds),
-            ),
-        );
+        .where(eq(runnerStacks.extensionInstanceId, extensionInstanceId));
 
-    return new Set(owned.map((row) => row.stackId));
+    return owned.map((row) => row.stackId);
 }

@@ -247,7 +247,10 @@ export type Runner = {
 export type RunnerList = Array<Runner>;
 
 /**
- * Container stack of the project, offered as a target for a new runner.
+ * Container stack of the project that a new runner can be declared in. Stacks the
+ * extension created for a registration target are left out: they go with their last
+ * runner, while a selected stack outlives its runners.
+ *
  */
 export type ProjectStack = {
     id: string;
@@ -259,10 +262,6 @@ export type ProjectStack = {
      * Services the stack currently holds.
      */
     serviceCount: number;
-    /**
-     * True when the extension created the stack for a registration target.
-     */
-    managedByExtension: boolean;
 };
 
 export type ProjectStackList = Array<ProjectStack>;

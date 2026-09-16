@@ -62,10 +62,12 @@ Two Flow rules shape the components:
    duplicate stack and uses the winner's. If persisting the row fails, the extension
    deletes the stack it just created, so no orphaned stack stays behind. With a
    `stackId` the runner joins that stack, which the extension only reads: the stack
-   must belong to the project (otherwise `error.notFound.stack`) and gets no
-   `runner_stacks` row, so no delete path removes it. The service name is then
-   checked against the services the stack reports too, so a runner never overwrites a
-   service someone else declared. A create for an installation without an
+   must belong to the project and must not be one the extension manages itself
+   (otherwise `error.notFound.stack`), and it gets no `runner_stacks` row, so no
+   delete path removes it. `listProjectStacks` leaves managed stacks out of the
+   picker for the same reason: they go with their last runner. The service name is
+   then checked against the services the stack reports too, so a runner never
+   overwrites a service someone else declared. A create for an installation without an
    `extension_instance` row (webhook data missing) fails before anything is created.
 6. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
    requested ([providers.md](providers.md#package-manager-cache)) and declares the
@@ -124,7 +126,9 @@ Tables in `src/db/schema.ts`:
 - `runner_stacks`: one row per stack the extension created, unique per
   (extension instance, target URL). The row is both the lock against parallel creates
   and the record that the extension owns the stack. A stack the user picked in the
-  create form has no row and is never deleted by the extension.
+  create form has no row and is never deleted by the extension. The uninstall webhook
+  reads the owned stack ids before the default chain removes the instance, because the
+  rows go with it through the foreign key cascade.
 
 One stack per registration target, one service per runner, unless the user picked a
 stack when creating the runner. Deleting removes the service (`updateStack` with
@@ -138,10 +142,12 @@ every runner in it; the list shows them as `missing`.
 `POST /api/webhooks/mittwald` receives all four events. mitthooks verifies the
 signature and maintains `extension_instance`. A handler in front of the chain
 (`cleanupRunnersOnRemoval`) reacts to `InstanceRemovedFromContext`: it reads the
-runners of the instance, lets the default chain run and then, with a token obtained
-from the instance secret (`extensionAuthenticateInstance`), deletes the stacks listed
-in `runner_stacks`, removes the runner service from every other stack and releases the
-registrations via `provider.release`. This happens detached because mStudio expects an
+runners of the instance and the stack ids it owns, lets the default chain run and
+then, with a token obtained from the instance secret (`extensionAuthenticateInstance`),
+deletes the owned stacks, removes the runner service from every other stack and
+releases the registrations via `provider.release`. Both lists are read before the
+chain runs: it deletes the instance row, and runners and `runner_stacks` go with it
+through the cascade. This happens detached because mStudio expects an
 answer within 6 seconds.
 
 ## Security

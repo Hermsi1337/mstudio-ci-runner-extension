@@ -314,8 +314,11 @@ components:
         $ref: '#/components/schemas/Runner'
     ProjectStack:
       type: object
-      required: [id, description, serviceCount, managedByExtension]
-      description: Container stack of the project, offered as a target for a new runner.
+      required: [id, description, serviceCount]
+      description: |
+        Container stack of the project that a new runner can be declared in. Stacks the
+        extension created for a registration target are left out: they go with their last
+        runner, while a selected stack outlives its runners.
       properties:
         id:
           type: string
@@ -329,10 +332,6 @@ components:
           type: integer
           description: Services the stack currently holds.
           example: 3
-        managedByExtension:
-          type: boolean
-          description: True when the extension created the stack for a registration target.
-          example: false
     ProjectStackList:
       type: array
       items:

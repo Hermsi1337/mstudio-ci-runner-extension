@@ -450,7 +450,7 @@ describe("selected stack", () => {
         ).resolves.toBe("runner-build-2");
     });
 
-    it("keeps a stack that another installation owns", async () => {
+    it("rejects a stack that the extension manages", async () => {
         const selected = await readSelectableStack();
         const otherInstanceId = "66666666-6666-6666-6666-666666666666";
         await db.insert(schema.extensionInstances).values({
@@ -468,20 +468,23 @@ describe("selected stack", () => {
             targetUrl: "https://github.com/acme/owned-elsewhere",
         });
 
-        const created = await runner.createRunner(
+        await expect(
+            runner.createRunner(
+                client,
+                extensionInstanceId,
+                selected.projectId,
+                userId,
+                { ...selectable, name: "Guest", stackId: selected.id },
+            ),
+        ).rejects.toMatchObject({ messageKey: "error.notFound.stack" });
+
+        const stack = await import("@/domain/stack.ts");
+        const listed = await stack.listProjectStacks(
             client,
             extensionInstanceId,
             selected.projectId,
-            userId,
-            { ...selectable, name: "Guest", stackId: selected.id },
         );
-        await runner.deleteRunner(client, extensionInstanceId, created.id);
-
-        const [stillOwned] = await db
-            .select()
-            .from(schema.runnerStacks)
-            .where(eq(schema.runnerStacks.stackId, selected.id));
-        expect(stillOwned?.extensionInstanceId).toBe(otherInstanceId);
+        expect(listed.some((entry) => entry.id === selected.id)).toBe(false);
 
         await db
             .delete(schema.extensionInstances)
@@ -510,7 +513,11 @@ describe("instance cleanup", () => {
             .where(eq(schema.runners.id, created.id));
         expect(rows).toHaveLength(1);
 
-        await runner.deleteAllRunnersOfInstance(client, rows);
+        const ownedStackIds =
+            await runner.findOwnedStackIds(extensionInstanceId);
+        expect(ownedStackIds).toContain(created.stackId);
+
+        await runner.deleteAllRunnersOfInstance(client, rows, ownedStackIds);
 
         const remaining = await runner.listRunners(client, extensionInstanceId);
         expect(remaining.some((r) => r.id === created.id)).toBe(true);

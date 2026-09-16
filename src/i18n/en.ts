@@ -182,10 +182,8 @@ export const en = {
     "form.stack.label": "Target stack",
     "form.stack.automatic": "Automatic (one stack per target)",
     "form.stack.option": "{name} ({services} services)",
-    "form.stack.option.managed":
-        "{name} ({services} services, created for runners)",
     "form.stack.description":
-        "Pick a stack when jobs need its services, for example a database for migrations.",
+        "Pick a stack when jobs need its services, for example a database for migrations. Stacks the extension created for runners are not listed.",
     "form.stack.help":
         "Containers of a stack reach each other by service name over the stack network. A runner in the stack of your application can run migrations or integration tests against its database. Without a choice the extension uses one stack per registration target and creates it with the first runner. A stack you pick here is never deleted by the extension; deleting the runner removes only its container.",
     "form.size.label": "Size",
@@ -260,7 +258,7 @@ export const en = {
     "error.notFound.runner": "The runner was not found.",
     "error.notFound.runnerContainer": "The runner container was not found.",
     "error.notFound.stack":
-        "The selected stack no longer exists in this project. Pick another one.",
+        "The selected stack cannot be used. Pick another one from the list.",
     "error.upstream.stackCreate":
         "The stack could not be created (status {status}).",
     "error.upstream.stackDeclare":

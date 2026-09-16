@@ -152,6 +152,17 @@ export async function resolveStack(
 
             throw new NotFoundError("stack");
         }
+        // Stacks the extension manages belong to a registration target and are
+        // deleted with their last runner. Selecting one would break the promise
+        // that a selected stack outlives its runners, so only stacks without a
+        // runner_stacks row are offered and accepted.
+        if (await isManagedStack(selected.id)) {
+            log.warn("selected stack is managed by the extension", {
+                stackId: selected.id,
+            });
+
+            throw new NotFoundError("stack");
+        }
         log.info("runner joins a selected stack", {
             stackId: selected.id,
             services: selected.services?.length ?? 0,
@@ -205,22 +216,30 @@ export async function listProjectStacks(
             await getDatabase()
                 .select({ stackId: runnerStacks.stackId })
                 .from(runnerStacks)
-                .where(
-                    eq(runnerStacks.extensionInstanceId, extensionInstanceId),
-                )
+                .where(eq(runnerStacks.projectId, projectId))
         ).map((row) => row.stackId),
     );
+    const selectable = response.data.filter((stack) => !managed.has(stack.id));
     log.debug("project stacks listed", {
         projectId,
         stacks: response.data.length,
+        selectable: selectable.length,
     });
 
-    return response.data.map((stack) => ({
+    return selectable.map((stack) => ({
         id: stack.id,
         description: stack.description,
         serviceCount: stack.services?.length ?? 0,
-        managedByExtension: managed.has(stack.id),
     }));
+}
+
+async function isManagedStack(stackId: string): Promise<boolean> {
+    const [row] = await getDatabase()
+        .select({ stackId: runnerStacks.stackId })
+        .from(runnerStacks)
+        .where(eq(runnerStacks.stackId, stackId));
+
+    return Boolean(row);
 }
 
 /**
@@ -368,9 +387,23 @@ export async function removeService(
         });
     }
     await deleteVolumes(client, stackId, (name) =>
-        name.startsWith(`${serviceName}-`),
+        belongsToService(name, serviceName),
     );
     log.info("service removed", { stackId, serviceName });
+}
+
+/**
+ * Service names of the same runner name differ by a numeric suffix
+ * (runner-build, runner-build-2), so a plain prefix match on runner-build
+ * would also catch runner-build-2-data and delete the volumes of a sibling.
+ */
+function belongsToService(volumeName: string, serviceName: string): boolean {
+    const prefix = `${serviceName}-`;
+    if (!volumeName.startsWith(prefix)) {
+        return false;
+    }
+
+    return !/^\d+-/.test(volumeName.slice(prefix.length));
 }
 
 export async function deleteVolumes(

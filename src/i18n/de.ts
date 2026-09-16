@@ -187,10 +187,8 @@ export const de: Messages = {
     "form.stack.label": "Ziel-Stack",
     "form.stack.automatic": "Automatisch (ein Stack pro Ziel)",
     "form.stack.option": "{name} ({services} Services)",
-    "form.stack.option.managed":
-        "{name} ({services} Services, für Runner angelegt)",
     "form.stack.description":
-        "Wähl einen Stack, wenn deine Jobs dessen Services brauchen, zum Beispiel eine Datenbank für Migrations.",
+        "Wähl einen Stack, wenn deine Jobs dessen Services brauchen, zum Beispiel eine Datenbank für Migrations. Stacks, die die Extension für Runner angelegt hat, stehen nicht zur Wahl.",
     "form.stack.help":
         "Container eines Stacks erreichen sich über den Servicenamen im Stack-Netzwerk. Ein Runner im Stack deiner Anwendung kann Migrations oder Integrationstests gegen deren Datenbank fahren. Ohne Auswahl nutzt die Extension einen Stack pro Registrierungsziel und legt ihn mit dem ersten Runner an. Einen hier gewählten Stack löscht die Extension nie, beim Löschen des Runners verschwindet nur dessen Container.",
     "form.size.label": "Größe",
@@ -267,7 +265,7 @@ export const de: Messages = {
     "error.notFound.runnerContainer":
         "Der Runner-Container wurde nicht gefunden.",
     "error.notFound.stack":
-        "Der gewählte Stack existiert in diesem Projekt nicht mehr. Wähl einen anderen.",
+        "Der gewählte Stack lässt sich nicht verwenden. Wähl einen anderen aus der Liste.",
     "error.upstream.stackCreate":
         "Der Stack konnte nicht angelegt werden (Status {status}).",
     "error.upstream.stackDeclare":

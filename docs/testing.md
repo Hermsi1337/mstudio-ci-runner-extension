@@ -41,7 +41,7 @@ on import, so tests import them after the containers started via `await import(.
 | File | Verifies |
 |---|---|
 | `database.test.ts` | Migrations, encrypted instance secret, no secret column in `runners`, cascade delete |
-| `runner-lifecycle.test.ts` | Per provider case (GitHub repo, three GitLab runner token variants): `createRunner` → `listRunners` → logs/restart → update (declare and recreate) → settings → `deleteRunner` against the mittwald and GitLab Prism mocks; two runners sharing a stack; a runner in a stack the user picked (no `runner_stacks` row, stack survives the delete, a stack of another project is rejected, service names are checked against the stack); tenant isolation; input errors |
+| `runner-lifecycle.test.ts` | Per provider case (GitHub repo, three GitLab runner token variants): `createRunner` → `listRunners` → logs/restart → update (declare and recreate) → settings → `deleteRunner` against the mittwald and GitLab Prism mocks; two runners sharing a stack; a runner in a stack the user picked (no `runner_stacks` row, stack survives the delete, stacks of another project and stacks the extension manages are rejected, service names are checked against the stack); tenant isolation; input errors |
 | `runner-image.test.ts` | Per image: builds with `RUNNER_VERSION` and the `RUNNER_SHA256_*` checksums from `docker/runner/versions.json`, entrypoint reaches registration with the configured values, runs as user `runner`, passes the probe suite, entrypoint rejects missing required variables with a clear message |
 | `changelog.test.ts` | `getChangelog` against the GitHub Prism mock: releases parsed and validated, second call served from the cache, releases newer than `EXTENSION_VERSION` hidden |
 

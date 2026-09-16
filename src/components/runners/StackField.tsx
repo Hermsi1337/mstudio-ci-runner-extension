@@ -62,15 +62,10 @@ export function StackField<T extends StackFormValues>({
                 </Option>
                 {stacks.map((stack) => (
                     <Option key={stack.id} value={stack.id}>
-                        {t(
-                            stack.managedByExtension
-                                ? "form.stack.option.managed"
-                                : "form.stack.option",
-                            {
-                                name: stack.description,
-                                services: stack.serviceCount,
-                            },
-                        )}
+                        {t("form.stack.option", {
+                            name: stack.description,
+                            services: stack.serviceCount,
+                        })}
                     </Option>
                 ))}
                 <FieldDescription>

@@ -159,13 +159,15 @@ export const zRunner = z.object({
 export const zRunnerList = z.array(zRunner);
 
 /**
- * Container stack of the project, offered as a target for a new runner.
+ * Container stack of the project that a new runner can be declared in. Stacks the
+ * extension created for a registration target are left out: they go with their last
+ * runner, while a selected stack outlives its runners.
+ *
  */
 export const zProjectStack = z.object({
     id: z.uuid(),
     description: z.string(),
-    serviceCount: z.int(),
-    managedByExtension: z.boolean()
+    serviceCount: z.int()
 });
 
 export const zProjectStackList = z.array(zProjectStack);
