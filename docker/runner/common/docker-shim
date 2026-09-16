@@ -31,9 +31,11 @@ BUILDER_NAME="mstudio-builder"
 
 # `docker/setup-buildx-action` parses this line and stops with "Cannot parse
 # buildx version" on anything that is not "github.com/docker/buildx v<semver>".
-# The version decides which flags the docker actions pass; the shim warns about
-# or refuses the ones it cannot serve, so the number only has to be plausible.
-BUILDX_VERSION="v0.17.1"
+# The version also decides which extra work the docker actions do: from 0.13 on
+# `docker/build-push-action` exports a build record through `docker buildx
+# history`, which has no counterpart here and left the post step of the action
+# hanging. Reporting 0.12.1 keeps those actions on the plain build path.
+BUILDX_VERSION="v0.12.1"
 DOCKER_VERSION="27.3.1"
 
 require_crane() {
@@ -292,6 +294,10 @@ command_buildx() {
             ;;
         use | stop | rm | prune | du)
             warn "buildx ${subcommand} does nothing here, every build runs in the builder service of this stack"
+            ;;
+        history)
+            # Build records belong to BuildKit. Answering quietly keeps an
+            # action that asks for one from waiting on an answer.
             ;;
         version) echo "github.com/docker/buildx ${BUILDX_VERSION} mstudio-builder" ;;
         imagetools)

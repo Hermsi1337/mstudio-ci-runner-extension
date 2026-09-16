@@ -28,10 +28,12 @@
 # Environment:
 #   BUILD_QUEUE_DIR  shared directory (default: /builds)
 #   BUILD_TIMEOUT    seconds a single build may take (default: 3600)
+#   BUILD_HEARTBEAT  seconds between "still waiting" lines (default: 300)
 set -u
 
 queue_dir="${BUILD_QUEUE_DIR:-/builds}"
 build_timeout="${BUILD_TIMEOUT:-3600}"
+heartbeat="${BUILD_HEARTBEAT:-300}"
 
 # The runner images run as a user whose uid depends on the base image, and the
 # API has no field to set the user of a container, so the queue is writable for
@@ -94,6 +96,10 @@ build() {
         done <"${job}/labels"
     fi
 
+    echo "[builder] ${job_id}: destination=${destination} dockerfile=${dockerfile}${target:+ target=${target}}"
+    echo "[builder] ${job_id}: context $(du -sh "${job}/context" 2>/dev/null | cut -f1), $(find "${job}/context" -type f 2>/dev/null | wc -l) files"
+    echo "[builder] ${job_id}: running kaniko, output goes to the job log and to the runner"
+    started=${SECONDS}
     {
         timeout -s KILL "${build_timeout}" /kaniko/executor "$@"
         echo "$?" >"${job}/exit-code"
@@ -102,15 +108,23 @@ build() {
     code=1
     read -r code <"${job}/exit-code"
     echo "exit=${code}" >"${job}/result"
+    # kaniko has taken the filesystem apart by now, so this line and the exit
+    # are the last things this container can still do.
+    echo "[builder] ${job_id}: exit=${code} after $((SECONDS - started))s, replacing this container"
 }
 
-echo "[builder] watching ${queue_dir}/queue"
+echo "[builder] ready, watching ${queue_dir}/queue, one build per container, timeout ${build_timeout}s"
+waited=0
 while :; do
     if ! claim_job; then
         sleep 2
+        waited=$((waited + 2))
+        if ((waited % heartbeat == 0)); then
+            echo "[builder] idle, queue empty for ${waited}s"
+        fi
         continue
     fi
-    echo "[builder] building ${job_id}"
+    echo "[builder] claimed ${job_id}"
     read_request
     build
     exit 0
