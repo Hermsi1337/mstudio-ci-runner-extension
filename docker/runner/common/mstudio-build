@@ -169,8 +169,21 @@ if [[ -n "${iidfile}" ]]; then
     fi
 fi
 
+# The fields `docker/build-push-action` exposes as its imageid, digest and
+# metadata outputs. Workflows read them to tag deployments, so an empty file
+# would break steps that do.
 if [[ -n "${metadata_file}" ]]; then
-    mstudio-build-metadata "${image_id}" "${manifest_digest}" "${tags[@]}" >"${metadata_file}"
+    jq -n \
+        --arg config "${image_id}" \
+        --arg digest "${manifest_digest}" \
+        --arg names "$(
+            IFS=,
+            echo "${tags[*]:-}"
+        )" \
+        '{"containerimage.config.digest": $config}
+            + (if $digest == "" then {} else {"containerimage.digest": $digest} end)
+            + (if $names == "" then {} else {"image.name": $names} end)' \
+        >"${metadata_file}"
 fi
 
 if [[ ${#tags[@]} -gt 0 ]]; then
