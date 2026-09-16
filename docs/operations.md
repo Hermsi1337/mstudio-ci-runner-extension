@@ -29,8 +29,8 @@ git push origin v0.5.0-beta.1
 It builds the same four images, creates a GitHub release marked as pre-release and is
 deployed into the development installation like any other tag. Three things it does not
 do: no `latest` tag on the images, no `1.2` alias, and no version bump on `main`.
-`deploy-production.yml` refuses a version containing `-`, so a pre-release never reaches
-users.
+`deploy.yml` refuses a version containing `-` unless the caller allows it, and only
+`deploy-dev.yml` does, so a pre-release never reaches users.
 
 The tag triggers `release.yml`, which runs `extension-image.yml` and
 `runner-image.yml` as reusable workflows and creates the GitHub release once both
@@ -41,7 +41,6 @@ succeeded. Both image workflows use `docker/metadata-action` and tag:
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `1.2.3`, `1.2`, `latest` |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.337.0`) |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-19.3.1`) |
-| `ghcr.io/hermsi1337/mstudio-ci-builder` | `1.2.3`, `1.2`, `latest`, `kaniko-<KANIKO_VERSION>` (e.g. `kaniko-v1.25.19`) |
 
 `workflow_dispatch` builds an image with a `sha-<commit>` tag only, without `latest`
 and without the `runner-<RUNNER_VERSION>` alias, which are both gated to `v*` tag refs,
@@ -75,7 +74,7 @@ Package visibility is independent of the repository and can only be changed on t
 | `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers, multi-arch |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
 | `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
-| `deploy-production.yml` | Manual | Deploys into the production installation, refuses pre-release versions |
+| `deploy-production.yml` | Manual | Deploys into the production installation |
 | `release.yml` | Tags `v*` | Runs both image workflows as jobs, creates the GitHub release via `softprops/action-gh-release` (generated notes plus an image table with pull commands and the runner software versions), then commits the tag version to `package.json` on `main` |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
@@ -148,9 +147,15 @@ environment at its own project.
 | `deploy-dev.yml` | Automatically after `release.yml` succeeded for a `v*` tag, so the images and the GitHub release exist before the deployment starts. Manually with a version such as `0.1.0`. | `mstudio-dev` |
 | `deploy-production.yml` | Manually only, *Actions → Deploy production → Run workflow* with a version such as `0.1.0`. A version containing `-` is rejected. | `mstudio` |
 
-Both call `deploy.yml`, which holds the steps and takes the tag, the environment and the
-name suffix of the marketplace entry as inputs. The development installation gets
-`EXTENSION_NAME_SUFFIX=" (DEV)"`, so both entries are distinguishable in mStudio.
+Both call `deploy.yml`, which holds the steps and takes the tag, the environment, the
+name suffix of the marketplace entry and `allow_prerelease` as inputs. Only the
+development installation sets `allow_prerelease`, so a tag with a `-` fails in the first
+step of every other deployment, whatever triggered it. The development installation also
+gets `EXTENSION_NAME_SUFFIX=" (DEV)"`, so both entries are distinguishable in mStudio.
+
+`workflow_run` only fires for workflows on the default branch, so `deploy-dev.yml` reacts
+to a release only once it is merged into `main`. A tag cut from a branch before that is
+built and released, but nothing deploys it.
 
 `EXTENSION_VERSION` selects the extension image and, inside the extension, the runner
 images, so a deployment pins all three to the same release. `postgres` is excluded from the

@@ -28,4 +28,5 @@ jobs:
       ref: ${{ inputs.version && format('v{0}', inputs.version) || github.event.workflow_run.head_branch }}
       environment: mstudio-dev
       name_suffix: " (DEV)"
+      allow_prerelease: true
     secrets: inherit

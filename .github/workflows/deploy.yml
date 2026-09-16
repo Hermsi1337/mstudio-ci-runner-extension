@@ -21,6 +21,11 @@ on:
         required: false
         default: ""
         type: string
+      allow_prerelease:
+        description: "Whether this installation accepts tags like v1.2.3-beta.1"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -33,6 +38,17 @@ jobs:
       group: deploy-${{ inputs.environment }}
       cancel-in-progress: false
     steps:
+      # The check sits here and not in the calling workflow, so it holds
+      # whatever triggers the deployment.
+      - name: Refuse a pre-release in an installation that does not take one
+        if: ${{ !inputs.allow_prerelease }}
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          if [[ "${REF}" == *-* ]]; then
+            echo "${REF} is a pre-release and ${{ inputs.environment }} does not take pre-releases" >&2
+            exit 1
+          fi
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
