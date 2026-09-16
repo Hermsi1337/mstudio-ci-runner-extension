@@ -10,7 +10,9 @@
 #
 # Supported: build, buildx build, push, pull, tag, images, image
 # (ls/inspect/rm/push/pull/tag), inspect, save, load, login, logout, manifest
-# inspect, buildx imagetools inspect, version, info.
+# inspect, buildx imagetools inspect, version, info. The context and builder
+# bookkeeping of the docker CLI is answered with a single fixed builder, which
+# is what `docker/setup-buildx-action` reads before it hands work to buildx.
 #
 # Not supported: run, exec, compose, ps, network, volume, commit, system,
 # buildx bake, and everything else that needs a daemon.
@@ -24,6 +26,8 @@ fail() {
     echo "docker: $*" >&2
     exit 1
 }
+
+BUILDER_NAME="mstudio-builder"
 
 require_crane() {
     command -v crane >/dev/null || fail "crane is missing from this image"
@@ -206,12 +210,70 @@ command_image() {
     esac
 }
 
+# One builder, always present, always running: the builder service of the
+# stack. The output mirrors what the docker CLI prints, because actions parse it.
+builder_inspect() {
+    cat <<EOF
+Name:          ${BUILDER_NAME}
+Driver:        docker
+Last Activity: never
+
+Nodes:
+Name:      ${BUILDER_NAME}
+Endpoint:  ${BUILDER_NAME}
+Status:    running
+Buildkit:  mstudio-builder
+Platforms: linux/$(dpkg --print-architecture 2>/dev/null || uname -m)
+EOF
+}
+
+command_context() {
+    local subcommand="${1:-ls}"
+    shift || true
+    case "${subcommand}" in
+        inspect | show)
+            if [[ "$*" == *"{{.Name}}"* || "$*" == *".Name"* ]]; then
+                echo "${BUILDER_NAME}"
+            else
+                printf '[{"Name":"%s","Metadata":{},"Endpoints":{"docker":{"Host":"%s","SkipTLSVerify":false}}}]\n' \
+                    "${BUILDER_NAME}" "${BUILDER_NAME}"
+            fi
+            ;;
+        ls | list)
+            printf '%-12s %-24s %s\n' "NAME" "DESCRIPTION" "DOCKER ENDPOINT"
+            printf '%-12s %-24s %s\n' "${BUILDER_NAME}" "mstudio builder service" "${BUILDER_NAME}"
+            ;;
+        use | create | update | rm | remove | export | import)
+            warn "context ${subcommand} does nothing here, every build runs in the builder service of this stack"
+            ;;
+        *) fail "context ${subcommand} is not supported" ;;
+    esac
+}
+
 command_buildx() {
     local subcommand="${1:-build}"
     shift || true
     case "${subcommand}" in
         build | b) command_build "$@" ;;
-        create | use | stop | rm | inspect | ls | prune | du)
+        create)
+            # The action reads the builder name from stdout and uses it later.
+            normalize_flags "$@"
+            set -- "${normalized[@]}"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    --name) echo "$2"; return 0 ;;
+                    *) shift ;;
+                esac
+            done
+            echo "${BUILDER_NAME}"
+            ;;
+        inspect) builder_inspect ;;
+        ls | list)
+            printf '%-16s %-12s %-10s %s\n' "NAME/NODE" "DRIVER/ENDPOINT" "STATUS" "PLATFORMS"
+            printf '%-16s %-12s %-10s %s\n' "${BUILDER_NAME}" "docker" "running" \
+                "linux/$(dpkg --print-architecture 2>/dev/null || uname -m)"
+            ;;
+        use | stop | rm | prune | du)
             warn "buildx ${subcommand} does nothing here, every build runs in the builder service of this stack"
             ;;
         version) echo "github.com/docker/buildx mstudio-builder (kaniko)" ;;
@@ -230,6 +292,7 @@ shift || true
 case "${command}" in
     build) command_build "$@" ;;
     buildx) command_buildx "$@" ;;
+    context) command_context "$@" ;;
     push) command_push "$@" ;;
     pull) command_pull "$@" ;;
     tag) mstudio-image-store tag "${1:?usage: docker tag <source> <target>}" "${2:?}" ;;
@@ -253,6 +316,9 @@ case "${command}" in
     info) echo "mstudio-ci-runner docker shim: no daemon, no containers, images are built by the builder service of this stack" ;;
     "" | -h | --help)
         sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+        ;;
+    builder)
+        command_buildx "$@"
         ;;
     run | exec | start | stop | ps | compose | network | volume | container | system | commit | cp | logs | attach | kill | restart | rm)
         fail "${command} needs a Docker daemon, which mittwald Container Hosting does not provide. Only image builds and registry access work here, see docs/image-builds.md"

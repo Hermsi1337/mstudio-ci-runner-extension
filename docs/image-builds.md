@@ -147,7 +147,8 @@ mstudio-build --push -t ghcr.io/me/app:1 --build-arg VERSION=1 .
 | `docker push`, `docker pull`, `docker manifest inspect` | crane |
 | `docker save`, `docker load` | copies the tarball in and out of the store |
 | `docker login`, `docker logout` | `crane auth login`, writes the usual `~/.docker/config.json` |
-| `docker buildx create/use/inspect` | does nothing and says so, `setup-buildx-action` runs through |
+| `docker buildx create/inspect/ls`, `docker context inspect/ls` | answer with one fixed builder, so `setup-buildx-action` runs through |
+| `docker buildx use/stop/rm/prune` | does nothing and says so |
 | `docker buildx imagetools inspect` | `crane manifest` |
 
 ## What it warns about

@@ -27,6 +27,12 @@ for tool in crane docker mstudio-build mstudio-image-store mstudio-crane; do
 done
 
 expect_output "docker is the shim" "docker shim" docker version
+expect_output "docker context inspect answers with the builder" "mstudio-builder" \
+    docker context inspect --format "{{.Name}}"
+expect_output "buildx create returns the builder name" "probe-builder" \
+    docker buildx create --name probe-builder --driver docker-container --use
+expect_output "buildx inspect reports a running node" "Status:    running" \
+    docker buildx inspect --bootstrap
 expect "docker run is rejected" bash -c "! docker run alpine 2>/dev/null"
 expect_output "docker build without a builder explains itself" "image builds are turned off" \
     bash -c "cd \$(mktemp -d) && echo FROM alpine > Dockerfile && docker build -t probe:local . 2>&1"
