@@ -1,0 +1,7 @@
+{
+  "kaniko": {
+    "repository": "https://github.com/chainguard-forks/kaniko",
+    "version": "v1.25.19",
+    "go": "1.26"
+  }
+}

@@ -79,7 +79,7 @@ edit an applied migration; a fresh database gets `0000_initial.sql`.
 | `test`, `test:integration`, `test:all` | Unit tests, Testcontainers tests, both ([testing.md](testing.md)) |
 | `db:start`, `db:stop` | Local PostgreSQL via `scripts/dev-db.sh` (`rm` also deletes the volume) |
 | `db:push`, `db:generate-migrations`, `db:migrate`, `db:studio` | Drizzle |
-| `runner:build` | Build both runner images locally ([runner-image.md](runner-image.md)) |
+| `runner:build` | Build both runner images and the builder image locally via `scripts/build-runner-images.sh` ([runner-image.md](runner-image.md), [image-builds.md](image-builds.md)) |
 | `image:build` | Build the extension image locally (`docker/extension/Dockerfile`) |
 | `init:encryption` | Generate encryption secrets into `.env` |
 

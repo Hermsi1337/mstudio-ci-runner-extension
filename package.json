@@ -29,7 +29,7 @@
     "db:generate-migrations": "drizzle-kit generate --config config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config config/drizzle.config.ts",
     "db:studio": "drizzle-kit studio --port 8081 --config config/drizzle.config.ts",
-    "runner:build": "for p in github gitlab; do docker build -f docker/runner/$p/Dockerfile --build-arg RUNNER_VERSION=$(jq -r .$p.version docker/runner/versions.json) --build-arg RUNNER_SHA256_AMD64=$(jq -r .$p.sha256.amd64 docker/runner/versions.json) --build-arg RUNNER_SHA256_ARM64=$(jq -r .$p.sha256.arm64 docker/runner/versions.json) -t mstudio-ci-runner-$p:local docker/runner || exit 1; done",
+    "runner:build": "bash scripts/build-runner-images.sh",
     "image:build": "docker build -f docker/extension/Dockerfile -t mstudio-ci-runner-extension:local .",
     "check:bundle": "bash scripts/check-client-bundle.sh"
   },

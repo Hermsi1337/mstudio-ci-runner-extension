@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Writes the metadata file that `docker buildx build --metadata-file` produces.
+
+Only the fields the builder can fill are written. `docker/build-push-action`
+exposes them as the `imageid`, `digest` and `metadata` outputs, and workflows
+read them to tag deployments, so an empty file would break steps that do.
+
+Usage:
+  mstudio-build-metadata IMAGE_ID MANIFEST_DIGEST [REF ...]
+"""
+
+import json
+import sys
+
+
+def main() -> None:
+    if len(sys.argv) < 3:
+        raise SystemExit(__doc__)
+    image_id, manifest_digest, *references = sys.argv[1:]
+    metadata = {"containerimage.config.digest": image_id}
+    if manifest_digest:
+        metadata["containerimage.digest"] = manifest_digest
+    if references:
+        metadata["image.name"] = ",".join(references)
+    print(json.dumps(metadata, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

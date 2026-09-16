@@ -123,7 +123,7 @@ works for them as well.
 ## Building and testing
 
 ```bash
-pnpm run runner:build     # both images locally as mstudio-ci-runner-<provider>:local
+pnpm run runner:build     # both runner images as mstudio-ci-runner-<provider>:local, plus mstudio-ci-builder:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e RUNNER_TOKEN=AEBI... mstudio-ci-runner-github:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e GITHUB_TOKEN=github_pat_... mstudio-ci-runner-github:local
 docker run --rm -e CI_SERVER_URL=https://gitlab.com -e CI_SERVER_TOKEN=glrt-... mstudio-ci-runner-gitlab:local
@@ -133,9 +133,13 @@ Automated: `tests/integration/runner-image.test.ts` ([testing.md](testing.md)).
 
 ## Limitations
 
-No Docker daemon. GitHub: `container:`, `services:`, `docker build` and Docker container
-actions fail. GitLab: `image:` and `services:` are ignored by the shell executor; jobs
-run directly in the Ubuntu userland.
+No Docker daemon. GitHub: `container:`, `services:` and Docker container actions fail.
+GitLab: `image:` and `services:` are ignored by the shell executor; jobs run directly in
+the Ubuntu userland.
+
+`docker build` works: the `docker` in the image is a shim that hands the build to the
+builder service of the stack and pushes with crane. What it supports, fills in, warns
+about and refuses is in [image-builds.md](image-builds.md).
 
 ## Workflow examples
 

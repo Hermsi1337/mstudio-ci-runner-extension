@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Accepts a --platform value only when it matches this runner.
+#
+# The builder runs on the same node as the runner and kaniko cannot emulate
+# another architecture, so cross builds and multi platform manifests are out.
+# Failing here is better than shipping an image for the wrong architecture.
+set -euo pipefail
+
+requested="${1:-}"
+[[ -z "${requested}" ]] && exit 0
+
+case "$(uname -m)" in
+    x86_64) native="amd64" ;;
+    aarch64) native="arm64" ;;
+    *) native="$(uname -m)" ;;
+esac
+
+if [[ "${requested}" == *,* ]]; then
+    echo "mstudio-build: multi platform builds are not supported, this runner builds linux/${native} only" >&2
+    exit 1
+fi
+
+normalized="${requested#linux/}"
+normalized="${normalized%%/*}"
+case "${normalized}" in
+    x86_64) normalized="amd64" ;;
+    aarch64) normalized="arm64" ;;
+esac
+
+if [[ "${requested}" != linux/* && "${requested}" != "${native}" ]]; then
+    echo "mstudio-build: platform ${requested} is not supported, this runner builds linux/${native} only" >&2
+    exit 1
+fi
+
+if [[ "${normalized}" != "${native}" ]]; then
+    echo "mstudio-build: platform ${requested} is not supported, this runner builds linux/${native} only" >&2
+    exit 1
+fi

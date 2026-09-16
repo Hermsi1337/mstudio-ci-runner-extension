@@ -1,0 +1,115 @@
+#!/bin/sh
+# Builds container images for the runners of this stack.
+#
+# The runner container and this container share a directory in the project file
+# system. The runner writes a job into BUILD_QUEUE_DIR, this loop picks it up,
+# runs kaniko and writes the result back:
+#
+#   queue/<job>/context/      build context, written by the runner
+#   queue/<job>/build-args    one KEY=VALUE per line (optional)
+#   queue/<job>/labels        one KEY=VALUE per line (optional)
+#   queue/<job>/request       job parameters, written last, claims the job
+#   queue/<job>/log           kaniko output
+#   queue/<job>/image.tar     built image
+#   queue/<job>/result        "exit=<code>", written last, the job directory
+#                             belongs to the runner so it can clean up again
+#
+# kaniko unpacks the base image into the root filesystem of this container, so
+# the container is unusable afterwards and exits. The service runs with
+# restartPolicy "always", which gives the next job a clean root filesystem.
+# After kaniko has run, only shell builtins are left: every path that writes the
+# result uses redirections and `read`, never `mv`, `basename` or `date`.
+#
+# This container never receives registry credentials. It writes the image as a
+# tarball, the runner pushes it.
+#
+# Environment:
+#   BUILD_QUEUE_DIR  shared directory (default: /builds)
+#   BUILD_TIMEOUT    seconds a single build may take (default: 3600)
+set -u
+
+queue_dir="${BUILD_QUEUE_DIR:-/builds}"
+build_timeout="${BUILD_TIMEOUT:-3600}"
+
+# The runner images run as a user whose uid depends on the base image, and the
+# API has no field to set the user of a container, so the queue is writable for
+# everyone with the sticky bit, like /tmp. Only containers of this project can
+# reach the directory at all.
+mkdir -p "${queue_dir}/queue"
+chmod 1777 "${queue_dir}/queue"
+
+job=""
+job_id=""
+dockerfile=Dockerfile
+destination=""
+target=""
+
+claim_job() {
+    for request in "${queue_dir}"/queue/*/request; do
+        [ -f "${request}" ] || continue
+        job="${request%/request}"
+        job_id="${job##*/}"
+        mv "${request}" "${job}/request.claimed" 2>/dev/null && return 0
+    done
+
+    return 1
+}
+
+read_request() {
+    dockerfile=Dockerfile
+    destination="mstudio-build:${job_id}"
+    target=""
+    while IFS='=' read -r key value; do
+        case "${key}" in
+            DOCKERFILE) dockerfile="${value}" ;;
+            DESTINATION) destination="${value}" ;;
+            TARGET) target="${value}" ;;
+            '' | '#'*) ;;
+            *) echo "[builder] ignoring unknown request key ${key}" ;;
+        esac
+    done <"${job}/request.claimed"
+}
+
+build() {
+    set -- --context "dir://${job}/context" \
+        --dockerfile "${dockerfile}" \
+        --destination "${destination}" \
+        --no-push \
+        --tarPath "${job}/image.tar" \
+        --ignore-path "${queue_dir}" \
+        --verbosity info
+    if [ -n "${target}" ]; then
+        set -- "$@" --target "${target}"
+    fi
+    if [ -f "${job}/build-args" ]; then
+        while IFS= read -r build_arg; do
+            [ -n "${build_arg}" ] && set -- "$@" --build-arg "${build_arg}"
+        done <"${job}/build-args"
+    fi
+    if [ -f "${job}/labels" ]; then
+        while IFS= read -r label; do
+            [ -n "${label}" ] && set -- "$@" --label "${label}"
+        done <"${job}/labels"
+    fi
+
+    {
+        timeout -s KILL "${build_timeout}" /kaniko/executor "$@"
+        echo "$?" >"${job}/exit-code"
+    } 2>&1 | tee "${job}/log"
+
+    code=1
+    read -r code <"${job}/exit-code"
+    echo "exit=${code}" >"${job}/result"
+}
+
+echo "[builder] watching ${queue_dir}/queue"
+while :; do
+    if ! claim_job; then
+        sleep 2
+        continue
+    fi
+    echo "[builder] building ${job_id}"
+    read_request
+    build
+    exit 0
+done

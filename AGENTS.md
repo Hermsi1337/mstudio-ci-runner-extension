@@ -79,6 +79,7 @@ into this file. Every file has exactly one topic and links to the others.
 | `docs/codegen.md` | Every generator, its sources and outputs, workflow for changes |
 | `docs/testing.md` | Test setup, Testcontainers, mock servers, how tests run |
 | `docs/runner-image.md` | Runner images per provider: env vars, entrypoint, building, workflow examples |
+| `docs/image-builds.md` | Building container images from a pipeline: builder service, docker shim, limits |
 | `docs/operations.md` | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | `docs/i18n.md` | Languages: how the locale is chosen, catalogs, adding texts |
 | `docs/styleguide.md` | UI rules: components, layout, modals, forms, lists, texts, colors |
@@ -91,6 +92,7 @@ Checklist before every commit:
 - New script in `package.json`: `docs/development.md`.
 - New or changed scope, anchor, webhook, token requirement: `docs/mstudio-setup.md`.
 - New provider or changed provider behavior: `docs/providers.md`, `docs/runner-image.md`.
+- Changed builder, docker shim or build queue protocol: `docs/image-builds.md`.
 - New or changed user-facing text: both catalogs in `src/i18n/`, `docs/i18n.md` if the
   mechanism changes.
 - New or changed screen, modal or component pattern: `docs/styleguide.md`, screenshots
@@ -110,10 +112,11 @@ and in the table above.
 ```
 config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts); scripts pass them via --config
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
+docker/builder/              image builder service: Dockerfile, loop.sh, kaniko version (build context is docker/builder)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
-docker/runner/common/        scripts shared by all runner images (trim-cache.sh)
+docker/runner/common/        scripts shared by all runner images (trim-cache.sh, docker-shim, mstudio-build and friends)
 docker/runner/probes/        probe suite run inside the built images by the integration tests
-docker/runner/versions.json  runner software version per provider, single source for workflow, build and UI
+docker/runner/versions.json  runner software version per provider plus the crane version, single source for workflow, build and UI
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml (dev and production)
 deploy/mstudio/extension.yaml  marketplace entry and fragment properties, applied by deploy.yml
 docs/                        documentation, one topic per file
@@ -122,6 +125,7 @@ openapi/extension-api.yaml   extension API contract (source for codegen)
 openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
 scripts/slim-openapi.ts      produces openapi/upstream
 scripts/sync-extension.ts    writes marketplace texts, logo and fragment properties into mStudio
+scripts/build-runner-images.sh  builds both runner images and the builder image locally
 scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
 scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
 scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) reached the browser bundle
