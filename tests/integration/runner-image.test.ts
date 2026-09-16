@@ -13,7 +13,7 @@ interface MissingEnvCase {
 }
 
 interface ImageCase {
-    provider: keyof typeof runnerVersions;
+    provider: "github" | "gitlab";
     environment: Record<string, string>;
     waitFor: RegExp;
     expectLog: string;
@@ -92,6 +92,9 @@ describe.each(images)("runner image: $provider", (image) => {
                     runnerVersions[image.provider].sha256.amd64,
                 RUNNER_SHA256_ARM64:
                     runnerVersions[image.provider].sha256.arm64,
+                CRANE_VERSION: runnerVersions.crane.version,
+                CRANE_SHA256_AMD64: runnerVersions.crane.sha256.amd64,
+                CRANE_SHA256_ARM64: runnerVersions.crane.sha256.arm64,
             })
             .build(tag, { deleteOnExit: false });
 

@@ -12,5 +12,12 @@
       "amd64": "c5e647c3b2ab3ac51f577bc8b22575ab5cbe7ab0889ca82a2d79dab08156960e",
       "arm64": "6bf1cd34c3decad55503414045db759db20ba3a2c05a3ac251d02eac7876dcbc"
     }
+  },
+  "crane": {
+    "version": "v0.22.1",
+    "sha256": {
+      "amd64": "0ab7a1d6932a213aed964ce97666c3077fe691c8606413674a8b3e0b9ec4cda0",
+      "arm64": "898c0cff975f898a33e8c4580bdafb0e7c02c7faa33374e946762f97c4ab7110"
+    }
   }
 }

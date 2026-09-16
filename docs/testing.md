@@ -21,11 +21,13 @@ order.
 | `tests/helpers/postgres.ts` | `postgres:16-alpine` | Sets `POSTGRES_*`, applies migrations from `src/db/migrations/` |
 | `tests/helpers/prism.ts` | `stoplight/prism:5.14.2` | Mock server from `openapi/upstream/<name>.json` (mittwald, GitHub, GitLab); validates every request against the spec and answers with spec-conformant example data |
 | `tests/integration/runner-image.test.ts` | builds `docker/runner/<provider>/` | Images `mstudio-ci-runner-<provider>:test` |
+| `tests/integration/image-build.test.ts` | builds `docker/builder/` and the GitHub runner, plus `registry:2` | Image builds end to end: runner, builder and a registry on one network, the queue directory as a bind mount |
 
 The probe suite in `docker/runner/probes/` runs inside the built images.
 `probe.sh` provides `expect` and `expect_output`, `common.sh` holds the checks every
 image passes (user `runner`, sudo, `apt-get install`, toolchain, writable paths,
-symlinks, exec bit, `trim-cache.sh`), `<provider>.sh` adds the runner binary and
+symlinks, exec bit, `trim-cache.sh`, the image build tools and the rejections of the
+docker shim), `<provider>.sh` adds the runner binary and
 asserts its version against `docker/runner/versions.json`
 (`EXPECTED_RUNNER_VERSION`). All of it runs without credentials, so it works on
 every pull request, forks included.
@@ -43,6 +45,7 @@ on import, so tests import them after the containers started via `await import(.
 | `database.test.ts` | Migrations, encrypted instance secret, no secret column in `runners`, cascade delete |
 | `runner-lifecycle.test.ts` | Per provider case (GitHub repo, three GitLab runner token variants): `createRunner` → `listRunners` → logs/restart → update (declare and recreate) → settings → `deleteRunner` against the mittwald and GitLab Prism mocks; two runners sharing a stack; a runner in a stack the user picked (no `runner_stacks` row, stack survives the delete, stacks of another project and stacks the extension manages are rejected, service names are checked against the stack); tenant isolation; input errors |
 | `runner-image.test.ts` | Per image: builds with `RUNNER_VERSION` and the `RUNNER_SHA256_*` checksums from `docker/runner/versions.json`, entrypoint reaches registration with the configured values, runs as user `runner`, passes the probe suite, entrypoint rejects missing required variables with a clear message |
+| `image-build.test.ts` | `docker build --push` from the runner through the builder into a registry, image id and metadata file match the pushed digest, a failing build keeps its exit code, BuildKit only features are refused before a job is queued ([image-builds.md](image-builds.md)). Every test starts its own builder, because kaniko destroys the container it builds in |
 | `changelog.test.ts` | `getChangelog` against the GitHub Prism mock: releases parsed and validated, second call served from the cache, releases newer than `EXTENSION_VERSION` hidden |
 
 Prism answers with the static examples of the upstream spec: every `createStack` returns
