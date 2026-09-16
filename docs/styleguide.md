@@ -27,7 +27,9 @@ alike and come before personal taste. Writing style for texts is in
 
 ```
 Section
-  AccentBox              brand header: logo, name, tagline, provider badges, version badge and changelog button (BrandHeader.tsx); backgroundColor "gradient" token, theme-aware, no custom hex
+  LayoutCard             brand header (BrandHeader.tsx)
+    Section
+      AccentBox          logo, name, tagline, provider badges, version badge and changelog button; backgroundColor "gradient" token, theme-aware, no custom hex
   LayoutCard             one card per topic, Heading first
     Section
       Header             Heading + primary Button
@@ -36,6 +38,10 @@ Section
       List | IllustratedMessage
   LayoutCard             feedback, links, secondary topics
 ```
+
+Every block on the page sits in a `LayoutCard`, the brand header included. A bare
+`AccentBox` next to the cards carries a different corner radius and reads as if it
+had slipped out of the layout.
 
 - One primary button per card, in the `Header`, verb first ("Create runner").
 - Secondary actions of an entity live in its `ContextMenu`, never as a row of
