@@ -43,9 +43,30 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && mkdir -p ${RUNNER_HOME}/data/work ${RUNNER_HOME}/data/config \
     && chown -R runner:runner ${RUNNER_HOME}
 
+ARG CRANE_VERSION
+ARG CRANE_SHA256_AMD64
+ARG CRANE_SHA256_ARM64
+
+RUN case "${TARGETARCH:-$(uname -m)}" in \
+        amd64|x86_64) CRANE_ARCH=x86_64; CRANE_SHA256="${CRANE_SHA256_AMD64:?CRANE_SHA256_AMD64 is required}" ;; \
+        arm64|aarch64) CRANE_ARCH=arm64; CRANE_SHA256="${CRANE_SHA256_ARM64:?CRANE_SHA256_ARM64 is required}" ;; \
+        *) echo "unsupported arch ${TARGETARCH:-$(uname -m)}" && exit 1 ;; \
+    esac \
+    && curl -fsSL -o crane.tar.gz \
+        "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION:?CRANE_VERSION is required}/go-containerregistry_Linux_${CRANE_ARCH}.tar.gz" \
+    && echo "${CRANE_SHA256}  crane.tar.gz" | sha256sum -c - \
+    && tar xzf crane.tar.gz -C /usr/local/bin crane \
+    && rm crane.tar.gz
+
 COPY --chown=runner:runner github/entrypoint.sh /entrypoint.sh
 COPY --chown=runner:runner common/trim-cache.sh /usr/local/bin/trim-cache.sh
 RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh
+
+COPY --chown=runner:runner common/mstudio-build common/mstudio-crane common/mstudio-dockerfile-check common/mstudio-image-store common/mstudio-platform-check common/docker-shim /usr/local/bin/
+RUN chmod +x /usr/local/bin/mstudio-build /usr/local/bin/mstudio-crane \
+        /usr/local/bin/mstudio-dockerfile-check /usr/local/bin/mstudio-image-store \
+        /usr/local/bin/mstudio-platform-check /usr/local/bin/docker-shim \
+    && ln -s /usr/local/bin/docker-shim /usr/local/bin/docker
 
 USER runner
 

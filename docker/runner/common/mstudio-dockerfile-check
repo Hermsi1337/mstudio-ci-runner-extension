@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Rejects Dockerfile features the builder cannot execute and warns about the
+# ones it silently ignores.
+#
+# The builder runs kaniko, not BuildKit. Everything that BuildKit implements
+# through mounts (caches, secrets, ssh agents, bind mounts) has no equivalent,
+# and a build that uses them would either fail deep inside kaniko or produce an
+# image that is missing what the instruction was supposed to provide.
+set -euo pipefail
+
+dockerfile="${1:?usage: mstudio-dockerfile-check <dockerfile>}"
+status=0
+
+while IFS= read -r finding; do
+    line="${finding%%:*}"
+    instruction="${finding#*:}"
+    echo "mstudio-build: ${dockerfile}:${line}: ${instruction} is not supported by the builder (BuildKit only)" >&2
+    status=1
+done < <(grep -n -o -E -- '--(mount|network|security)=[a-z.]*' "${dockerfile}" | sed 's/:\(--[a-z]*\)=.*/:\1/')
+
+while IFS= read -r finding; do
+    line="${finding%%:*}"
+    instruction="${finding#*:}"
+    echo "mstudio-build: ${dockerfile}:${line}: ${instruction} is ignored by the builder" >&2
+done < <(grep -n -o -E -- '--link' "${dockerfile}" || true)
+
+if grep -q -E '^[[:space:]]*(RUN|COPY|ADD).*<<-?[A-Za-z"'\''(]' "${dockerfile}"; then
+    echo "mstudio-build: ${dockerfile}: here-documents in RUN/COPY are untested with the builder, prefer a script file" >&2
+fi
+
+exit "${status}"

@@ -43,6 +43,7 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `EXTENSION_VERSION` | Release of the extension, default the version in `package.json`; set by the image build |
 | `RUNNER_IMAGE_GITHUB` | Image for GitHub runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-github:<EXTENSION_VERSION>` |
 | `RUNNER_IMAGE_GITLAB` | Image for GitLab runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:<EXTENSION_VERSION>` |
+| `BUILDER_IMAGE` | Image of the builder service, default `ghcr.io/hermsi1337/mstudio-ci-builder:<EXTENSION_VERSION>` ([image-builds.md](image-builds.md)) |
 | `MITTWALD_API_URL` | Default `https://api.mittwald.de/`; the Prism mock in tests |
 | `GITHUB_API_URL` | Default `https://api.github.com`; the Prism mock in tests; also passed to the runner container as `GITHUB_API` |
 | `GITLAB_API_URL` | No default; overrides the GitLab instance URL for API calls (tests only) |
@@ -79,7 +80,7 @@ edit an applied migration; a fresh database gets `0000_initial.sql`.
 | `test`, `test:integration`, `test:all` | Unit tests, Testcontainers tests, both ([testing.md](testing.md)) |
 | `db:start`, `db:stop` | Local PostgreSQL via `scripts/dev-db.sh` (`rm` also deletes the volume) |
 | `db:push`, `db:generate-migrations`, `db:migrate`, `db:studio` | Drizzle |
-| `runner:build` | Build both runner images locally ([runner-image.md](runner-image.md)) |
+| `runner:build` | Build both runner images and the builder image locally via `scripts/build-runner-images.sh` ([runner-image.md](runner-image.md), [image-builds.md](image-builds.md)) |
 | `image:build` | Build the extension image locally (`docker/extension/Dockerfile`) |
 | `init:encryption` | Generate encryption secrets into `.env` |
 

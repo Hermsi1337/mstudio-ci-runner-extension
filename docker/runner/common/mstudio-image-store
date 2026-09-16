@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+# Local image store for images built by the builder service of this stack.
+#
+# There is no Docker daemon in the runner, so images built by `mstudio-build`
+# live as docker-archive tarballs on the data volume. This store keeps the
+# tarballs and the mapping from image references to them, which is what the
+# `docker` replacement needs for `docker tag`, `docker push` and `docker images`.
+#
+# Usage:
+#   mstudio-image-store put TARBALL [REF ...]   copy the tarball in, print image id
+#   mstudio-image-store tarball REF|ID          print the path of the tarball
+#   mstudio-image-store resolve REF|ID          print the image id
+#   mstudio-image-store tag SOURCE TARGET       add another reference
+#   mstudio-image-store untag REF               remove a reference, and the tarball
+#                                               when nothing else points at it
+#   mstudio-image-store prune                   delete tarballs nothing references
+#   mstudio-image-store list                    print "REPOSITORY:TAG  IMAGE ID  SIZE"
+#   mstudio-image-store config REF|ID           print the image config JSON
+#
+# Environment:
+#   MSTUDIO_IMAGE_STORE  store directory (default: $RUNNER_DATA_DIR/images)
+set -euo pipefail
+
+store="${MSTUDIO_IMAGE_STORE:-${RUNNER_DATA_DIR:-${HOME}}/images}"
+index="${store}/index.json"
+
+fail() {
+    echo "mstudio-image-store: $*" >&2
+    exit 1
+}
+
+read_index() {
+    if [[ -f "${index}" ]]; then
+        cat "${index}"
+    else
+        echo "{}"
+    fi
+}
+
+write_index() {
+    mkdir -p "${store}"
+    cat >"${index}.tmp"
+    mv "${index}.tmp" "${index}"
+}
+
+# docker resolves a reference without a tag to :latest; a digest reference
+# carries its own identity.
+normalize() {
+    local reference="$1" last="${1##*/}"
+    if [[ "${reference}" == sha256:* || "${last}" == *@* || "${last}" == *:* ]]; then
+        echo "${reference}"
+    else
+        echo "${reference}:latest"
+    fi
+}
+
+image_id_of() {
+    local tarball="$1" config
+    config="$(tar -xOf "${tarball}" manifest.json | jq -r '.[0].Config')"
+    [[ -n "${config}" && "${config}" != "null" ]] ||
+        fail "${tarball} has no manifest.json with a config"
+    config="${config##*/}"
+    config="${config%.json}"
+    [[ "${config}" == sha256:* ]] && echo "${config}" || echo "sha256:${config}"
+}
+
+blob_path() {
+    echo "${store}/blobs/${1#sha256:}.tar"
+}
+
+resolve() {
+    local reference="$1" id
+    if [[ "${reference}" == sha256:* ]]; then
+        echo "${reference}"
+
+        return
+    fi
+    id="$(read_index | jq -r --arg ref "$(normalize "${reference}")" '.[$ref] // ""')"
+    [[ -n "${id}" ]] || fail "no such image: ${reference}"
+    echo "${id}"
+}
+
+config_member() {
+    tar -xOf "$1" manifest.json | jq -r '.[0].Config'
+}
+
+# `docker load` hands over a tarball without saying what it is called, so the
+# references come from the tarball itself in that case.
+repo_tags_of() {
+    tar -xOf "$1" manifest.json | jq -r '.[0].RepoTags // [] | .[]'
+}
+
+command_put() {
+    local tarball="${1:?usage: mstudio-image-store put <tarball> [ref ...]}"
+    shift
+    local id target
+    id="$(image_id_of "${tarball}")"
+    target="$(blob_path "${id}")"
+    mkdir -p "$(dirname "${target}")"
+    [[ -f "${target}" ]] || cp "${tarball}" "${target}"
+    local references=("$@")
+    if [[ ${#references[@]} -eq 0 ]]; then
+        mapfile -t references < <(repo_tags_of "${tarball}")
+    fi
+    for reference in "${references[@]}"; do
+        [[ -n "${reference}" ]] || continue
+        read_index |
+            jq --arg ref "$(normalize "${reference}")" --arg id "${id}" \
+                '.[$ref] = $id' | write_index
+    done
+    echo "${id}"
+}
+
+# Tarballs are whole images, so a reference that goes away has to take its
+# tarball with it unless another reference still needs it.
+drop_unreferenced() {
+    local id="$1"
+    if [[ "$(read_index | jq --arg id "${id}" '[.[] | select(. == $id)] | length')" == "0" ]]; then
+        rm -f "$(blob_path "${id}")"
+    fi
+}
+
+command_prune() {
+    local kept removed=0
+    kept="$(read_index | jq -r '.[] | sub("^sha256:"; "")' | sort -u)"
+    shopt -s nullglob
+    for blob in "${store}"/blobs/*.tar; do
+        local name="${blob##*/}"
+        if ! grep -qx "${name%.tar}" <<<"${kept}"; then
+            rm -f "${blob}"
+            removed=$((removed + 1))
+        fi
+    done
+    echo "removed ${removed} unreferenced image(s)"
+}
+
+command_list() {
+    local reference id tarball size
+    printf '%-50s %-20s %s\n' "REPOSITORY:TAG" "IMAGE ID" "SIZE"
+    while IFS=$'\t' read -r reference id; do
+        [[ -n "${reference}" ]] || continue
+        tarball="$(blob_path "${id}")"
+        size=0
+        [[ -f "${tarball}" ]] && size="$(stat -c %s "${tarball}")"
+        printf '%-50s %-20s %sMB\n' "${reference}" "${id:7:12}" \
+            "$((size / 1024 / 1024))"
+    done < <(read_index | jq -r 'to_entries | sort_by(.key)[] | "\(.key)\t\(.value)"')
+}
+
+# A runner can work on several jobs at once (RUNNER_CONCURRENT) and every write
+# is a read, modify, write over one index file, so the writing commands run one
+# after the other.
+case "${1:-}" in
+    put | tag | untag | prune)
+        if [[ -z "${MSTUDIO_IMAGE_STORE_LOCKED:-}" ]]; then
+            mkdir -p "${store}"
+            export MSTUDIO_IMAGE_STORE_LOCKED=1
+            exec flock "${store}" "$0" "$@"
+        fi
+        ;;
+esac
+
+case "${1:-}" in
+    put)
+        shift
+        command_put "$@"
+        ;;
+    tarball)
+        tarball="$(blob_path "$(resolve "${2:?usage: mstudio-image-store tarball <image>}")")"
+        [[ -f "${tarball}" ]] || fail "no such image: $2"
+        echo "${tarball}"
+        ;;
+    resolve) resolve "${2:?usage: mstudio-image-store resolve <image>}" ;;
+    tag)
+        read_index |
+            jq --arg ref "$(normalize "${3:?usage: mstudio-image-store tag <source> <target>}")" \
+                --arg id "$(resolve "${2:?}")" '.[$ref] = $id' | write_index
+        ;;
+    untag)
+        reference="$(normalize "${2:?usage: mstudio-image-store untag <image>}")"
+        image_id="$(resolve "${reference}")"
+        read_index | jq --arg ref "${reference}" 'del(.[$ref])' | write_index
+        drop_unreferenced "${image_id}"
+        ;;
+    prune) command_prune ;;
+    list) command_list ;;
+    config)
+        tarball="$(blob_path "$(resolve "${2:?usage: mstudio-image-store config <image>}")")"
+        tar -xOf "${tarball}" "$(config_member "${tarball}")"
+        ;;
+    "" | -h | --help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) fail "unknown command: $1" ;;
+esac

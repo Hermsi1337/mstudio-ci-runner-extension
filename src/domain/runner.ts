@@ -1,6 +1,7 @@
 import { assertStatus, type MittwaldAPIV2Client } from "@mittwald/api-client";
 import { and, desc, eq } from "drizzle-orm";
 import * as uuid from "uuid";
+import { withBuildQueue, withoutBuildQueue } from "@/build-queue.ts";
 import { getDatabase } from "@/db";
 import {
     extensionInstances,
@@ -25,6 +26,11 @@ import {
 } from "@/global-errors.ts";
 import { addLogContext, createLogger } from "@/logger.ts";
 import { runnerSizes } from "@/runner-sizes.ts";
+import {
+    buildQueueMount,
+    ensureBuilder,
+    removeBuilderIfUnused,
+} from "./builder.ts";
 import {
     CACHE_VOLUME,
     cacheTrimCronjob,
@@ -133,6 +139,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         memoryMb: resources.memoryMb,
         cache: row.cache,
         cacheSizeGb: row.cacheSizeGb,
+        imageBuilds: row.imageBuilds,
         concurrency: row.concurrency,
         stackId: row.stackId,
         serviceId,
@@ -417,6 +424,7 @@ export async function createRunner(
     const prepared = await provider.prepare({ ...input, labels }, runnerName);
     const cache = input.cache ?? false;
     const cacheSizeGb = input.cacheSizeGb ?? 10;
+    const imageBuilds = input.imageBuilds ?? false;
     const concurrency = provider.concurrencyVariable
         ? (input.concurrency ?? 1)
         : 1;
@@ -466,6 +474,21 @@ export async function createRunner(
                 error,
             });
         }
+        if (imageBuilds) {
+            try {
+                await removeBuilderIfUnused(
+                    client,
+                    extensionInstanceId,
+                    stackId,
+                    serviceName,
+                );
+            } catch (error) {
+                log.error("rollback: builder removal failed", {
+                    stackId,
+                    error,
+                });
+            }
+        }
         // Only tear down the stack this call created; a shared stack may hold
         // an in-flight sibling create whose row is not committed yet.
         if (createdStack) {
@@ -479,6 +502,13 @@ export async function createRunner(
             }
         }
     };
+
+    let mountsWithQueue = mounts;
+    let queueMount = "";
+    if (imageBuilds) {
+        queueMount = await buildQueueMount(client, projectId, stackId);
+        mountsWithQueue = withBuildQueue(mounts, queueMount);
+    }
 
     let service: ServiceResponse | undefined;
     try {
@@ -497,9 +527,20 @@ export async function createRunner(
                 ),
                 restartPolicy: "always",
                 deploy: { resources: { limits: resourceLimits(resources) } },
-                volumes: prefixMounts(serviceName, mounts),
+                volumes: prefixMounts(serviceName, mountsWithQueue),
             },
         );
+        // After the runner, never before: a sibling that turns image builds off
+        // at the same time looks at the declared services to decide whether the
+        // builder is still needed, and it has to see this runner's queue mount.
+        if (imageBuilds) {
+            await ensureBuilder(
+                client,
+                extensionInstanceId,
+                stackId,
+                queueMount,
+            );
+        }
         if (cache && service) {
             cronjobIds.push(
                 await createTrimCronjob(
@@ -536,6 +577,7 @@ export async function createRunner(
         runnerVersion: prepared.runnerVersion,
         cache,
         cacheSizeGb,
+        imageBuilds,
         concurrency,
         cronjobIds: JSON.stringify(cronjobIds),
         createdBy: userId,
@@ -666,6 +708,16 @@ export async function updateRunner(
         row.stackId,
         updatedService ?? service,
     );
+    // The builder of the stack ships with the same release as the runner, so an
+    // update that only touched the runner would leave it behind.
+    if (row.imageBuilds) {
+        await ensureBuilder(
+            client,
+            extensionInstanceId,
+            row.stackId,
+            await buildQueueMount(client, row.projectId, row.stackId),
+        );
+    }
     const [updated] = await getDatabase()
         .update(runners)
         .set({ image, runnerVersion: provider.runnerVersion })
@@ -705,11 +757,13 @@ async function recreateIfRequired(
 }
 
 /**
- * Changes cache, concurrency and resources after creation. Switching the
- * cache adds or removes the cache volume and environment on the service state
- * mittwald reports, concurrency changes its environment variable; every
- * change redeclares the stack and recreates the service. Turning the cache
- * off deletes its cronjob and volume.
+ * Changes cache, image builds, concurrency and resources after creation.
+ * Switching the cache adds or removes the cache volume and environment on the
+ * service state mittwald reports, image builds add or remove the build queue
+ * mount and the builder service of the stack, concurrency changes an
+ * environment variable; every change redeclares the stack and recreates the
+ * service. Turning the cache off deletes its cronjob and volume, turning image
+ * builds off removes the builder once no runner of the stack builds any more.
  */
 export async function configureRunner(
     client: MittwaldAPIV2Client,
@@ -724,6 +778,7 @@ export async function configureRunner(
     }
     const cache = input.cache;
     const cacheSizeGb = input.cacheSizeGb ?? row.cacheSizeGb;
+    const imageBuilds = input.imageBuilds ?? row.imageBuilds;
     const concurrency = provider.concurrencyVariable
         ? (input.concurrency ?? row.concurrency)
         : 1;
@@ -737,6 +792,7 @@ export async function configureRunner(
     let updatedService = service;
     if (
         cache !== row.cache ||
+        imageBuilds !== row.imageBuilds ||
         concurrency !== row.concurrency ||
         resourcesChanged
     ) {
@@ -748,6 +804,16 @@ export async function configureRunner(
         const { environment, mounts } = cache
             ? withCache(state.envs ?? {}, plainMounts)
             : withoutCache(state.envs ?? {}, plainMounts);
+        let mountsWithQueue = withoutBuildQueue(mounts);
+        let queueMount = "";
+        if (imageBuilds) {
+            queueMount = await buildQueueMount(
+                client,
+                row.projectId,
+                row.stackId,
+            );
+            mountsWithQueue = withBuildQueue(mountsWithQueue, queueMount);
+        }
         updatedService =
             (await declareService(
                 client,
@@ -767,18 +833,35 @@ export async function configureRunner(
                         ...service.deploy,
                         resources: { limits: resourceLimits(resources) },
                     },
-                    volumes: prefixMounts(row.serviceName, mounts),
+                    volumes: prefixMounts(row.serviceName, mountsWithQueue),
                     ports: state.ports,
                     command: state.command,
                     entrypoint: state.entrypoint,
                 },
             )) ?? service;
+        // The builder comes after the runner, so a sibling that turns image
+        // builds off at the same moment sees this runner's queue mount.
+        if (imageBuilds) {
+            await ensureBuilder(
+                client,
+                extensionInstanceId,
+                row.stackId,
+                queueMount,
+            );
+        }
         await recreateIfRequired(
             client,
             extensionInstanceId,
             row.stackId,
             updatedService,
         );
+        if (!imageBuilds && row.imageBuilds) {
+            await removeBuilderIfUnused(
+                client,
+                extensionInstanceId,
+                row.stackId,
+            );
+        }
     }
 
     let cronjobIds = parseCronjobIds(row);
@@ -819,6 +902,7 @@ export async function configureRunner(
         .set({
             cache,
             cacheSizeGb,
+            imageBuilds,
             concurrency,
             size: resources.size,
             cpus: resources.size === "custom" ? resources.cpus : null,
@@ -834,6 +918,7 @@ export async function configureRunner(
     log.info("runner configured", {
         cache,
         cacheSizeGb,
+        imageBuilds,
         concurrency,
         size: resources.size,
         cpus: resources.cpus,
@@ -841,6 +926,7 @@ export async function configureRunner(
         previousSize: row.size,
         previousCache: row.cache,
         previousCacheSizeGb: row.cacheSizeGb,
+        previousImageBuilds: row.imageBuilds,
         previousConcurrency: row.concurrency,
     });
     return toView(updated, updatedService);
@@ -864,6 +950,14 @@ export async function deleteRunner(
         );
     }
     await releaseProviderRegistration(row, service);
+    if (row.imageBuilds) {
+        await removeBuilderIfUnused(
+            client,
+            extensionInstanceId,
+            row.stackId,
+            row.serviceName,
+        );
+    }
     // One transaction removes the runner row, checks whether the stack is now
     // empty, and, when it is, removes the runner_stacks row too. Deleting that
     // lock row here means a racing createRunner can no longer find the stack

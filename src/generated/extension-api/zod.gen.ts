@@ -60,6 +60,11 @@ export const zConcurrency = z.int().gte(1).lte(8).default(1);
 export const zCacheEnabled = z.boolean().default(false);
 
 /**
+ * Lets jobs build container images with `docker build`. Mounts the build queue of the stack into the runner and adds the builder service to the stack if it is missing.
+ */
+export const zImageBuilds = z.boolean().default(false);
+
+/**
  * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
  */
 export const zCacheSizeGb = z.int().gte(1).lte(500).default(10);
@@ -69,6 +74,7 @@ export const zRunnerBase = z.object({
     labels: z.string().max(500).optional().default('mittwald'),
     cache: zCacheEnabled.optional(),
     cacheSizeGb: zCacheSizeGb.optional(),
+    imageBuilds: zImageBuilds.optional(),
     concurrency: zConcurrency.optional(),
     size: zRunnerSize.optional(),
     cpus: zCpus.optional(),
@@ -116,6 +122,7 @@ export const zConfigureRunnerRequest = z.object({
     runnerId: z.uuid(),
     cache: zCacheEnabled,
     cacheSizeGb: zCacheSizeGb.optional(),
+    imageBuilds: zImageBuilds.optional(),
     concurrency: zConcurrency.optional(),
     size: zRunnerSize.optional(),
     cpus: zCpus.optional(),
@@ -141,6 +148,7 @@ export const zRunner = z.object({
     memoryMb: z.int(),
     cache: z.boolean(),
     cacheSizeGb: z.int(),
+    imageBuilds: z.boolean(),
     concurrency: z.int(),
     stackId: z.uuid(),
     serviceId: z.string().nullable(),

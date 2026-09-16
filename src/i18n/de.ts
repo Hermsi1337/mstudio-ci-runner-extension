@@ -19,9 +19,9 @@ export const de: Messages = {
     "changelog.empty.text":
         "GitHub hat keine Releases geliefert. Versuch es später noch mal.",
     "app.title": "CI Runner",
-    "app.dockerNotice.title": "Kein Docker in den Runnern",
+    "app.dockerNotice.title": "Was im Job geht und was nicht",
     "app.dockerNotice.text":
-        "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon.\n\n**Geht nicht**\n\n- GitHub Actions: `container:`, `services:`, `docker build`, Docker-Container-Actions\n- GitLab CI: `image:`, `services:`, alles was `docker` aufruft\n\n**Geht**\n\n- Jobs direkt auf Ubuntu 24.04: Node über `actions/setup-node`, Python, `build-essential`\n- `git`, `curl`, `rsync`, SSH-Deploys\n- Pakete nachinstallieren mit `sudo apt-get`",
+        "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon. Jobs laufen direkt auf Ubuntu 24.04.\n\n**Geht**\n\n- Node über `actions/setup-node`, Python, `build-essential`, `git`, `curl`, `rsync`, SSH-Deploys\n- Pakete nachinstallieren mit `sudo apt-get`\n- `docker build` und `docker push`, auch über `docker/build-push-action`, wenn Image-Builds für den Runner an sind. Gebaut wird in einem Builder-Container des Stacks\n\n**Geht nicht**\n\n- `docker run`, `docker compose` und alles andere, das einen Container startet\n- GitHub Actions: `container:`, `services:`, Docker-Container-Actions\n- GitLab CI: `image:`, `services:`\n- BuildKit-Funktionen im Dockerfile: `RUN --mount`, `--secret`, `--ssh`, eine andere Architektur",
 
     "runners.heading": "Runner",
     "runners.containerHosting.missing.heading": "Container Hosting fehlt",
@@ -44,6 +44,7 @@ export const de: Messages = {
     "runners.filter.provider": "CI-System",
     "runners.column.size": "Größe",
     "runners.column.cache": "Cache",
+    "runners.column.imageBuilds": "Image-Builds",
     "runners.column.version": "Version",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Neustart",
@@ -59,6 +60,8 @@ export const de: Messages = {
     "runners.labels.inCiSystem": "In GitLab festgelegt",
     "runners.cache.off": "Aus",
     "runners.cache.limit": "{size} GB",
+    "runners.imageBuilds.on": "An",
+    "runners.imageBuilds.off": "Aus",
     "runners.notice.created": "Runner {name} angelegt",
     "runners.notice.createdText":
         "Der Container startet jetzt und registriert sich innerhalb einer Minute.",
@@ -150,6 +153,9 @@ export const de: Messages = {
     "form.summary.cronjob.label": "Cronjob: Cache aufräumen",
     "form.summary.cronjob.text":
         "Kürzt das Cache-Volume stündlich auf {size} GB.",
+    "form.summary.builder.label": "Container: builder",
+    "form.summary.builder.text":
+        "Baut die Images aller Runner in diesem Stack. Ein zusätzlicher Container im Stack, gemeinsam genutzt.",
     "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Ressourcen",
@@ -233,6 +239,9 @@ export const de: Messages = {
     "form.cacheSize.range": "Gib einen Wert zwischen 1 und 500 GB an",
     "form.cacheSize.help":
         "mittwald-Volumes haben selbst kein Größenlimit, daher legt die Extension im Projekt einen Cronjob an, der stündlich im Runner-Container läuft. Er löscht die am längsten nicht geänderten Dateien, bis der Cache ins Limit passt. Der Cronjob wird mit dem Runner entfernt.",
+    "form.imageBuilds.label": "Image-Builds in Jobs",
+    "form.imageBuilds.help":
+        "Erlaubt docker build in Jobs, obwohl der Container keinen Docker-Daemon hat. Gebaut wird in einem Builder-Container desselben Stacks (kaniko), gepusht wird vom Runner mit den Zugangsdaten aus docker login. Der Builder kommt einmal in den Stack und bedient alle Runner darin. Es gibt keinen Layer-Cache, jeder Build startet beim Base-Image. BuildKit-Funktionen wie RUN --mount, --secret, --ssh und Builds für eine andere Architektur gehen nicht; der docker-Befehl sagt das, statt etwas anderes zu bauen.",
     "form.concurrency.label": "Jobs gleichzeitig",
     "form.concurrency.required": "Gib an, wie viele Jobs gleichzeitig laufen",
     "form.concurrency.range": "Gib einen Wert zwischen 1 und 8 an",
@@ -284,6 +293,8 @@ export const de: Messages = {
         "Die Stacks des Projekts konnten nicht geladen werden (Status {status}). Versuch es gleich noch mal.",
     "error.upstream.projectGet":
         "Das Projekt konnte nicht geladen werden (Status {status}). Versuch es gleich noch mal.",
+    "error.builder.nameTaken":
+        "Im Stack gibt es schon einen Container namens builder, der nicht von dieser Extension stammt. Image-Builds brauchen diesen Namen. Benenne deinen Container um oder nimm einen anderen Stack.",
     "error.containerHosting.unavailable":
         "Dieses Projekt unterstützt kein Container Hosting und kann deshalb keine CI-Runner betreiben. Installier die Extension in einem Projekt auf einem Server mit Container Hosting.",
     "error.upstream.cronjobCreate":

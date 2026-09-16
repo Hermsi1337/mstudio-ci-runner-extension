@@ -257,6 +257,23 @@ describe.each(cases)(
             expect(disabled).toMatchObject({ cache: false, cacheSizeGb: 7 });
         });
 
+        it("turns image builds on and off", async () => {
+            const enabled = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId, cache: false, imageBuilds: true },
+            );
+            expect(zRunner.parse(enabled)).toEqual(enabled);
+            expect(enabled.imageBuilds).toBe(true);
+
+            const disabled = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId, cache: false, imageBuilds: false },
+            );
+            expect(disabled.imageBuilds).toBe(false);
+        });
+
         it("switches between a preset and custom limits", async () => {
             const custom = await runner.configureRunner(
                 client,

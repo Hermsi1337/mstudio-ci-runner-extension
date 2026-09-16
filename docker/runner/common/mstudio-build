@@ -1,0 +1,203 @@
+#!/usr/bin/env bash
+# Builds a container image from a CI job and optionally pushes it.
+#
+# The runner container has no Docker daemon and no privileges to build images
+# itself. It hands the build to the builder service of the same stack through a
+# shared directory in the project file system, streams its log and imports the
+# resulting tarball into the local image store (see mstudio-image-store).
+#
+# Usage:
+#   mstudio-build [options] [CONTEXT]
+#
+#   -t, --tag NAME[:TAG]     image reference, repeatable
+#   -f, --dockerfile PATH    Dockerfile inside the context (default: Dockerfile)
+#       --build-arg K=V      build argument, repeatable
+#       --label K=V          image label, repeatable
+#       --target STAGE       build stage to stop at
+#       --push               push every tag with crane after a successful build
+#       --iidfile PATH       write the image id (config digest) to PATH
+#       --metadata-file PATH write buildx style metadata JSON to PATH
+#       --platform PLATFORM  only the platform of this runner is supported
+#       --timeout SECONDS    how long to wait for the builder (default: 3600)
+#       --quiet              only print the image reference
+#
+# Environment:
+#   BUILD_QUEUE_DIR  directory shared with the builder (default: /builds)
+set -euo pipefail
+
+queue_dir="${BUILD_QUEUE_DIR:-/builds}"
+context="."
+dockerfile="Dockerfile"
+target=""
+# The builder stops a build after BUILD_TIMEOUT (3600s by default) and writes a
+# result, so the runner waits a little longer than that and never gives up on a
+# build that is still running.
+timeout_seconds="${MSTUDIO_BUILD_TIMEOUT:-3900}"
+push=false
+quiet=false
+iidfile=""
+metadata_file=""
+tags=()
+build_args=()
+labels=()
+
+log() {
+    if [[ "${quiet}" == false ]]; then
+        echo "$@" >&2
+    fi
+}
+
+fail() {
+    echo "mstudio-build: $*" >&2
+    exit 1
+}
+
+usage() {
+    sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -t | --tag) tags+=("$2"); shift 2 ;;
+        -f | --dockerfile) dockerfile="$2"; shift 2 ;;
+        --build-arg) build_args+=("$2"); shift 2 ;;
+        --label) labels+=("$2"); shift 2 ;;
+        --target) target="$2"; shift 2 ;;
+        --push) push=true; shift ;;
+        --iidfile) iidfile="$2"; shift 2 ;;
+        --metadata-file) metadata_file="$2"; shift 2 ;;
+        --platform) mstudio-platform-check "$2"; shift 2 ;;
+        --timeout) timeout_seconds="$2"; shift 2 ;;
+        --quiet) quiet=true; shift ;;
+        -h | --help) usage; exit 0 ;;
+        --) shift; break ;;
+        -*) fail "unknown option $1 (see mstudio-build --help)" ;;
+        *) context="$1"; shift ;;
+    esac
+done
+
+if [[ ! -d "${queue_dir}/queue" ]]; then
+    fail "image builds are turned off for this stack. Turn them on in the mStudio extension, then the builder creates ${queue_dir}/queue."
+fi
+if [[ ! -w "${queue_dir}/queue" ]]; then
+    fail "${queue_dir}/queue is not writable by $(id -un), check whether the builder service of this stack is running."
+fi
+[[ -d "${context}" ]] || fail "build context ${context} does not exist"
+[[ -f "${context}/${dockerfile}" ]] || fail "${context}/${dockerfile} does not exist"
+
+mstudio-dockerfile-check "${context}/${dockerfile}"
+
+if [[ "${push}" == true && ${#tags[@]} -eq 0 ]]; then
+    fail "--push needs at least one --tag"
+fi
+
+# mktemp makes the directory, so two runners of the same stack cannot pick the
+# same name in the same second.
+job="$(mktemp -d "${queue_dir}/queue/build-$(date +%s)-XXXXXX")"
+job_id="${job##*/}"
+result="${job}/result"
+mkdir -p "${job}/context"
+
+# The builder reads the job directory while it works, so it is only removed
+# once a result is in. A job left behind by a timeout or a killed runner is
+# collected by the builder, see docs/image-builds.md.
+cleanup() {
+    if [[ -f "${result}" || ! -f "${job}/request" ]]; then
+        rm -rf "${job}" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+
+log "mstudio-build: sending ${context} to the builder (job ${job_id})"
+tar -c -C "${context}" . | tar -x -C "${job}/context"
+
+if [[ ${#build_args[@]} -gt 0 ]]; then
+    printf '%s\n' "${build_args[@]}" >"${job}/build-args"
+fi
+if [[ ${#labels[@]} -gt 0 ]]; then
+    printf '%s\n' "${labels[@]}" >"${job}/labels"
+fi
+
+{
+    echo "DOCKERFILE=${dockerfile}"
+    echo "DESTINATION=${tags[0]:-mstudio-build:${job_id}}"
+    [[ -n "${target}" ]] && echo "TARGET=${target}"
+} >"${job}/request.tmp"
+mv "${job}/request.tmp" "${job}/request"
+
+deadline=$((SECONDS + timeout_seconds))
+tail_pid=""
+while [[ ! -f "${result}" ]]; do
+    if [[ -z "${tail_pid}" && -f "${job}/log" ]]; then
+        tail -n +1 -f "${job}/log" >&2 &
+        tail_pid=$!
+    fi
+    if ((SECONDS > deadline)); then
+        [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null
+        fail "no result after ${timeout_seconds}s. The job stays in ${job} for the builder, check the log of the builder service in mStudio."
+    fi
+    sleep 1
+done
+sleep 1
+[[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null || true
+
+exit_code=""
+for _ in 1 2 3 4 5; do
+    line="$(cat "${result}" 2>/dev/null || true)"
+    if [[ "${line}" =~ ^exit=([0-9]+)$ ]]; then
+        exit_code="${BASH_REMATCH[1]}"
+        break
+    fi
+    sleep 1
+done
+[[ -n "${exit_code}" ]] || fail "the builder wrote an unreadable result: $(cat "${result}" 2>/dev/null)"
+
+if [[ "${exit_code}" != "0" ]]; then
+    [[ -f "${job}/log" ]] && tail -n 40 "${job}/log" >&2
+    exit "${exit_code}"
+fi
+
+image_id="$(mstudio-image-store put "${job}/image.tar" "${tags[@]}")"
+
+# The digest of the pushed manifest only exists once it is pushed: crane builds
+# the manifest from the tarball, so it differs from what kaniko would have
+# pushed itself. Without a push there is no digest to report.
+manifest_digest=""
+if [[ "${push}" == true ]]; then
+    for tag in "${tags[@]}"; do
+        log "mstudio-build: pushing ${tag}"
+        pushed="$(mstudio-crane "${tag}" push "${job}/image.tar" "${tag}")"
+        manifest_digest="$(grep -o -E 'sha256:[0-9a-f]{64}' <<<"${pushed}" | tail -n 1)"
+    done
+fi
+
+if [[ -n "${iidfile}" ]]; then
+    if [[ -n "${manifest_digest}" ]]; then
+        printf '%s' "${manifest_digest}" >"${iidfile}"
+    else
+        printf '%s' "${image_id}" >"${iidfile}"
+    fi
+fi
+
+# The fields `docker/build-push-action` exposes as its imageid, digest and
+# metadata outputs. Workflows read them to tag deployments, so an empty file
+# would break steps that do.
+if [[ -n "${metadata_file}" ]]; then
+    jq -n \
+        --arg config "${image_id}" \
+        --arg digest "${manifest_digest}" \
+        --arg names "$(
+            IFS=,
+            echo "${tags[*]:-}"
+        )" \
+        '{"containerimage.config.digest": $config}
+            + (if $digest == "" then {} else {"containerimage.digest": $digest} end)
+            + (if $names == "" then {} else {"image.name": $names} end)' \
+        >"${metadata_file}"
+fi
+
+if [[ ${#tags[@]} -gt 0 ]]; then
+    printf '%s\n' "${tags[0]}"
+else
+    printf '%s\n' "${image_id}"
+fi

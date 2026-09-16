@@ -49,7 +49,8 @@ e.g. to try a branch.
 The extension image receives the version as build arg `EXTENSION_VERSION` (baked in as
 environment variable). The extension derives its default runner images from it, so
 nothing runs on `latest`. The runner software versions come from
-`docker/runner/versions.json` ([runner-image.md](runner-image.md)).
+`docker/runner/versions.json` ([runner-image.md](runner-image.md)), the kaniko version of
+the builder image from `docker/builder/versions.json` ([image-builds.md](image-builds.md)).
 
 ## Images
 
@@ -57,6 +58,7 @@ nothing runs on `latest`. The runner software versions come from
 |---|---|---|
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `docker/runner/github/` | must be **public**, mittwald pulls it without credentials |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `docker/runner/gitlab/` | must be **public** |
+| `ghcr.io/hermsi1337/mstudio-ci-builder` | `docker/builder/` | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `docker/extension/Dockerfile`, build context is the repo root, ignore rules in `docker/extension/Dockerfile.dockerignore` | any |
 
 Package visibility is independent of the repository and can only be changed on the web:
@@ -71,7 +73,7 @@ Package visibility is independent of the repository and can only be changed on t
 |---|---|---|
 | `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
-| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers, `linux/amd64` |
+| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)), `linux/amd64` |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
 | `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
 | `deploy-production.yml` | Manual | Deploys into the production installation |
@@ -100,8 +102,8 @@ workflows succeeded, so a release only exists when its images do. The notes are
 generated from `.github/release.yml` (the config): the categories use the type labels
 that `pr-title.yml` sets, so pull requests are squash-merged with their title as commit
 subject. Dependabot updates arrive under `dependabot` and are excluded. The workflow
-prepends a table with the three images, their pull commands and the runner software
-versions from `docker/runner/versions.json`. The releases page is the changelog; there
+prepends a table with the four images, their pull commands and the software versions
+from `docker/runner/versions.json` and `docker/builder/versions.json`. The releases page is the changelog; there
 is no `CHANGELOG.md`.
 
 `.github/dependabot.yml` opens weekly pull requests for npm packages (grouped:
@@ -149,7 +151,7 @@ to a release only once it is merged into `main`. A tag cut from a branch before 
 built and released, but nothing deploys it.
 
 `EXTENSION_VERSION` selects the extension image and, inside the extension, the runner
-images, so a deployment pins all three to the same release. `postgres` is excluded from the
+images and the builder image, so a deployment pins all four to the same release. `postgres` is excluded from the
 restart (`skip_recreation`); the extension runs its migrations on start.
 
 After the stack the job `metadata` runs `pnpm run extension:sync` and writes the
@@ -242,3 +244,12 @@ under the container `extension`.
 3. Push a tag. Existing runners show an update in the UI once the new extension release
    is deployed; *Update* moves them to the new image. Running GitHub runners also update
    themselves unless `DISABLE_AUTO_UPDATE` is set.
+
+`crane` in the runner images and `kaniko` in the builder image follow the same path.
+`crane.version` and its two checksums live in `docker/runner/versions.json`
+([releases](https://github.com/google/go-containerregistry/releases), file
+`checksums.txt`), `kaniko.version` and the Go version that compiles it in
+`docker/builder/versions.json`
+([releases](https://github.com/chainguard-forks/kaniko/releases)). Both are read by the
+workflow, by `pnpm run runner:build` and by the integration tests; a bump needs a tag
+like any other change.

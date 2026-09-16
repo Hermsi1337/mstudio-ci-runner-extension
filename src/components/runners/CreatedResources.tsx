@@ -24,6 +24,7 @@ interface CreatedResourcesProps {
     memoryGb: number;
     cache: boolean;
     cacheSizeGb: number;
+    imageBuilds: boolean;
     selectedStackName?: string;
 }
 
@@ -41,6 +42,7 @@ export const CreatedResources = ({
     memoryGb,
     cache,
     cacheSizeGb,
+    imageBuilds,
     selectedStackName,
 }: CreatedResourcesProps) => {
     const t = useTranslation();
@@ -108,6 +110,16 @@ export const CreatedResources = ({
                       text: t("form.summary.cronjob.text", {
                           size: cacheSizeGb,
                       }),
+                  },
+              ]
+            : []),
+        ...(imageBuilds
+            ? [
+                  {
+                      key: "builder",
+                      icon: <IconContainer />,
+                      label: t("form.summary.builder.label"),
+                      text: t("form.summary.builder.text"),
                   },
               ]
             : []),

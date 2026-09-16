@@ -1,0 +1,1 @@
+ALTER TABLE "runners" ADD COLUMN "imageBuilds" boolean DEFAULT false NOT NULL;

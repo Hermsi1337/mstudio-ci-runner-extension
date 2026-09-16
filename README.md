@@ -56,8 +56,12 @@ registration.
 ## Limitations
 
 Container Hosting provides no Docker daemon. Plain jobs (Node, PHP, Python, Go,
-Rust, Bash, deploys via SSH/rsync) work. GitHub `container:`, `services:`,
-`docker build` and GitLab `image:`/`services:` do not.
+Rust, Bash, deploys via SSH/rsync) work. GitHub `container:`, `services:` and GitLab
+`image:`/`services:` do not, and neither does anything else that starts a container.
+
+`docker build` and `docker push` do work: turn image builds on for a runner and the
+build runs in a builder service of its stack, kaniko instead of a daemon
+([docs/image-builds.md](docs/image-builds.md)).
 
 Jobs run with passwordless sudo in a container that keeps its volumes between jobs.
 Use one runner per trust boundary and do not run untrusted pull requests on it, see the

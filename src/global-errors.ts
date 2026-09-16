@@ -91,6 +91,16 @@ export class ContainerHostingUnavailableError extends PublicError {
     }
 }
 
+export class BuilderNameTakenError extends PublicError {
+    public constructor(stackId: string) {
+        super(
+            "error.builder.nameTaken",
+            {},
+            { statusCode: 409, details: { stackId } },
+        );
+    }
+}
+
 const notFoundMessageKeys = {
     runner: "error.notFound.runner",
     runnerContainer: "error.notFound.runnerContainer",

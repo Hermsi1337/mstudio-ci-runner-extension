@@ -4,9 +4,11 @@ One image per provider under `docker/runner/<provider>/`, built by
 `.github/workflows/runner-image.yml` (matrix, `linux/amd64` only because Container
 Hosting runs on amd64, called by
 `release.yml` on git tags only, see [operations.md](operations.md)) with `docker/runner` as build context, so every
-image also gets `docker/runner/common/` (`trim-cache.sh`, the cache cleanup called by the
-cronjob, see [providers.md](providers.md)). All images: Ubuntu 24.04, user `runner`, no
-Docker daemon.
+image also gets `docker/runner/common/`: `trim-cache.sh`, the cache cleanup called by the
+cronjob (see [providers.md](providers.md)), and the tools for image builds, `docker-shim`
+plus `mstudio-build`, `mstudio-image-store`, `mstudio-crane`, `mstudio-dockerfile-check`
+and `mstudio-platform-check` ([image-builds.md](image-builds.md)). All images: Ubuntu
+24.04, user `runner`, no Docker daemon.
 
 | Provider | Image | Base |
 |---|---|---|
@@ -14,19 +16,19 @@ Docker daemon.
 | gitlab | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | [gitlab-runner](https://gitlab.com/gitlab-org/gitlab-runner) binary, executor `shell` |
 
 The runner software version per provider lives in `docker/runner/versions.json`
-together with the SHA-256 checksums of the upstream binaries for amd64 and arm64. CI
-builds amd64 only, the arm64 checksum is what `pnpm run runner:build` needs on an
-Apple Silicon machine:
+together with the SHA-256 checksums of the upstream binaries for amd64 and arm64, next to
+the `crane` version the images ship for pushing built images. CI builds amd64 only, the
+arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine:
 
 ```json
 { "github": { "version": "2.337.0", "sha256": { "amd64": "...", "arm64": "..." } } }
 ```
 
-It is the only place to bump it: the workflow, `pnpm run runner:build`, the image test
+It is the only place to bump them: the workflow, `pnpm run runner:build`, the image test
 and the extension (shown as runner version in the UI, `runnerVersion` on the provider)
-read it. The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64` and
-`RUNNER_SHA256_ARM64` as build args without defaults and stop the build when the
-downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
+read it. The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64`,
+`RUNNER_SHA256_ARM64`, `CRANE_VERSION`, `CRANE_SHA256_AMD64` and `CRANE_SHA256_ARM64` as
+build args without defaults and stop the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
 
 The extension creates runners from `ghcr.io/hermsi1337/mstudio-ci-runner-<provider>:<EXTENSION_VERSION>`,
 the same release as the extension itself. A runner created by an older release shows an
@@ -68,6 +70,10 @@ put a long-lived credential into a container where every job has sudo.
 | `RUNNER_WORKDIR` | Working directory: checkouts, downloaded actions, `_tool` (tool cache of the `setup-*` actions) | `RUNNER_DATA_DIR/work` |
 | `RUNNER_CONFIG_DIR` | Keeps the registration across restarts | `RUNNER_DATA_DIR/config` |
 | `DISABLE_AUTO_UPDATE` | `true` = `--disableupdate` | `false` |
+
+The variables for image builds (`BUILD_QUEUE_DIR`, `MSTUDIO_IMAGE_STORE`,
+`MSTUDIO_INSECURE_REGISTRIES`, `MSTUDIO_BUILD_TIMEOUT`) are in
+[image-builds.md](image-builds.md#setting-it-up). The extension sets none of them.
 
 Volumes: `data:/home/runner/data`, optionally `cache:/home/runner/.cache`
 (see [Volumes](#volumes)).
@@ -126,7 +132,7 @@ works for them as well.
 ## Building and testing
 
 ```bash
-pnpm run runner:build     # both images locally as mstudio-ci-runner-<provider>:local
+pnpm run runner:build     # both runner images as mstudio-ci-runner-<provider>:local, plus mstudio-ci-builder:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e RUNNER_TOKEN=AEBI... mstudio-ci-runner-github:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e GITHUB_TOKEN=github_pat_... mstudio-ci-runner-github:local
 docker run --rm -e CI_SERVER_URL=https://gitlab.com -e CI_SERVER_TOKEN=glrt-... mstudio-ci-runner-gitlab:local
@@ -136,9 +142,14 @@ Automated: `tests/integration/runner-image.test.ts` ([testing.md](testing.md)).
 
 ## Limitations
 
-No Docker daemon. GitHub: `container:`, `services:`, `docker build` and Docker container
-actions fail. GitLab: `image:` and `services:` are ignored by the shell executor; jobs
-run directly in the Ubuntu userland.
+No Docker daemon, so nothing that starts a container works: `docker run`, `docker
+compose`, `container:` and `services:` in GitHub Actions, Docker container actions. In
+GitLab `image:` and `services:` are ignored by the shell executor; jobs run directly in
+the Ubuntu userland.
+
+`docker build` works: the `docker` in the image is a shim that hands the build to the
+builder service of the stack and pushes with crane. What it supports, fills in, warns
+about and refuses is in [image-builds.md](image-builds.md).
 
 ## Workflow examples
 
