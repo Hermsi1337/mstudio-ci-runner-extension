@@ -71,36 +71,27 @@ Package visibility is independent of the repository and can only be changed on t
 |---|---|---|
 | `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
-| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers, multi-arch |
+| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers, `linux/amd64` |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
 | `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
 | `deploy-production.yml` | Manual | Deploys into the production installation |
 | `release.yml` | Tags `v*` | Runs both image workflows as jobs, creates the GitHub release via `softprops/action-gh-release` (generated notes plus an image table with pull commands and the runner software versions), then commits the tag version to `package.json` on `main` |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
 
-## Self-hosted runner
+## Where the jobs run
 
-The repository has one runner created by this extension (label `mittwald`, in a
-mittwald project of the maintainer). Jobs that need neither Docker nor tools that only
-GitHub-hosted images ship run there:
+Every job runs on GitHub-hosted runners. This repository is public, so those minutes are
+free and a runner of its own would add a queue without adding anything. Runners created
+by this extension are for pipelines that want the project's network, its data or its
+resources, which is not what building and releasing this repository needs.
 
 | Job | Runner | Why |
 |---|---|---|
-| `ci.yml` `check` | `[self-hosted, mittwald]`, forks: `ubuntu-latest` | Node and pnpm come from `actions/setup-node` |
-| `ci.yml` `integration` | `ubuntu-latest` | Testcontainers needs a Docker daemon |
-| `release.yml` `verify` | `ubuntu-latest` | Runs the integration tests |
-| `release.yml` `release`, `bump-version` | `[self-hosted, mittwald]` | `jq`, `git` and Node via `actions/setup-node` |
-| `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx with QEMU |
-| `deploy.yml` `deploy` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
-| `deploy.yml` `metadata` | `[self-hosted, mittwald]` | Node via `actions/setup-node`, one API call, no Docker |
-| `pr-title.yml` | `ubuntu-latest` | Needs `gh`, which the runner image does not ship |
-
-Pull requests from forks never run on the self-hosted runner: `runs-on` switches to
-`ubuntu-latest` when `github.event.pull_request.head.repo.fork` is true, because the
-runner has passwordless sudo and reaches the project network
-([architecture.md](architecture.md#trust-model-of-a-runner)). When the runner is
-offline, `check`, `release`, `bump-version` and `metadata` wait in the queue until it is
-back; the integration tests, the image builds and the stack deployment are not affected.
+| `ci.yml` `check`, `integration` | `ubuntu-latest` | Testcontainers needs a Docker daemon |
+| `release.yml` `verify`, `release`, `bump-version` | `ubuntu-latest` | Integration tests, `jq`, `git`, Node |
+| `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx |
+| `deploy.yml` `deploy`, `metadata` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
+| `pr-title.yml` | `ubuntu-latest` | Needs `gh` |
 
 ## Release notes and dependencies
 

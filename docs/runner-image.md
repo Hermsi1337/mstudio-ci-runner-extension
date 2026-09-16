@@ -1,7 +1,8 @@
 # Runner images
 
 One image per provider under `docker/runner/<provider>/`, built by
-`.github/workflows/runner-image.yml` (matrix, multi-arch amd64/arm64, called by
+`.github/workflows/runner-image.yml` (matrix, `linux/amd64` only because Container
+Hosting runs on amd64, called by
 `release.yml` on git tags only, see [operations.md](operations.md)) with `docker/runner` as build context, so every
 image also gets `docker/runner/common/` (`trim-cache.sh`, the cache cleanup called by the
 cronjob, see [providers.md](providers.md)). All images: Ubuntu 24.04, user `runner`, no
@@ -13,7 +14,9 @@ Docker daemon.
 | gitlab | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | [gitlab-runner](https://gitlab.com/gitlab-org/gitlab-runner) binary, executor `shell` |
 
 The runner software version per provider lives in `docker/runner/versions.json`
-together with the SHA-256 checksums of the upstream binaries for amd64 and arm64:
+together with the SHA-256 checksums of the upstream binaries for amd64 and arm64. CI
+builds amd64 only, the arm64 checksum is what `pnpm run runner:build` needs on an
+Apple Silicon machine:
 
 ```json
 { "github": { "version": "2.337.0", "sha256": { "amd64": "...", "arm64": "..." } } }
