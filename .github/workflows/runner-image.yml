@@ -59,3 +59,50 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.provider }}
           cache-to: type=gha,mode=max,scope=${{ matrix.provider }}
+
+  builder:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read the kaniko version from docker/builder/versions.json
+        id: kaniko
+        run: |
+          {
+            echo "go=$(jq -r '.kaniko.go' docker/builder/versions.json)"
+            echo "version=$(jq -r '.kaniko.version' docker/builder/versions.json)"
+            echo "repository=$(jq -r '.kaniko.repository' docker/builder/versions.json)"
+          } >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/hermsi1337/mstudio-ci-builder
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=kaniko-${{ steps.kaniko.outputs.version }},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+            type=sha,enable=${{ github.event_name == 'workflow_dispatch' }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: docker/builder
+          file: docker/builder/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            GO_VERSION=${{ steps.kaniko.outputs.go }}
+            KANIKO_VERSION=${{ steps.kaniko.outputs.version }}
+            KANIKO_REPOSITORY=${{ steps.kaniko.outputs.repository }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=builder
+          cache-to: type=gha,mode=max,scope=builder

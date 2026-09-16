@@ -1,0 +1,263 @@
+#!/usr/bin/env bash
+# Stands in for the `docker` CLI inside the runner.
+#
+# mittwald Container Hosting gives a container no Docker daemon and no
+# privileges to build images, so pipelines that call `docker build` would stop
+# right here. This shim maps the commands that produce or move images onto
+# mstudio-build (builds in the builder service of the stack) and crane
+# (everything that talks to a registry). Commands that need a running daemon
+# have no equivalent and fail with a message instead of a missing binary.
+#
+# Supported: build, buildx build, push, pull, tag, images, image
+# (ls/inspect/rm/push/pull/tag), inspect, save, load, login, logout, manifest
+# inspect, buildx imagetools inspect, version, info.
+#
+# Not supported: run, exec, compose, ps, network, volume, commit, system,
+# buildx bake, and everything else that needs a daemon.
+set -euo pipefail
+
+warn() {
+    echo "docker: $*" >&2
+}
+
+fail() {
+    echo "docker: $*" >&2
+    exit 1
+}
+
+require_crane() {
+    command -v crane >/dev/null || fail "crane is missing from this image"
+}
+
+normalize_flags() {
+    normalized=()
+    for argument in "$@"; do
+        if [[ "${argument}" == --*=* ]]; then
+            normalized+=("${argument%%=*}" "${argument#*=}")
+        else
+            normalized+=("${argument}")
+        fi
+    done
+}
+
+# docker build / docker buildx build
+command_build() {
+    normalize_flags "$@"
+    set -- "${normalized[@]}"
+
+    local build=(mstudio-build)
+    local push=false
+    local save_to=""
+    local context="."
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -t | --tag) build+=(--tag "$2"); shift 2 ;;
+            -f | --file | --dockerfile) build+=(--dockerfile "$2"); shift 2 ;;
+            --build-arg) build+=(--build-arg "$2"); shift 2 ;;
+            --label) build+=(--label "$2"); shift 2 ;;
+            --target) build+=(--target "$2"); shift 2 ;;
+            --platform) build+=(--platform "$2"); shift 2 ;;
+            --iidfile) build+=(--iidfile "$2"); shift 2 ;;
+            --metadata-file) build+=(--metadata-file "$2"); shift 2 ;;
+            --push) push=true; shift ;;
+            -q | --quiet) build+=(--quiet); shift ;;
+            --load)
+                warn "--load has no daemon to load into, the image stays in the runner image store"
+                shift
+                ;;
+            --output)
+                case "$2" in
+                    *type=registry* | *push=true*) push=true ;;
+                    *type=docker*)
+                        save_to="$(sed -n 's/.*dest=\([^,]*\).*/\1/p' <<<"$2")"
+                        ;;
+                    *) fail "--output ${2} is not supported, use --push or --output type=docker,dest=<file>" ;;
+                esac
+                shift 2
+                ;;
+            --no-cache | --pull)
+                warn "$1 is ignored, the builder has no layer cache and always pulls the base image"
+                shift
+                ;;
+            --cache-from | --cache-to)
+                warn "$1 is ignored, the builder has no layer cache"
+                shift 2
+                ;;
+            --provenance | --sbom | --attest | --annotation)
+                warn "$1 is ignored, the builder writes no attestations"
+                shift 2
+                ;;
+            --progress | --builder | --allow | --ulimit | --shm-size | --network | --add-host | --cgroup-parent | --isolation)
+                shift 2
+                ;;
+            --rm | --force-rm | --compress | --squash)
+                shift
+                ;;
+            --secret | --ssh)
+                fail "$1 is a BuildKit feature the builder cannot provide, pass the value as --build-arg or write it into the context"
+                ;;
+            --build-context)
+                fail "--build-context is a BuildKit feature the builder cannot provide"
+                ;;
+            -h | --help)
+                exec mstudio-build --help
+                ;;
+            -*)
+                warn "ignoring unknown option $1"
+                shift
+                ;;
+            *)
+                context="$1"
+                shift
+                ;;
+        esac
+    done
+
+    [[ "${push}" == true ]] && build+=(--push)
+    build+=("${context}")
+
+    warn "build handled by the mittwald builder (kaniko), see docs/image-builds.md"
+    local reference
+    reference="$("${build[@]}")"
+    echo "${reference}"
+
+    if [[ -n "${save_to}" ]]; then
+        cp "$(mstudio-image-store tarball "${reference}")" "${save_to}"
+    fi
+}
+
+command_push() {
+    require_crane
+    local reference="${1:?usage: docker push <image>}"
+    mstudio-crane "${reference}" push "$(mstudio-image-store tarball "${reference}")" "${reference}"
+}
+
+command_pull() {
+    require_crane
+    local reference="${1:?usage: docker pull <image>}"
+    local temporary
+    temporary="$(mktemp -t docker-pull-XXXXXX.tar)"
+    trap 'rm -f "${temporary}"' RETURN
+    mstudio-crane "${reference}" pull "${reference}" "${temporary}"
+    mstudio-image-store put "${temporary}" "${reference}" >/dev/null
+    echo "${reference}"
+}
+
+command_save() {
+    local output=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -o | --output) output="$2"; shift 2 ;;
+            *) break ;;
+        esac
+    done
+    local reference="${1:?usage: docker save -o <file> <image>}"
+    local tarball
+    tarball="$(mstudio-image-store tarball "${reference}")"
+    if [[ -n "${output}" ]]; then
+        cp "${tarball}" "${output}"
+    else
+        cat "${tarball}"
+    fi
+}
+
+command_load() {
+    local input=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i | --input) input="$2"; shift 2 ;;
+            -q | --quiet) shift ;;
+            *) break ;;
+        esac
+    done
+    [[ -n "${input}" ]] || fail "docker load needs -i <file>, reading an image from stdin is not supported"
+    mstudio-image-store put "${input}"
+}
+
+command_login() {
+    require_crane
+    local user="" password="" registry="index.docker.io"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -u | --username) user="$2"; shift 2 ;;
+            -p | --password) password="$2"; shift 2 ;;
+            --password-stdin) password="$(cat)"; shift ;;
+            -*) shift ;;
+            *) registry="$1"; shift ;;
+        esac
+    done
+    [[ -n "${user}" ]] || fail "docker login needs -u <user>"
+    crane auth login "${registry}" --username "${user}" --password "${password}"
+}
+
+command_image() {
+    local subcommand="${1:-ls}"
+    shift || true
+    case "${subcommand}" in
+        ls | list) mstudio-image-store list ;;
+        inspect) mstudio-image-store config "${1:?usage: docker image inspect <image>}" ;;
+        rm | remove) mstudio-image-store untag "${1:?usage: docker image rm <image>}" ;;
+        tag) mstudio-image-store tag "${1:?}" "${2:?}" ;;
+        push) command_push "$@" ;;
+        pull) command_pull "$@" ;;
+        build) command_build "$@" ;;
+        *) fail "image ${subcommand} is not supported" ;;
+    esac
+}
+
+command_buildx() {
+    local subcommand="${1:-build}"
+    shift || true
+    case "${subcommand}" in
+        build | b) command_build "$@" ;;
+        create | use | stop | rm | inspect | ls | prune | du)
+            warn "buildx ${subcommand} does nothing here, every build runs in the builder service of this stack"
+            ;;
+        version) echo "github.com/docker/buildx mstudio-builder (kaniko)" ;;
+        imagetools)
+            require_crane
+            [[ "${1:-}" == "inspect" ]] || fail "buildx imagetools ${1:-} is not supported"
+            mstudio-crane "${2:?usage: docker buildx imagetools inspect <image>}" manifest "${2}"
+            ;;
+        bake) fail "buildx bake is not supported, call docker build per image" ;;
+        *) fail "buildx ${subcommand} is not supported" ;;
+    esac
+}
+
+command="${1:-}"
+shift || true
+case "${command}" in
+    build) command_build "$@" ;;
+    buildx) command_buildx "$@" ;;
+    push) command_push "$@" ;;
+    pull) command_pull "$@" ;;
+    tag) mstudio-image-store tag "${1:?usage: docker tag <source> <target>}" "${2:?}" ;;
+    images) mstudio-image-store list ;;
+    rmi) mstudio-image-store untag "${1:?usage: docker rmi <image>}" ;;
+    image) command_image "$@" ;;
+    inspect) mstudio-image-store config "${1:?usage: docker inspect <image>}" ;;
+    save) command_save "$@" ;;
+    load) command_load "$@" ;;
+    login) command_login "$@" ;;
+    logout)
+        require_crane
+        crane auth logout "${1:-index.docker.io}"
+        ;;
+    manifest)
+        require_crane
+        [[ "${1:-}" == "inspect" ]] || fail "manifest ${1:-} is not supported"
+        mstudio-crane "${2:?usage: docker manifest inspect <image>}" manifest "${2}"
+        ;;
+    version) echo "mstudio-ci-runner docker shim, builds run in the builder service (kaniko), registry access through crane" ;;
+    info) echo "mstudio-ci-runner docker shim: no daemon, no containers, images are built by the builder service of this stack" ;;
+    "" | -h | --help)
+        sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+        ;;
+    run | exec | start | stop | ps | compose | network | volume | container | system | commit | cp | logs | attach | kill | restart | rm)
+        fail "${command} needs a Docker daemon, which mittwald Container Hosting does not provide. Only image builds and registry access work here, see docs/image-builds.md"
+        ;;
+    *)
+        fail "${command} is not supported by the docker shim, see docs/image-builds.md"
+        ;;
+esac

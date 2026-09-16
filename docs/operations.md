@@ -33,7 +33,8 @@ e.g. to try a branch.
 The extension image receives the version as build arg `EXTENSION_VERSION` (baked in as
 environment variable). The extension derives its default runner images from it, so
 nothing runs on `latest`. The runner software versions come from
-`docker/runner/versions.json` ([runner-image.md](runner-image.md)).
+`docker/runner/versions.json` ([runner-image.md](runner-image.md)), the kaniko version of
+the builder image from `docker/builder/versions.json` ([image-builds.md](image-builds.md)).
 
 ## Images
 
@@ -41,6 +42,7 @@ nothing runs on `latest`. The runner software versions come from
 |---|---|---|
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `docker/runner/github/` | must be **public**, mittwald pulls it without credentials |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `docker/runner/gitlab/` | must be **public** |
+| `ghcr.io/hermsi1337/mstudio-ci-builder` | `docker/builder/` | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `docker/extension/Dockerfile`, build context is the repo root, ignore rules in `docker/extension/Dockerfile.dockerignore` | any |
 
 Package visibility is independent of the repository and can only be changed on the web:
@@ -55,7 +57,7 @@ Package visibility is independent of the repository and can only be changed on t
 |---|---|---|
 | `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
-| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers, multi-arch |
+| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)), multi-arch |
 | `deploy.yml` | After `release.yml` on a tag, manual | Stack update on mittwald Container Hosting |
 | `release.yml` | Tags `v*` | Runs both image workflows as jobs, creates the GitHub release via `softprops/action-gh-release` (generated notes plus an image table with pull commands and the runner software versions), then commits the tag version to `package.json` on `main` |
 | `pr-title.yml` | Pull requests | Rejects titles that do not follow Conventional Commits and labels the pull request with its type (`feat`, `fix`, ...) |
@@ -91,8 +93,8 @@ workflows succeeded, so a release only exists when its images do. The notes are
 generated from `.github/release.yml` (the config): the categories use the type labels
 that `pr-title.yml` sets, so pull requests are squash-merged with their title as commit
 subject. Dependabot updates arrive under `dependabot` and are excluded. The workflow
-prepends a table with the three images, their pull commands and the runner software
-versions from `docker/runner/versions.json`. The releases page is the changelog; there
+prepends a table with the four images, their pull commands and the software versions
+from `docker/runner/versions.json` and `docker/builder/versions.json`. The releases page is the changelog; there
 is no `CHANGELOG.md`.
 
 `.github/dependabot.yml` opens weekly pull requests for npm packages (grouped:

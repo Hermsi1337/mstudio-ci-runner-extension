@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Runs crane and adds --insecure when the reference points at a registry from
+# MSTUDIO_INSECURE_REGISTRIES.
+#
+# A Docker daemon takes insecure registries from its own configuration, crane
+# takes a flag per call. Registries inside a mittwald project speak plain HTTP,
+# so without this every push to one would fail with
+# "http: server gave HTTP response to HTTPS client".
+#
+# Usage:
+#   mstudio-crane REFERENCE COMMAND [ARGS ...]
+#
+# Environment:
+#   MSTUDIO_INSECURE_REGISTRIES  comma separated hosts, for example "registry:5000"
+set -euo pipefail
+
+reference="${1:?usage: mstudio-crane <reference> <crane command> [args ...]}"
+shift
+
+host="${reference%%/*}"
+if [[ "${host}" != *.* && "${host}" != *:* && "${host}" != "localhost" ]]; then
+    host="index.docker.io"
+fi
+
+insecure=()
+IFS=',' read -r -a configured <<<"${MSTUDIO_INSECURE_REGISTRIES:-}"
+for candidate in "${configured[@]}"; do
+    if [[ -n "${candidate}" && "${host}" == "${candidate}" ]]; then
+        insecure=(--insecure)
+        break
+    fi
+done
+
+exec crane "$@" "${insecure[@]}"
