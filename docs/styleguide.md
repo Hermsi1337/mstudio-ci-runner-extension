@@ -28,8 +28,7 @@ alike and come before personal taste. Writing style for texts is in
 ```
 Section
   LayoutCard             brand header (BrandHeader.tsx)
-    Section
-      AccentBox          logo, name, tagline, provider badges, version badge and changelog button; backgroundColor "gradient" token, theme-aware, no custom hex
+    AccentBox            logo, name, tagline, provider badges, version badge and changelog button; backgroundColor "gradient" token, theme-aware, no custom hex
   LayoutCard             one card per topic, Heading first
     Section
       Header             Heading + primary Button
