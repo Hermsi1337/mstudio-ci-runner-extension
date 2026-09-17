@@ -6,7 +6,6 @@ import {
     Heading,
     Image,
     LayoutCard,
-    Section,
     Text,
     useOverlayController,
 } from "@mittwald/flow-remote-react-components";
@@ -63,32 +62,28 @@ export const BrandHeader = () => {
     const t = useTranslation();
     return (
         <LayoutCard>
-            <Section>
-                <AccentBox backgroundColor="gradient">
-                    <Flex
-                        align="center"
-                        gap="l"
-                        wrap="wrap"
-                        justify="space-between"
-                    >
-                        <Flex align="center" gap="l" wrap="wrap">
-                            <Image src={logo} alt="" width={72} height={72} />
-                            <Flex direction="column" gap="xs">
-                                <Heading level={2}>
-                                    {t("brand.heading")}
-                                </Heading>
-                                <Text>{t("brand.tagline")}</Text>
-                                <Flex gap="xs" wrap="wrap">
-                                    <Badge>{t("provider.github")}</Badge>
-                                    <Badge>{t("provider.gitlab")}</Badge>
-                                    <Badge>{t("brand.openSource")}</Badge>
-                                </Flex>
+            <AccentBox backgroundColor="gradient">
+                <Flex
+                    align="center"
+                    gap="l"
+                    wrap="wrap"
+                    justify="space-between"
+                >
+                    <Flex align="center" gap="l" wrap="wrap">
+                        <Image src={logo} alt="" width={72} height={72} />
+                        <Flex direction="column" gap="xs">
+                            <Heading level={2}>{t("brand.heading")}</Heading>
+                            <Text>{t("brand.tagline")}</Text>
+                            <Flex gap="xs" wrap="wrap">
+                                <Badge>{t("provider.github")}</Badge>
+                                <Badge>{t("provider.gitlab")}</Badge>
+                                <Badge>{t("brand.openSource")}</Badge>
                             </Flex>
                         </Flex>
-                        <ChangelogAction />
                     </Flex>
-                </AccentBox>
-            </Section>
+                    <ChangelogAction />
+                </Flex>
+            </AccentBox>
         </LayoutCard>
     );
 };
