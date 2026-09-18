@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -164,6 +164,27 @@ describe("image builds", () => {
             await builder.stop();
         }
     }, 600_000);
+
+    it("fails a job left claimed by a builder that did not finish", async () => {
+        const jobDirectory = join(queueDirectory, "queue", "build-orphan-test");
+        await mkdir(jobDirectory, { recursive: true });
+        await writeFile(
+            join(jobDirectory, "request.claimed"),
+            "DOCKERFILE=Dockerfile\nDESTINATION=orphan:1\n",
+        );
+        await writeFile(join(jobDirectory, "log"), "[kaniko] building...\n");
+        const builder = await startBuilder();
+        try {
+            const result = await readFile(join(jobDirectory, "result"), "utf8");
+            expect(result.trim()).toMatch(/^exit=[1-9][0-9]*$/);
+
+            const log = await readFile(join(jobDirectory, "log"), "utf8");
+            expect(log).toContain("replaced before the build finished");
+        } finally {
+            await builder.stop();
+            await rm(jobDirectory, { recursive: true, force: true });
+        }
+    }, 300_000);
 
     it("refuses BuildKit only features before it queues a job", async () => {
         const runner = await startRunner();
