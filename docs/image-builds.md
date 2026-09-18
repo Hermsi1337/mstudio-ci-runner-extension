@@ -63,8 +63,10 @@ Protocol, one directory per job:
 The job directory belongs to the runner, which deletes it once a result is in. A job that
 was abandoned, because the runner was killed or the builder died while building, stays
 behind; the builder deletes such directories when they are older than `BUILD_MAX_AGE`.
-Nothing offers a claimed job a second time, a build that lost its builder has to be
-started again.
+Nothing offers a claimed job a second time. When a builder is replaced while it builds, it
+leaves its job claimed without a result; the next builder writes a failing result for such
+jobs on startup, so the runner fails the build in seconds instead of waiting for its whole
+timeout. The build has to be started again.
 
 The builder never receives registry credentials: it writes a tarball, the push happens in
 the runner with the credentials from `docker login`.
@@ -248,11 +250,11 @@ the container log.
 `image builds are turned off for this stack` means `/builds/queue` does not exist: the
 builder service is missing from the stack or does not run.
 
-`the builder did not finish within 3600s` means no result arrived. Either no builder
-claimed the job, or one claimed it (the `request` file is then called `request.claimed`)
-and died before it wrote the result. Nothing offers a claimed job a second time, so the
-job has to be started again. The log of the builder service in mStudio says which of the
-two happened.
+`the builder did not finish within 3600s` means no result arrived and no builder claimed
+the job at all: the builder service is missing or not running. A build whose builder died
+mid build no longer waits for this timeout, the next builder fails it on startup with
+`the build container was replaced before the build finished`. The log of the builder
+service in mStudio shows what happened.
 
 `/builds/queue is not writable by runner` means the builder never started: it is the
 service that creates the directory and makes it writable.

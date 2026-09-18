@@ -60,6 +60,26 @@ collect_leftovers() {
 
 collect_leftovers
 
+# A builder that is replaced while it builds leaves its job claimed but without a
+# result. Nothing claims a claimed job a second time, so the runner would wait
+# for its whole MSTUDIO_BUILD_TIMEOUT. Only one builder runs per stack, so on
+# startup every claimed job without a result belongs to a builder that is gone.
+# Write a failing result at once, so the runner fails the build in seconds with a
+# clear message instead of timing out.
+fail_orphaned_jobs() {
+    local claimed orphan
+    for claimed in "${queue_dir}"/queue/*/request.claimed; do
+        [ -f "${claimed}" ] || continue
+        orphan="${claimed%/request.claimed}"
+        [ -f "${orphan}/result" ] && continue
+        echo "[builder] job ${orphan##*/} was claimed by a builder that did not finish, failing it"
+        echo "[builder] the build container was replaced before the build finished, most likely killed. Start the build again." >>"${orphan}/log"
+        echo "exit=1" >"${orphan}/result"
+    done
+}
+
+fail_orphaned_jobs
+
 job=""
 job_id=""
 dockerfile=Dockerfile
