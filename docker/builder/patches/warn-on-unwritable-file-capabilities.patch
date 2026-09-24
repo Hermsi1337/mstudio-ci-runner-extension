@@ -1,0 +1,19 @@
+diff --git a/pkg/util/tar_util.go b/pkg/util/tar_util.go
+index adf07ce..5b2820e 100644
+--- a/pkg/util/tar_util.go
++++ b/pkg/util/tar_util.go
+@@ -155,6 +155,14 @@ func writeSecurityXattrToTarFile(path string, hdr *tar.Header) error {
+ 	}
+ 	if capability, ok := hdr.Xattrs[securityCapabilityXattr]; ok {
+ 		err := system.Lsetxattr(path, securityCapabilityXattr, []byte(capability), 0)
++		// Without CAP_SETFCAP the kernel refuses the attribute. The base image
++		// layers keep it. Files a later step changes or copies out of this
++		// file system lose it.
++		if errors.Is(err, syscall.EPERM) {
++			logrus.Warnf("could not restore %q on %q (%v), the file keeps it in its base image layer but loses it if a later step changes or copies it", securityCapabilityXattr, path, err)
++
++			return nil
++		}
+ 		if err != nil && !errors.Is(err, syscall.EOPNOTSUPP) && !errors.Is(err, system.ErrNotSupportedPlatform) {
+ 			return errors.Wrapf(err, "failed to write %q attribute to %q", securityCapabilityXattr, path)
+ 		}

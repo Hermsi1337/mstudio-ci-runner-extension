@@ -11,6 +11,8 @@ ARG TARGETARCH
 RUN apk add --no-cache git
 RUN git clone --depth 1 --branch "${KANIKO_VERSION}" "${KANIKO_REPOSITORY}" /src
 WORKDIR /src
+COPY patches /patches
+RUN git apply /patches/*.patch
 RUN CGO_ENABLED=0 GOOS=linux GOARCH="${TARGETARCH}" \
     go build -ldflags "-w -s" -o /out/executor ./cmd/executor
 
