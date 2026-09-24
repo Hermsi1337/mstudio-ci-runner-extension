@@ -18,6 +18,7 @@ except kaniko needs. Measured inside a container of a project:
 | `echo "0 0 1" > /proc/self/uid_map` | `EPERM` |
 | `chroot /r /bin/busybox echo ok` | `Operation not permitted` |
 | `mknod /r/dev/null c 1 3` | `Operation not permitted` |
+| `lsetxattr security.capability` (no `CAP_SETFCAP`) | `Operation not permitted` |
 
 That rules out buildah, podman and rootless BuildKit: all of them re-exec into a user
 namespace and need a uid map. kaniko needs neither, because it unpacks the base image
@@ -220,6 +221,13 @@ is untested with the second.
   Parallel jobs queue up, each build waits for the container to come back.
 - **One architecture.** The builder builds for the architecture it runs on.
 - **No attestations, no SBOM.**
+- **File capabilities stay in the base image only.** Some base images give binaries a
+  capability, `caddy` for example carries `cap_net_bind_service` on `/usr/bin/caddy`. The
+  builder cannot set it while unpacking, because the container lacks `CAP_SETFCAP` and the
+  API cannot add it. Upstream kaniko aborts there. The builder patches kaniko
+  (`docker/builder/patches/`) to print a warning and go on. The file keeps its capability
+  in the base image layer, so the built image works. A file that a later step changes or
+  copies (`COPY --from=` a stage with such a base image) loses it.
 - **Base images come from public registries.** The builder has no credentials and no
   `--insecure-pull`, so `FROM` a private registry or a registry inside the project fails
   while pushing to the same registry works.

@@ -112,7 +112,7 @@ and in the table above.
 ```
 config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts); scripts pass them via --config
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
-docker/builder/              image builder service: Dockerfile, loop.sh, kaniko version (build context is docker/builder)
+docker/builder/              image builder service: Dockerfile, loop.sh, kaniko version and patches (build context is docker/builder)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
 docker/runner/common/        scripts shared by all runner images (trim-cache.sh, docker-shim, mstudio-build and friends)
 docker/runner/probes/        probe suite run inside the built images by the integration tests

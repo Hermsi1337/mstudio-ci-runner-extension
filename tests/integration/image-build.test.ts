@@ -33,9 +33,14 @@ let network: StartedNetwork;
 let registry: StartedTestContainer;
 let queueDirectory: string;
 
+/**
+ * Containers on Container Hosting run without CAP_SETFCAP, and the API has no
+ * field to add it. Dropping it here keeps the builder as restricted as there.
+ */
 async function startBuilder(): Promise<StartedTestContainer> {
     return new GenericContainer(builderTag)
         .withNetwork(network)
+        .withDroppedCapabilities("SETFCAP")
         .withBindMounts([{ source: queueDirectory, target: "/builds" }])
         .withWaitStrategy(Wait.forLogMessage(/watching/))
         .start();
@@ -141,6 +146,29 @@ describe("image builds", () => {
 
             const queue = await runner.exec(["ls", "/builds/queue"]);
             expect(queue.output.trim()).toBe("");
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
+
+    it("builds on a base image with file capabilities and warns", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            await writeContext(
+                runner,
+                "FROM caddy:2.11-alpine\nRUN echo ok > /probe",
+            );
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                "cd /home/runner/app && docker build -t caps:local . 2>&1",
+            ]);
+            expect(build.exitCode).toBe(0);
+            expect(build.output).toContain(
+                'could not restore "security.capability" on "/usr/bin/caddy"',
+            );
         } finally {
             await runner.stop();
             await builder.stop();

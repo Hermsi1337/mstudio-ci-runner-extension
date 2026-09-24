@@ -252,4 +252,6 @@ under the container `extension`.
 `docker/builder/versions.json`
 ([releases](https://github.com/chainguard-forks/kaniko/releases)). Both are read by the
 workflow, by `pnpm run runner:build` and by the integration tests; a bump needs a tag
-like any other change.
+like any other change. The builder applies the patches in `docker/builder/patches/` to
+kaniko before it compiles it, so a kaniko bump fails the image build when a patch no
+longer applies.
