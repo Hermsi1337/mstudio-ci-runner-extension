@@ -34,11 +34,11 @@
     "check:bundle": "bash scripts/check-client-bundle.sh"
   },
   "dependencies": {
-    "@mittwald/api-client": "^4.461.0",
-    "@mittwald/ext-bridge": "1.1.36",
-    "@mittwald/flow-react-components": "1.1.36",
-    "@mittwald/flow-remote-react-components": "1.1.36",
-    "@mittwald/mstudio-ext-react-components": "1.1.36",
+    "@mittwald/api-client": "^4.465.0",
+    "@mittwald/ext-bridge": "1.1.48",
+    "@mittwald/flow-react-components": "1.1.48",
+    "@mittwald/flow-remote-react-components": "1.1.48",
+    "@mittwald/mstudio-ext-react-components": "1.1.48",
     "@mittwald/react-ghostmaker": "^1.5.4",
     "@mittwald/react-use-promise": "^4.2.3",
     "@octokit/request-error": "^7.1.2",
@@ -63,10 +63,10 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.13",
+    "@biomejs/biome": "^2.5.14",
     "@hey-api/openapi-ts": "^0.99.0",
     "@testcontainers/postgresql": "^12.1.0",
-    "@types/node": "^24.13.4",
+    "@types/node": "^24.13.5",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -76,7 +76,7 @@
     "testcontainers": "^12.1.0",
     "typescript": "^5.9.3",
     "vite": "^8.3.0",
-    "vitest": "^5.0.0",
+    "vitest": "^5.0.1",
     "yaml": "^2.9.1"
   },
   "private": true,
