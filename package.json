@@ -34,11 +34,11 @@
     "check:bundle": "bash scripts/check-client-bundle.sh"
   },
   "dependencies": {
-    "@mittwald/api-client": "^4.461.0",
-    "@mittwald/ext-bridge": "1.1.36",
-    "@mittwald/flow-react-components": "1.1.36",
-    "@mittwald/flow-remote-react-components": "1.1.36",
-    "@mittwald/mstudio-ext-react-components": "1.1.36",
+    "@mittwald/api-client": "^4.465.0",
+    "@mittwald/ext-bridge": "1.1.48",
+    "@mittwald/flow-react-components": "1.1.48",
+    "@mittwald/flow-remote-react-components": "1.1.48",
+    "@mittwald/mstudio-ext-react-components": "1.1.48",
     "@mittwald/react-ghostmaker": "^1.5.4",
     "@mittwald/react-use-promise": "^4.2.3",
     "@octokit/request-error": "^7.1.2",
