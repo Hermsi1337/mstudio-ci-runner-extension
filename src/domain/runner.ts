@@ -40,6 +40,7 @@ import {
 } from "./cache.ts";
 import {
     assertDockerApiAvailable,
+    assertDockerApiNameFree,
     ensureDockerApi,
     removeDockerApi,
     removeDockerApiIfUnused,
@@ -471,6 +472,16 @@ export async function createRunner(
         serviceNames,
     );
     addLogContext({ stackId, serviceName });
+    if (dockerApi) {
+        try {
+            await assertDockerApiNameFree(client, stackId);
+        } catch (error) {
+            if (createdStack) {
+                await deleteStackWithRow(client, extensionInstanceId, stackId);
+            }
+            throw error;
+        }
+    }
 
     const cronjobIds: string[] = [];
     const rollback = async () => {
@@ -832,6 +843,7 @@ export async function configureRunner(
     const dockerApi = input.dockerApi ?? row.dockerApi;
     if (dockerApi && !row.dockerApi) {
         assertDockerApiAvailable();
+        await assertDockerApiNameFree(client, row.stackId);
     }
     const concurrency = provider.concurrencyVariable
         ? (input.concurrency ?? row.concurrency)

@@ -6,6 +6,7 @@ import {
     deriveSecretKey,
     secretMatches,
     stateMountFor,
+    tokenUrlFor,
     usesDockerApi,
     withDockerApi,
     withoutDockerApi,
@@ -61,6 +62,20 @@ describe("docker api environment", () => {
     it("mounts the state directory of the stack", () => {
         expect(stateMountFor("/home/p-abc", stackId)).toBe(
             `/home/p-abc/.docker-adapter/${stackId}:/state`,
+        );
+    });
+});
+
+describe("docker api token url", () => {
+    it("keeps a path of the public URL", () => {
+        expect(tokenUrlFor("https://ci.example.com")).toBe(
+            "https://ci.example.com/api/docker-api/token",
+        );
+        expect(tokenUrlFor("https://host.example/ci-runner/")).toBe(
+            "https://host.example/ci-runner/api/docker-api/token",
+        );
+        expect(tokenUrlFor("https://host.example/ci-runner")).toBe(
+            "https://host.example/ci-runner/api/docker-api/token",
         );
     });
 });

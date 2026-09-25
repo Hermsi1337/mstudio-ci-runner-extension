@@ -88,12 +88,15 @@ characters.
 |---|---|
 | First runner of a stack with the option | declares the service `docker` (`src/domain/docker-api.ts`), limits 0.5 CPU and 512 MB |
 | Runner with the option | `DOCKER_HOST=tcp://docker:2375` in its environment; the docker shim forwards container commands to the real CLI ([image-builds.md](image-builds.md#what-docker-in-jobs-forwards)) |
-| Runner update | redeclares the service when its image is behind the release |
+| Runner update | redeclares the service when its image is behind the release or its environment (secret, `PUBLIC_URL`) changed |
 | Option off for the last runner of the stack, or its deletion | removes the containers the adapter started (description prefix `docker-adapter `), then the service `docker` |
 | Instance removed | owned stacks go whole; in a selected stack the containers and the service `docker` are removed |
 
 A stack that already holds a service called `docker` the extension did not
-create is left alone; the option fails with a message. The shared directory
+create is left alone; the option fails with a message before the runner gets
+`DOCKER_HOST`. Declaring and removing the service run under a PostgreSQL advisory
+lock per stack, so a runner that turns the option off cannot remove the service
+while a sibling in the same stack turns it on. The shared directory
 `<project home>/.docker-adapter/<stack id>` stays in the project file system,
 like the build queue.
 
@@ -112,7 +115,7 @@ tokens:
    with HKDF from `ENCRYPTION_MASTER_PASSWORD` and `ENCRYPTION_SALT`.
 2. The secret goes into the environment of the service `docker` as
    `DOCKER_API_SECRET`, together with `DOCKER_API_TOKEN_URL`
-   (`<PUBLIC_URL>/api/docker-api/token`). The database holds only the nonce.
+   (`<PUBLIC_URL>/api/docker-api/token`, a path in `PUBLIC_URL` is kept). The database holds only the nonce.
 3. The adapter calls `POST /api/docker-api/token` with `Authorization: Bearer
    <secret>` and `{"stackId": "..."}`. The extension recomputes the secret from
    the row of the stack, compares it in constant time and answers with an access

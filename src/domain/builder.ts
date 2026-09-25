@@ -1,6 +1,7 @@
 import type { MittwaldAPIV2Client } from "@mittwald/api-client";
 import {
     imageMatches,
+    imageRepository,
     isQueueMountOfStack,
     queueMountFor,
 } from "@/build-queue.ts";
@@ -60,9 +61,11 @@ function hasBuilder(stack: StackResponse): boolean {
  */
 function isOurBuilder(service: ServiceResponse): boolean {
     const image = (service.pendingState ?? service.deployedState)?.image;
-    const repository = getEnvironmentVariables().BUILDER_IMAGE.split(":")[0];
+    const repository = imageRepository(getEnvironmentVariables().BUILDER_IMAGE);
 
-    return image !== undefined && imageMatches(image.split(":")[0], repository);
+    return (
+        image !== undefined && imageMatches(imageRepository(image), repository)
+    );
 }
 
 /**

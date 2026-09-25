@@ -1,17 +1,17 @@
 import { randomBytes } from "node:crypto";
 import type { MittwaldAPIV2Client } from "@mittwald/api-client";
-import { eq } from "drizzle-orm";
-import { imageMatches } from "@/build-queue.ts";
+import { eq, sql } from "drizzle-orm";
+import { imageMatches, imageRepository } from "@/build-queue.ts";
 import { getDatabase } from "@/db";
 import { dockerApiStacks, extensionInstances } from "@/db/schema.ts";
 import {
     DOCKER_API_CONTAINER_PREFIX,
     DOCKER_API_SERVICE_NAME,
-    DOCKER_API_TOKEN_PATH,
     deriveSecret,
     deriveSecretKey,
     secretMatches,
     stateMountFor,
+    tokenUrlFor,
     usesDockerApi,
 } from "@/docker-api.ts";
 import { getEnvironmentVariables } from "@/env";
@@ -57,9 +57,13 @@ function findDockerApi(stack: StackResponse): ServiceResponse | undefined {
  */
 function isOurDockerApi(service: ServiceResponse): boolean {
     const image = (service.pendingState ?? service.deployedState)?.image;
-    const repository = getEnvironmentVariables().DOCKER_API_IMAGE.split(":")[0];
+    const repository = imageRepository(
+        getEnvironmentVariables().DOCKER_API_IMAGE,
+    );
 
-    return image !== undefined && imageMatches(image.split(":")[0], repository);
+    return (
+        image !== undefined && imageMatches(imageRepository(image), repository)
+    );
 }
 
 function isAdapterContainer(service: ServiceResponse): boolean {
@@ -81,7 +85,7 @@ async function nonceFor(
     projectId: string,
     stackId: string,
 ): Promise<string> {
-    await getDatabase()
+    const [row] = await getDatabase()
         .insert(dockerApiStacks)
         .values({
             stackId,
@@ -89,13 +93,47 @@ async function nonceFor(
             projectId,
             nonce: randomBytes(24).toString("base64url"),
         })
-        .onConflictDoNothing();
-    const [row] = await getDatabase()
-        .select()
-        .from(dockerApiStacks)
-        .where(eq(dockerApiStacks.stackId, stackId));
+        .onConflictDoUpdate({
+            target: dockerApiStacks.stackId,
+            set: { stackId: sql`excluded."stackId"` },
+        })
+        .returning({ nonce: dockerApiStacks.nonce });
 
     return row.nonce;
+}
+
+/**
+ * Serializes declaring and removing the service `docker` of one stack across
+ * requests and extension replicas. Without it, a runner that turns the option
+ * off could remove the service while a sibling in the same stack turns it on.
+ * The transaction only holds the lock; the work uses its own connections.
+ */
+async function withStackLock<T>(
+    stackId: string,
+    work: () => Promise<T>,
+): Promise<T> {
+    return getDatabase().transaction(async (tx) => {
+        await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${`docker-api:${stackId}`}))`,
+        );
+
+        return work();
+    });
+}
+
+/**
+ * Refuses a stack whose `docker` service belongs to someone else. Runs before
+ * the runner gets DOCKER_HOST, so a refusal leaves the runner untouched.
+ */
+export async function assertDockerApiNameFree(
+    client: MittwaldAPIV2Client,
+    stackId: string,
+): Promise<void> {
+    const stack = await getStack(client, stackId);
+    const existing = stack ? findDockerApi(stack) : undefined;
+    if (existing && !isOurDockerApi(existing)) {
+        throw new DockerApiNameTakenError(stackId);
+    }
 }
 
 /** Fails early, before the runner is declared, when the option cannot work. */
@@ -115,6 +153,17 @@ export async function ensureDockerApi(
     projectId: string,
     stackId: string,
 ): Promise<void> {
+    await withStackLock(stackId, () =>
+        declareDockerApi(client, extensionInstanceId, projectId, stackId),
+    );
+}
+
+async function declareDockerApi(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    projectId: string,
+    stackId: string,
+): Promise<void> {
     const env = getEnvironmentVariables();
     if (!env.PUBLIC_URL) {
         throw new DockerApiUnconfiguredError();
@@ -124,16 +173,24 @@ export async function ensureDockerApi(
     if (existing && !isOurDockerApi(existing)) {
         throw new DockerApiNameTakenError(stackId);
     }
-    const secret = deriveSecret(
-        secretKey(),
-        stackId,
-        await nonceFor(extensionInstanceId, projectId, stackId),
-    );
+    const environment = {
+        MITTWALD_PROJECT_ID: projectId,
+        MITTWALD_STACK_ID: stackId,
+        DOCKER_API_TOKEN_URL: tokenUrlFor(env.PUBLIC_URL),
+        DOCKER_API_SECRET: deriveSecret(
+            secretKey(),
+            stackId,
+            await nonceFor(extensionInstanceId, projectId, stackId),
+        ),
+    };
     if (existing) {
         const state = existing.pendingState ?? existing.deployedState;
+        const current = state?.envs ?? {};
         if (
             imageMatches(state?.image, env.DOCKER_API_IMAGE) &&
-            state?.envs?.DOCKER_API_SECRET === secret
+            Object.entries(environment).every(
+                ([key, value]) => current[key] === value,
+            )
         ) {
             log.debug("docker api already declared", { stackId });
 
@@ -155,15 +212,7 @@ export async function ensureDockerApi(
             image: env.DOCKER_API_IMAGE,
             restartPolicy: "always",
             deploy: { resources: { limits: DOCKER_API_LIMITS } },
-            environment: {
-                MITTWALD_PROJECT_ID: projectId,
-                MITTWALD_STACK_ID: stackId,
-                DOCKER_API_TOKEN_URL: new URL(
-                    DOCKER_API_TOKEN_PATH,
-                    env.PUBLIC_URL,
-                ).toString(),
-                DOCKER_API_SECRET: secret,
-            },
+            environment,
             volumes: [
                 stateMountFor(
                     await getProjectDirectory(client, projectId),
@@ -189,6 +238,17 @@ export async function ensureDockerApi(
  * covers the runner whose change is not visible yet.
  */
 export async function removeDockerApiIfUnused(
+    client: MittwaldAPIV2Client,
+    extensionInstanceId: string,
+    stackId: string,
+    ignoreServiceName?: string,
+): Promise<void> {
+    await withStackLock(stackId, () =>
+        removeIfUnused(client, extensionInstanceId, stackId, ignoreServiceName),
+    );
+}
+
+async function removeIfUnused(
     client: MittwaldAPIV2Client,
     extensionInstanceId: string,
     stackId: string,
@@ -321,5 +381,9 @@ export async function issueDockerApiToken(
         expiresAt: auth.data.expiry,
     });
 
-    return { token: auth.data.publicToken, expiresAt: auth.data.expiry };
+    // Normalized to UTC, the response schema accepts no offsets.
+    return {
+        token: auth.data.publicToken,
+        expiresAt: new Date(auth.data.expiry).toISOString(),
+    };
 }

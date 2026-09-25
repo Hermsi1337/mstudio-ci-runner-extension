@@ -37,6 +37,16 @@ export function usesDockerApi(
     return environment?.DOCKER_HOST === DOCKER_HOST;
 }
 
+/**
+ * Keeps a path in the public URL, so an extension served below a prefix gets
+ * its token requests too.
+ */
+export function tokenUrlFor(publicUrl: string): string {
+    const base = publicUrl.endsWith("/") ? publicUrl : `${publicUrl}/`;
+
+    return new URL(DOCKER_API_TOKEN_PATH.slice(1), base).toString();
+}
+
 export function stateMountFor(
     projectDirectory: string,
     stackId: string,
