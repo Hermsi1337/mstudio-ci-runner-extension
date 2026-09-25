@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/gorilla/mux"
 	dockerspec "github.com/moby/docker-image-spec/specs-go/v1"
 	"github.com/moby/moby/api/types/image"
@@ -61,6 +63,9 @@ func (h *ImageHandler) Pull(w http.ResponseWriter, r *http.Request) {
 		} else {
 			name += ":" + tag
 		}
+	}
+	if auth, ok := registryAuth(r.Header.Get("X-Registry-Auth")); ok {
+		h.engine.Images().Authorize(name, auth)
 	}
 	img, err := h.engine.Images().Resolve(r.Context(), name)
 	if err != nil {
@@ -133,4 +138,37 @@ func (h *ImageHandler) History(w http.ResponseWriter, r *http.Request) {
 
 func (h *ImageHandler) Build(w http.ResponseWriter, r *http.Request) {
 	writeError(w, http.StatusNotImplemented, "building images is not supported by the adapter; build and push the image in the pipeline, then run it from the registry")
+}
+
+// registryAuth decodes X-Registry-Auth, base64url encoded JSON as the docker
+// CLI and dockerode send it. Some clients use padded standard base64.
+func registryAuth(header string) (authn.AuthConfig, bool) {
+	if header == "" {
+		return authn.AuthConfig{}, false
+	}
+	var raw []byte
+	for _, enc := range []*base64.Encoding{base64.URLEncoding, base64.RawURLEncoding, base64.StdEncoding, base64.RawStdEncoding} {
+		if decoded, err := enc.DecodeString(header); err == nil {
+			raw = decoded
+			break
+		}
+	}
+	var body struct {
+		Username      string `json:"username"`
+		Password      string `json:"password"`
+		Auth          string `json:"auth"`
+		IdentityToken string `json:"identitytoken"`
+		RegistryToken string `json:"registrytoken"`
+	}
+	if raw == nil || json.Unmarshal(raw, &body) != nil {
+		return authn.AuthConfig{}, false
+	}
+	cfg := authn.AuthConfig{
+		Username:      body.Username,
+		Password:      body.Password,
+		Auth:          body.Auth,
+		IdentityToken: body.IdentityToken,
+		RegistryToken: body.RegistryToken,
+	}
+	return cfg, cfg != (authn.AuthConfig{})
 }

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/mittwald/api-client-go/mittwaldv2/generated/clients/containerclientv2"
 
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/mittwald"
@@ -34,13 +35,17 @@ type Image struct {
 type ImageResolver struct {
 	client    mittwald.ContainerClient
 	projectID string
-	registry  func(ctx context.Context, ref string) (*Image, error)
+	registry  func(ctx context.Context, ref string, auth authn.Authenticator) (*Image, error)
 	mu        sync.Mutex
 	cache     map[string]*Image
+	// Credentials clients sent with a pull (X-Registry-Auth), by registry
+	// host. Kept in memory only; every job of the stack shares them, like
+	// the stack shares everything else.
+	auth map[string]authn.AuthConfig
 }
 
 func NewImageResolver(client mittwald.ContainerClient, projectID string, useRegistry bool) *ImageResolver {
-	r := &ImageResolver{client: client, projectID: projectID, cache: map[string]*Image{}}
+	r := &ImageResolver{client: client, projectID: projectID, cache: map[string]*Image{}, auth: map[string]authn.AuthConfig{}}
 	if useRegistry {
 		r.registry = registryImage
 	}
@@ -69,7 +74,7 @@ func (r *ImageResolver) Resolve(ctx context.Context, ref string) (*Image, error)
 	}
 	var registryErr error
 	if r.registry != nil {
-		img, err := r.registry(ctx, ref)
+		img, err := r.registry(ctx, ref, r.authenticator(ref))
 		if err == nil {
 			r.remember(img)
 			return img, nil
@@ -88,6 +93,27 @@ func (r *ImageResolver) Resolve(ctx context.Context, ref string) (*Image, error)
 	}
 	r.remember(img)
 	return img, nil
+}
+
+// Authorize stores credentials for the registry of ref. A client sends them
+// with a pull, after the image lookup told it the image does not exist.
+func (r *ImageResolver) Authorize(ref string, cfg authn.AuthConfig) {
+	host := registryHost(ref)
+	if host == "" {
+		return
+	}
+	r.mu.Lock()
+	r.auth[host] = cfg
+	r.mu.Unlock()
+}
+
+func (r *ImageResolver) authenticator(ref string) authn.Authenticator {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if cfg, ok := r.auth[registryHost(ref)]; ok {
+		return authn.FromConfig(cfg)
+	}
+	return authn.Anonymous
 }
 
 func (r *ImageResolver) remember(img *Image) {

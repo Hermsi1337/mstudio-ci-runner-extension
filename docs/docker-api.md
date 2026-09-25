@@ -179,13 +179,13 @@ boundary.
 
 ## Limits
 
-- Images come from public registries. The adapter reads entrypoint, command,
-  environment and ports of an image anonymously from its registry, because the
-  image lookup of the mittwald API (`GET /v2/container-image-config`) refuses
-  extension tokens. It falls back to that lookup, which only helps when the
-  adapter runs with a user token (`MITTWALD_API_TOKEN`). Anonymous manifest reads
-  count against the Docker Hub rate limit of the project's address; results are
-  cached for ten minutes.
+- The adapter reads entrypoint, command, environment and ports of an image from
+  its registry, anonymously or with the credentials a client sent with a pull.
+  The image lookup of the mittwald API (`GET /v2/container-image-config`)
+  refuses extension tokens and is only a fallback for a user token
+  (`MITTWALD_API_TOKEN`). Anonymous manifest reads count against the Docker Hub
+  rate limit of the project's address; results are cached for ten minutes.
+  Private images need two things, see [Private images](#private-images).
 - No image builds. `POST /build` answers 501. Build and push in the pipeline,
   then run the image from the registry.
 - No stdin. `docker run -i` and `docker exec -i` get an empty input.
@@ -198,6 +198,32 @@ boundary.
 - The first start of an image includes the pull by the platform. With a cached
   image a container starts in about four seconds.
 - Stats and top return empty values.
+
+## Private images
+
+The platform pulls the image of a container itself, and the adapter reads its
+configuration. Both need access:
+
+1. **Once, in mStudio:** add the registry to the project (*Container →
+   Registries*), for GHCR `ghcr.io` with a user and a token with
+   `read:packages`. mittwald pulls with it when the container starts. The
+   extension never writes registry credentials into the project.
+2. **In the job:** `docker login` to the same registry before the first `docker
+   run` or Testcontainers start. A private image looks missing to the adapter
+   until then; the docker CLI and Testcontainers then pull it and send the
+   credentials as `X-Registry-Auth`. The adapter keeps them in memory, per
+   registry host, and never writes them anywhere. Every job of the stack uses
+   them afterwards, the same trust boundary as the rest of the stack.
+
+```yaml
+# GitHub Actions
+- uses: docker/login-action@v4
+  with:
+    registry: ghcr.io
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}
+- run: docker run --rm ghcr.io/me/private-tool:1
+```
 
 ## Development and tests
 

@@ -16,10 +16,12 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 )
 
-// registryImage reads the config of an image from its registry, anonymously.
-// The platform pulls the image itself when the service starts; the adapter
-// only needs entrypoint, command, environment and ports to wrap the process.
-func registryImage(ctx context.Context, ref string) (*Image, error) {
+// registryImage reads the config of an image from its registry, anonymously
+// unless a client sent credentials for that registry. The platform pulls the
+// image itself when the service starts, with the registries of the project;
+// the adapter only needs entrypoint, command, environment and ports to wrap
+// the process.
+func registryImage(ctx context.Context, ref string, auth authn.Authenticator) (*Image, error) {
 	parsed, err := name.ParseReference(ref)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalid, err)
@@ -28,13 +30,20 @@ func registryImage(ctx context.Context, ref string) (*Image, error) {
 	defer cancel()
 	desc, err := remote.Get(parsed,
 		remote.WithContext(ctx),
-		remote.WithAuth(authn.Anonymous),
+		remote.WithAuth(auth),
 		remote.WithPlatform(v1.Platform{OS: "linux", Architecture: runtime.GOARCH}),
 	)
 	if err != nil {
 		var terr *transport.Error
-		if errors.As(err, &terr) && terr.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("%w: %s", ErrImageNotFound, ref)
+		if errors.As(err, &terr) {
+			switch terr.StatusCode {
+			case http.StatusNotFound:
+				return nil, fmt.Errorf("%w: %s", ErrImageNotFound, ref)
+			case http.StatusUnauthorized, http.StatusForbidden:
+				// Reported as missing, so Docker clients pull it with the
+				// credentials from docker login.
+				return nil, fmt.Errorf("%w: %s requires authorization", ErrImageNotFound, ref)
+			}
 		}
 		return nil, err
 	}
@@ -61,4 +70,12 @@ func registryImage(ctx context.Context, ref string) (*Image, error) {
 		User:         cfg.Config.User,
 		Resolved:     time.Now(),
 	}, nil
+}
+
+func registryHost(ref string) string {
+	parsed, err := name.ParseReference(ref)
+	if err != nil {
+		return ""
+	}
+	return parsed.Context().RegistryStr()
 }
