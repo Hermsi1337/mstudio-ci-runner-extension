@@ -39,6 +39,7 @@ beforeAll(async () => {
     setTestEnvironment({
         MITTWALD_API_URL: `${mittwald.url}/`,
         GITLAB_API_URL: gitlab.url,
+        PUBLIC_URL: "https://ci-runner.example.com",
     });
 
     schema = await import("@/db/schema.ts");
@@ -272,6 +273,28 @@ describe.each(cases)(
                 { runnerId, cache: false, imageBuilds: false },
             );
             expect(disabled.imageBuilds).toBe(false);
+        });
+
+        it("turns Docker in jobs on and off", async () => {
+            const enabled = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId, cache: false, dockerApi: true },
+            );
+            expect(zRunner.parse(enabled)).toEqual(enabled);
+            expect(enabled.dockerApi).toBe(true);
+            const [row] = await db
+                .select()
+                .from(schema.dockerApiStacks)
+                .where(eq(schema.dockerApiStacks.stackId, enabled.stackId));
+            expect(row?.nonce).toMatch(/^[\w-]{32}$/);
+
+            const disabled = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId, cache: false, dockerApi: false },
+            );
+            expect(disabled.dockerApi).toBe(false);
         });
 
         it("switches between a preset and custom limits", async () => {
@@ -545,6 +568,106 @@ describe("instance cleanup", () => {
         await db
             .delete(schema.runners)
             .where(eq(schema.runners.id, created.id));
+    });
+});
+
+describe("Docker in jobs", () => {
+    let dockerApi: typeof import("@/domain/docker-api.ts");
+    let secrets: typeof import("@/docker-api.ts");
+    let created: Runner;
+
+    const secretOf = async (stackId: string) => {
+        const [row] = await db
+            .select()
+            .from(schema.dockerApiStacks)
+            .where(eq(schema.dockerApiStacks.stackId, stackId));
+        return secrets.deriveSecret(
+            secrets.deriveSecretKey("test-master-password", "test-salt"),
+            stackId,
+            row.nonce,
+        );
+    };
+
+    beforeAll(async () => {
+        dockerApi = await import("@/domain/docker-api.ts");
+        secrets = await import("@/docker-api.ts");
+        // Prism answers every stack create with the same example id, which an
+        // earlier block may still hold for another target.
+        await db.delete(schema.runnerStacks);
+        created = await runner.createRunner(
+            client,
+            extensionInstanceId,
+            projectId,
+            userId,
+            {
+                provider: "github",
+                name: "Testcontainers",
+                target: "acme/testcontainers",
+                tokenType: "registration",
+                token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+                dockerApi: true,
+            },
+        );
+    });
+
+    afterAll(async () => {
+        await runner.deleteRunner(client, extensionInstanceId, created.id);
+    });
+
+    it("creates the runner with the option on", () => {
+        expect(zRunner.parse(created)).toEqual(created);
+        expect(created.dockerApi).toBe(true);
+    });
+
+    it("issues an instance token for the secret of the stack", async () => {
+        const token = await dockerApi.issueDockerApiToken(
+            created.stackId,
+            await secretOf(created.stackId),
+        );
+        expect(token.token).toEqual(expect.any(String));
+        expect(Number.isNaN(Date.parse(token.expiresAt))).toBe(false);
+    });
+
+    it("refuses a wrong secret and an unknown stack", async () => {
+        await expect(
+            dockerApi.issueDockerApiToken(created.stackId, "mdapi_wrong"),
+        ).rejects.toBeInstanceOf(dockerApi.DockerApiTokenDenied);
+        await expect(
+            dockerApi.issueDockerApiToken(
+                "99999999-9999-9999-9999-999999999999",
+                await secretOf(created.stackId),
+            ),
+        ).rejects.toBeInstanceOf(dockerApi.DockerApiTokenDenied);
+    });
+
+    it("refuses the secret once the option is off for the last runner", async () => {
+        const secret = await secretOf(created.stackId);
+        await runner.configureRunner(client, extensionInstanceId, {
+            runnerId: created.id,
+            cache: false,
+            dockerApi: false,
+        });
+        await expect(
+            dockerApi.issueDockerApiToken(created.stackId, secret),
+        ).rejects.toBeInstanceOf(dockerApi.DockerApiTokenDenied);
+    });
+
+    it("refuses the option without a public URL", async () => {
+        const publicUrl = process.env.PUBLIC_URL;
+        delete process.env.PUBLIC_URL;
+        try {
+            await expect(
+                runner.configureRunner(client, extensionInstanceId, {
+                    runnerId: created.id,
+                    cache: false,
+                    dockerApi: true,
+                }),
+            ).rejects.toMatchObject({
+                messageKey: "error.dockerApi.unconfigured",
+            });
+        } finally {
+            process.env.PUBLIC_URL = publicUrl;
+        }
     });
 });
 

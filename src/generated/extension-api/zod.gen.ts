@@ -2,6 +2,15 @@
 
 import * as z from 'zod';
 
+export const zDockerApiTokenRequest = z.object({
+    stackId: z.uuid()
+});
+
+export const zDockerApiTokenResponse = z.object({
+    token: z.string(),
+    expiresAt: z.iso.datetime()
+});
+
 /**
  * CI system the runner registers with.
  */
@@ -65,6 +74,11 @@ export const zCacheEnabled = z.boolean().default(false);
 export const zImageBuilds = z.boolean().default(false);
 
 /**
+ * Lets jobs run containers with `docker run` and Testcontainers. Points DOCKER_HOST of the runner at the service `docker` of the stack, which the extension adds if it is missing (see docs/docker-api.md).
+ */
+export const zDockerApi = z.boolean().default(false);
+
+/**
  * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
  */
 export const zCacheSizeGb = z.int().gte(1).lte(500).default(10);
@@ -75,6 +89,7 @@ export const zRunnerBase = z.object({
     cache: zCacheEnabled.optional(),
     cacheSizeGb: zCacheSizeGb.optional(),
     imageBuilds: zImageBuilds.optional(),
+    dockerApi: zDockerApi.optional(),
     concurrency: zConcurrency.optional(),
     size: zRunnerSize.optional(),
     cpus: zCpus.optional(),
@@ -123,6 +138,7 @@ export const zConfigureRunnerRequest = z.object({
     cache: zCacheEnabled,
     cacheSizeGb: zCacheSizeGb.optional(),
     imageBuilds: zImageBuilds.optional(),
+    dockerApi: zDockerApi.optional(),
     concurrency: zConcurrency.optional(),
     size: zRunnerSize.optional(),
     cpus: zCpus.optional(),
@@ -149,6 +165,7 @@ export const zRunner = z.object({
     cache: z.boolean(),
     cacheSizeGb: z.int(),
     imageBuilds: z.boolean(),
+    dockerApi: z.boolean(),
     concurrency: z.int(),
     stackId: z.uuid(),
     serviceId: z.string().nullable(),

@@ -10,6 +10,7 @@ import {
     runnerStacks,
     runners,
 } from "@/db/schema.ts";
+import { withDockerApi, withoutDockerApi } from "@/docker-api.ts";
 import type {
     ConfigureRunnerRequest,
     CreateRunnerRequest,
@@ -37,6 +38,12 @@ import {
     withCache,
     withoutCache,
 } from "./cache.ts";
+import {
+    assertDockerApiAvailable,
+    ensureDockerApi,
+    removeDockerApi,
+    removeDockerApiIfUnused,
+} from "./docker-api.ts";
 import { getProjectCapabilities } from "./project.ts";
 import {
     getProvider,
@@ -140,6 +147,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         cache: row.cache,
         cacheSizeGb: row.cacheSizeGb,
         imageBuilds: row.imageBuilds,
+        dockerApi: row.dockerApi,
         concurrency: row.concurrency,
         stackId: row.stackId,
         serviceId,
@@ -404,6 +412,9 @@ export async function createRunner(
 ): Promise<Runner> {
     await assertInstanceExists(extensionInstanceId);
     await assertContainerHosting(client, projectId);
+    if (input.dockerApi) {
+        assertDockerApiAvailable();
+    }
     const provider = getProvider(input);
     const resources = resolveResources(input);
     const labels = (input.labels ?? "mittwald")
@@ -425,12 +436,16 @@ export async function createRunner(
     const cache = input.cache ?? false;
     const cacheSizeGb = input.cacheSizeGb ?? 10;
     const imageBuilds = input.imageBuilds ?? false;
+    const dockerApi = input.dockerApi ?? false;
     const concurrency = provider.concurrencyVariable
         ? (input.concurrency ?? 1)
         : 1;
-    const { environment, mounts } = cache
+    const { environment: cacheEnvironment, mounts } = cache
         ? withCache(prepared.environment, prepared.volumes)
         : withoutCache(prepared.environment, prepared.volumes);
+    const environment = dockerApi
+        ? withDockerApi(cacheEnvironment)
+        : cacheEnvironment;
     log.debug("provider prepared runner", {
         target: prepared.target,
         image: prepared.image,
@@ -489,6 +504,21 @@ export async function createRunner(
                 });
             }
         }
+        if (dockerApi) {
+            try {
+                await removeDockerApiIfUnused(
+                    client,
+                    extensionInstanceId,
+                    stackId,
+                    serviceName,
+                );
+            } catch (error) {
+                log.error("rollback: docker api removal failed", {
+                    stackId,
+                    error,
+                });
+            }
+        }
         // Only tear down the stack this call created; a shared stack may hold
         // an in-flight sibling create whose row is not committed yet.
         if (createdStack) {
@@ -541,6 +571,14 @@ export async function createRunner(
                 queueMount,
             );
         }
+        if (dockerApi) {
+            await ensureDockerApi(
+                client,
+                extensionInstanceId,
+                projectId,
+                stackId,
+            );
+        }
         if (cache && service) {
             cronjobIds.push(
                 await createTrimCronjob(
@@ -578,6 +616,7 @@ export async function createRunner(
         cache,
         cacheSizeGb,
         imageBuilds,
+        dockerApi,
         concurrency,
         cronjobIds: JSON.stringify(cronjobIds),
         createdBy: userId,
@@ -718,6 +757,14 @@ export async function updateRunner(
             await buildQueueMount(client, row.projectId, row.stackId),
         );
     }
+    if (row.dockerApi) {
+        await ensureDockerApi(
+            client,
+            extensionInstanceId,
+            row.projectId,
+            row.stackId,
+        );
+    }
     const [updated] = await getDatabase()
         .update(runners)
         .set({ image, runnerVersion: provider.runnerVersion })
@@ -757,13 +804,16 @@ async function recreateIfRequired(
 }
 
 /**
- * Changes cache, image builds, concurrency and resources after creation.
+ * Changes cache, image builds, Docker in jobs, concurrency and resources after
+ * creation.
  * Switching the cache adds or removes the cache volume and environment on the
  * service state mittwald reports, image builds add or remove the build queue
  * mount and the builder service of the stack, concurrency changes an
  * environment variable; every change redeclares the stack and recreates the
  * service. Turning the cache off deletes its cronjob and volume, turning image
  * builds off removes the builder once no runner of the stack builds any more.
+ * Docker in jobs sets DOCKER_HOST and adds or removes the service `docker` the
+ * same way.
  */
 export async function configureRunner(
     client: MittwaldAPIV2Client,
@@ -779,6 +829,10 @@ export async function configureRunner(
     const cache = input.cache;
     const cacheSizeGb = input.cacheSizeGb ?? row.cacheSizeGb;
     const imageBuilds = input.imageBuilds ?? row.imageBuilds;
+    const dockerApi = input.dockerApi ?? row.dockerApi;
+    if (dockerApi && !row.dockerApi) {
+        assertDockerApiAvailable();
+    }
     const concurrency = provider.concurrencyVariable
         ? (input.concurrency ?? row.concurrency)
         : 1;
@@ -793,6 +847,7 @@ export async function configureRunner(
     if (
         cache !== row.cache ||
         imageBuilds !== row.imageBuilds ||
+        dockerApi !== row.dockerApi ||
         concurrency !== row.concurrency ||
         resourcesChanged
     ) {
@@ -801,9 +856,12 @@ export async function configureRunner(
             row.serviceName,
             state.volumes ?? [],
         );
-        const { environment, mounts } = cache
+        const { environment: cacheEnvironment, mounts } = cache
             ? withCache(state.envs ?? {}, plainMounts)
             : withoutCache(state.envs ?? {}, plainMounts);
+        const environment = dockerApi
+            ? withDockerApi(cacheEnvironment)
+            : withoutDockerApi(cacheEnvironment);
         let mountsWithQueue = withoutBuildQueue(mounts);
         let queueMount = "";
         if (imageBuilds) {
@@ -849,6 +907,14 @@ export async function configureRunner(
                 queueMount,
             );
         }
+        if (dockerApi) {
+            await ensureDockerApi(
+                client,
+                extensionInstanceId,
+                row.projectId,
+                row.stackId,
+            );
+        }
         await recreateIfRequired(
             client,
             extensionInstanceId,
@@ -857,6 +923,13 @@ export async function configureRunner(
         );
         if (!imageBuilds && row.imageBuilds) {
             await removeBuilderIfUnused(
+                client,
+                extensionInstanceId,
+                row.stackId,
+            );
+        }
+        if (!dockerApi && row.dockerApi) {
+            await removeDockerApiIfUnused(
                 client,
                 extensionInstanceId,
                 row.stackId,
@@ -903,6 +976,7 @@ export async function configureRunner(
             cache,
             cacheSizeGb,
             imageBuilds,
+            dockerApi,
             concurrency,
             size: resources.size,
             cpus: resources.size === "custom" ? resources.cpus : null,
@@ -927,6 +1001,8 @@ export async function configureRunner(
         previousCache: row.cache,
         previousCacheSizeGb: row.cacheSizeGb,
         previousImageBuilds: row.imageBuilds,
+        dockerApi,
+        previousDockerApi: row.dockerApi,
         previousConcurrency: row.concurrency,
     });
     return toView(updated, updatedService);
@@ -952,6 +1028,14 @@ export async function deleteRunner(
     await releaseProviderRegistration(row, service);
     if (row.imageBuilds) {
         await removeBuilderIfUnused(
+            client,
+            extensionInstanceId,
+            row.stackId,
+            row.serviceName,
+        );
+    }
+    if (row.dockerApi) {
+        await removeDockerApiIfUnused(
             client,
             extensionInstanceId,
             row.stackId,
@@ -1034,7 +1118,7 @@ async function releaseProviderRegistration(
 /**
  * Stacks the extension created for a registration target are deleted whole.
  * A stack the user selected keeps running with its own services, so only the
- * runner service is removed from it.
+ * runner service, the service `docker` and its containers are removed from it.
  *
  * Both lists are read before the default webhook chain removes the instance,
  * because the rows go with it through the foreign key cascade.
@@ -1072,6 +1156,28 @@ export async function deleteAllRunnersOfInstance(
                 runnerId: row.id,
                 stackId: row.stackId,
                 serviceName: row.serviceName,
+                error,
+            });
+        }
+    }
+    const selectedWithDockerApi = new Set(
+        rows
+            .filter((row) => row.dockerApi && !owned.has(row.stackId))
+            .map((row) => row.stackId),
+    );
+    for (const stackId of selectedWithDockerApi) {
+        try {
+            const stack = await getStack(client, stackId);
+            if (stack) {
+                await removeDockerApi(
+                    client,
+                    rows[0].extensionInstanceId,
+                    stack,
+                );
+            }
+        } catch (error) {
+            log.error("docker api removal failed during instance cleanup", {
+                stackId,
                 error,
             });
         }

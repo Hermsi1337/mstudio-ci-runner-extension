@@ -174,8 +174,9 @@ mittwald.
    | `MITTWALD_API_TOKEN` | secret | mStudio, *User → API tokens*, needs access to the project and to the extension |
    | `MITTWALD_CONTRIBUTOR_ID` | secret | Contributor of the extension, in mStudio under *Organization → Development* |
    | `EXTENSION_ID`, `EXTENSION_SECRET` | secret | Extension registration ([mstudio-setup.md](mstudio-setup.md)) |
-   | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes the stored instance secrets unreadable, so the cleanup after an uninstall stops working. |
+   | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes the stored instance secrets unreadable, so the cleanup after an uninstall stops working, and invalidates the secrets of every service `docker` until the next runner update redeclares it. |
    | `POSTGRES_PASSWORD` | secret | Any strong value. Used by both services. |
+   | `PUBLIC_URL` | variable | The URL of step 4, e.g. `https://ci-runner.example.com`. The service `docker` of a stack fetches its tokens there ([docker-api.md](docker-api.md#tokens)). Without it *Docker in jobs* is refused. |
 
 2. Image access. The extension image is private. Either set the package
    `mstudio-ci-runner-extension` to public, or create a registry in the project
@@ -246,10 +247,14 @@ under the container `extension`.
    is deployed; *Update* moves them to the new image. Running GitHub runners also update
    themselves unless `DISABLE_AUTO_UPDATE` is set.
 
-`crane` in the runner images and `kaniko` in the builder image follow the same path.
-`crane.version` and its two checksums live in `docker/runner/versions.json`
+`crane` and the docker CLI in the runner images and `kaniko` in the builder image
+follow the same path. `crane.version` and its two checksums live in
+`docker/runner/versions.json`
 ([releases](https://github.com/google/go-containerregistry/releases), file
-`checksums.txt`), `kaniko.version` and the Go version that compiles it in
+`checksums.txt`), so do `dockerCli.version` and the checksums of the two static
+archives (`download.docker.com/linux/static/stable/<x86_64|aarch64>/docker-<version>.tgz`,
+computed with `sha256sum` after downloading), `kaniko.version` and the Go version that
+compiles it in
 `docker/builder/versions.json`
 ([releases](https://github.com/chainguard-forks/kaniko/releases)). Both are read by the
 workflow, by `pnpm run runner:build` and by the integration tests; a bump needs a tag

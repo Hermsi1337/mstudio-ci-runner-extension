@@ -6,7 +6,7 @@ Vitest with two projects (`config/vitest.config.ts`):
 
 | Project | Files | Command |
 |---|---|---|
-| `unit` | `src/**/*.test.ts`, `config/**/*.test.ts` (i18n catalog checks, logger, version compare, error mapping) | `pnpm run test` |
+| `unit` | `src/**/*.test.ts`, `config/**/*.test.ts` (i18n catalog checks, logger, version compare, error mapping, secret derivation of the service `docker`) | `pnpm run test` |
 | `integration` | `tests/integration/**/*.test.ts` | `pnpm run test:integration` |
 
 Integration tests start their dependencies themselves with
@@ -43,7 +43,7 @@ on import, so tests import them after the containers started via `await import(.
 | File | Verifies |
 |---|---|
 | `database.test.ts` | Migrations, encrypted instance secret, no secret column in `runners`, cascade delete |
-| `runner-lifecycle.test.ts` | Per provider case (GitHub repo, three GitLab runner token variants): `createRunner` → `listRunners` → logs/restart → update (declare and recreate) → settings → `deleteRunner` against the mittwald and GitLab Prism mocks; image builds on and off; two runners sharing a stack; a runner in a stack the user picked (no `runner_stacks` row, stack survives the delete, stacks of another project and stacks the extension manages are rejected, service names are checked against the stack); tenant isolation; input errors |
+| `runner-lifecycle.test.ts` | Per provider case (GitHub repo, three GitLab runner token variants): `createRunner` → `listRunners` → logs/restart → update (declare and recreate) → settings → `deleteRunner` against the mittwald and GitLab Prism mocks; image builds on and off; Docker in jobs on and off, the token endpoint accepting only the secret of its stack and only while the service is kept, and refusing the option without `PUBLIC_URL`; two runners sharing a stack; a runner in a stack the user picked (no `runner_stacks` row, stack survives the delete, stacks of another project and stacks the extension manages are rejected, service names are checked against the stack); tenant isolation; input errors |
 | `runner-image.test.ts` | Per image: builds with `RUNNER_VERSION` and the `RUNNER_SHA256_*` checksums from `docker/runner/versions.json`, entrypoint reaches registration with the configured values, runs as user `runner`, passes the probe suite, entrypoint rejects missing required variables with a clear message |
 | `image-build.test.ts` | `docker build --push` from the runner through the builder into a registry, image id and metadata file match the pushed digest, a failing build keeps its exit code, a base image with file capabilities builds with a warning, BuildKit only features are refused before a job is queued ([image-builds.md](image-builds.md)). Every test starts its own builder without `CAP_SETFCAP`, like on Container Hosting, because kaniko destroys the container it builds in |
 | `changelog.test.ts` | `getChangelog` against the GitHub Prism mock: releases parsed and validated, second call served from the cache, releases newer than `EXTENSION_VERSION` hidden |

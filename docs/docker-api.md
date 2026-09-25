@@ -6,8 +6,16 @@ create, run, exec into and remove containers, and each container becomes a
 service of the stack the runner lives in. It started as a rework of
 `mittwald/mstudio-docker-adapter`.
 
-Status: the service works on its own and runs Testcontainers suites, including
-the integration tests of this repository. The extension does not declare it yet.
+Turn on *Docker in jobs* when creating a runner or later in its settings. The
+extension then sets `DOCKER_HOST=tcp://docker:2375` in the runner and adds the
+service `docker` to the stack if it is missing. Existing pipelines and
+Testcontainers suites need no change.
+
+```yaml
+# GitHub Actions
+- run: docker run --rm alpine echo hello
+- run: npm test   # Testcontainers finds DOCKER_HOST on its own
+```
 
 ## Why it looks like this
 
@@ -74,9 +82,56 @@ The environment of a container travels in `config.json`, not in the service,
 because the API limits every environment value and every command element to 800
 characters.
 
+## What the extension does
+
+| Moment | Effect |
+|---|---|
+| First runner of a stack with the option | declares the service `docker` (`src/domain/docker-api.ts`), limits 0.5 CPU and 512 MB |
+| Runner with the option | `DOCKER_HOST=tcp://docker:2375` in its environment; the docker shim forwards container commands to the real CLI ([image-builds.md](image-builds.md#what-docker-in-jobs-forwards)) |
+| Runner update | redeclares the service when its image is behind the release |
+| Option off for the last runner of the stack, or its deletion | removes the containers the adapter started (description prefix `docker-adapter `), then the service `docker` |
+| Instance removed | owned stacks go whole; in a selected stack the containers and the service `docker` are removed |
+
+A stack that already holds a service called `docker` the extension did not
+create is left alone; the option fails with a message. The shared directory
+`<project home>/.docker-adapter/<stack id>` stays in the project file system,
+like the build queue.
+
+The extension needs `PUBLIC_URL`, the address the service `docker` reaches it at
+([development.md](development.md#environment-variables)). Without it the option
+is refused.
+
+### Tokens
+
+The adapter never sees a user token. It asks the extension for short-lived
+tokens:
+
+1. On first use, the extension stores a random nonce for the stack in
+   `docker_api_stacks` and derives the secret of the stack:
+   `mdapi_` + base64url(HMAC-SHA256(key, "<stack id>:<nonce>")). The key is derived
+   with HKDF from `ENCRYPTION_MASTER_PASSWORD` and `ENCRYPTION_SALT`.
+2. The secret goes into the environment of the service `docker` as
+   `DOCKER_API_SECRET`, together with `DOCKER_API_TOKEN_URL`
+   (`<PUBLIC_URL>/api/docker-api/token`). The database holds only the nonce.
+3. The adapter calls `POST /api/docker-api/token` with `Authorization: Bearer
+   <secret>` and `{"stackId": "..."}`. The extension recomputes the secret from
+   the row of the stack, compares it in constant time and answers with an access
+   token of the extension instance (`extensionAuthenticateInstance`) and its
+   expiry. The row exists exactly as long as the extension keeps the service, so
+   a removed service gets no token.
+4. The adapter keeps the token in memory and fetches a new one before it
+   expires (`internal/tokensource`).
+
+Parallel runners of one stack read the same nonce and therefore declare the same
+secret. A new nonce, and with it a new secret, comes with the next first use
+after the service was removed. A database dump alone opens nothing: without the
+key the nonce is useless. The token carries the scopes of the extension, which
+the adapter needs anyway ([mstudio-setup.md](mstudio-setup.md)).
+
 ## Running it
 
-The adapter runs as a service of the stack it manages:
+The adapter runs as a service of the stack it manages. Outside the extension it
+also takes a plain API token:
 
 ```yaml
 docker:
@@ -93,7 +148,9 @@ Clients in the same stack use `DOCKER_HOST=tcp://docker:2375`.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `MITTWALD_API_TOKEN` | required | API token |
+| `MITTWALD_API_TOKEN` | required unless `DOCKER_API_TOKEN_URL` is set | API token |
+| `DOCKER_API_TOKEN_URL` | | endpoint of the extension that issues short-lived API tokens |
+| `DOCKER_API_SECRET` | | bearer secret for `DOCKER_API_TOKEN_URL`, required with it |
 | `MITTWALD_PROJECT_ID` | required | project of the stack |
 | `MITTWALD_STACK_ID` | project id | stack the containers go into |
 | `MITTWALD_API_BASE_URL` | `https://api.mittwald.de/v2` | API endpoint |
@@ -104,6 +161,10 @@ Clients in the same stack use `DOCKER_HOST=tcp://docker:2375`.
 | `DEFAULT_MEMORY` | `2048mb` | memory limit of a container without `--memory` |
 | `ADAPTER_HOST`, `ADAPTER_PORT` | `0.0.0.0`, `2375` | listen address |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
+
+The extension sets `DOCKER_API_TOKEN_URL` and `DOCKER_API_SECRET`, and the
+adapter then fetches short-lived API tokens from it instead of using
+`MITTWALD_API_TOKEN`.
 
 The adapter has no authentication. Everything that reaches its port controls the
 containers it created; keep it inside the stack. That is the same trust boundary

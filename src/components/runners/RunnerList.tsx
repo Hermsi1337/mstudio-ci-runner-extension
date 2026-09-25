@@ -177,6 +177,16 @@ const RunnerRow = ({
             </Content>
             <Content>
                 <LabeledValue>
+                    <Label>{t("runners.column.dockerApi")}</Label>
+                    <Text>
+                        {runner.dockerApi
+                            ? t("runners.dockerApi.on")
+                            : t("runners.dockerApi.off")}
+                    </Text>
+                </LabeledValue>
+            </Content>
+            <Content>
+                <LabeledValue>
                     <Label>{t("runners.column.version")}</Label>
                     <Text>
                         {runner.imageVersion ??

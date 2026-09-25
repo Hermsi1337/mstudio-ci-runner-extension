@@ -45,6 +45,7 @@ export const de: Messages = {
     "runners.column.size": "Größe",
     "runners.column.cache": "Cache",
     "runners.column.imageBuilds": "Image-Builds",
+    "runners.column.dockerApi": "Docker in Jobs",
     "runners.column.version": "Version",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Neustart",
@@ -62,6 +63,8 @@ export const de: Messages = {
     "runners.cache.limit": "{size} GB",
     "runners.imageBuilds.on": "An",
     "runners.imageBuilds.off": "Aus",
+    "runners.dockerApi.on": "An",
+    "runners.dockerApi.off": "Aus",
     "runners.notice.created": "Runner {name} angelegt",
     "runners.notice.createdText":
         "Der Container startet jetzt und registriert sich innerhalb einer Minute.",
@@ -156,6 +159,9 @@ export const de: Messages = {
     "form.summary.builder.label": "Container: builder",
     "form.summary.builder.text":
         "Baut die Images aller Runner in diesem Stack. Ein zusätzlicher Container im Stack, gemeinsam genutzt.",
+    "form.summary.dockerApi.label": "Container: docker",
+    "form.summary.dockerApi.text":
+        "Startet die Container der Jobs als Container dieses Stacks. Ein zusätzlicher Container im Stack, gemeinsam genutzt, dazu einer für jeden Container, den ein Job startet.",
     "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Ressourcen",
@@ -242,6 +248,9 @@ export const de: Messages = {
     "form.imageBuilds.label": "Image-Builds in Jobs",
     "form.imageBuilds.help":
         "Erlaubt docker build in Jobs, obwohl der Container keinen Docker-Daemon hat. Gebaut wird in einem Builder-Container desselben Stacks (kaniko), gepusht wird vom Runner mit den Zugangsdaten aus docker login. Der Builder kommt einmal in den Stack und bedient alle Runner darin. Es gibt keinen Layer-Cache, jeder Build startet beim Base-Image. BuildKit-Funktionen wie RUN --mount, --secret, --ssh und Builds für eine andere Architektur gehen nicht; der docker-Befehl sagt das, statt etwas anderes zu bauen.",
+    "form.dockerApi.label": "Docker in Jobs",
+    "form.dockerApi.help":
+        "Erlaubt docker run und Testcontainers in Jobs, obwohl der Runner keinen Docker-Daemon hat. Ein docker-Container im selben Stack spricht die Docker-API und startet jeden Container eines Jobs als Container dieses Stacks. Er kommt einmal in den Stack und bedient alle Runner darin. Container brauchen ein paar Sekunden zum Start, haben kein stdin, kein TTY und keine Privilegien, und Bind-Mounts müssen im Projekt-Dateisystem liegen. Jeder Container zählt zu den Ressourcen des Projekts.",
     "form.concurrency.label": "Jobs gleichzeitig",
     "form.concurrency.required": "Gib an, wie viele Jobs gleichzeitig laufen",
     "form.concurrency.range": "Gib einen Wert zwischen 1 und 8 an",
@@ -295,6 +304,10 @@ export const de: Messages = {
         "Das Projekt konnte nicht geladen werden (Status {status}). Versuch es gleich noch mal.",
     "error.builder.nameTaken":
         "Im Stack gibt es schon einen Container namens builder, der nicht von dieser Extension stammt. Image-Builds brauchen diesen Namen. Benenne deinen Container um oder nimm einen anderen Stack.",
+    "error.dockerApi.nameTaken":
+        "Im Stack gibt es schon einen Container namens docker, der nicht von dieser Extension stammt. Docker in Jobs braucht diesen Namen. Benenne deinen Container um oder nimm einen anderen Stack.",
+    "error.dockerApi.unconfigured":
+        "Docker in Jobs ist in dieser Installation der Extension nicht verfügbar. Leg den Runner ohne diese Option an.",
     "error.containerHosting.unavailable":
         "Dieses Projekt unterstützt kein Container Hosting und kann deshalb keine CI-Runner betreiben. Installier die Extension in einem Projekt auf einem Server mit Container Hosting.",
     "error.upstream.cronjobCreate":

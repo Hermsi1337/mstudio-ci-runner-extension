@@ -28,6 +28,7 @@ import {
     ConcurrencyField,
     type ConcurrencyFormValues,
 } from "./ConcurrencyField.tsx";
+import { DockerApiField, type DockerApiFormValues } from "./DockerApiField.tsx";
 import {
     ImageBuildsField,
     type ImageBuildsFormValues,
@@ -36,6 +37,7 @@ import { ResourceFields, type ResourceFormValues } from "./ResourceFields.tsx";
 
 type FormValues = CacheFormValues &
     ImageBuildsFormValues &
+    DockerApiFormValues &
     ConcurrencyFormValues &
     ResourceFormValues;
 
@@ -59,6 +61,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
             cache: runner.cache,
             cacheSizeGb: runner.cacheSizeGb,
             imageBuilds: runner.imageBuilds,
+            dockerApi: runner.dockerApi,
             concurrency: runner.concurrency,
             size: runner.size,
             cpus: runner.cpus,
@@ -74,6 +77,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                     cache: values.cache,
                     cacheSizeGb: values.cacheSizeGb,
                     imageBuilds: values.imageBuilds,
+                    dockerApi: values.dockerApi,
                     concurrency: values.concurrency,
                     size: values.size,
                     cpus: values.size === "custom" ? values.cpus : undefined,
@@ -119,6 +123,8 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                     <CacheFields form={form} />
 
                     <ImageBuildsField form={form} />
+
+                    <DockerApiField form={form} />
                 </Section>
                 {changed && (
                     <Alert status="warning">

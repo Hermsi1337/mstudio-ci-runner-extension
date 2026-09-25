@@ -42,6 +42,7 @@ export const en = {
     "runners.column.size": "Size",
     "runners.column.cache": "Cache",
     "runners.column.imageBuilds": "Image builds",
+    "runners.column.dockerApi": "Docker in jobs",
     "runners.column.version": "Version",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Restart",
@@ -59,6 +60,8 @@ export const en = {
     "runners.cache.limit": "{size} GB",
     "runners.imageBuilds.on": "On",
     "runners.imageBuilds.off": "Off",
+    "runners.dockerApi.on": "On",
+    "runners.dockerApi.off": "Off",
     "runners.notice.created": "Runner {name} created",
     "runners.notice.createdText":
         "The container starts now and registers within a minute.",
@@ -151,6 +154,9 @@ export const en = {
     "form.summary.builder.label": "Container: builder",
     "form.summary.builder.text":
         "Runs the image builds of every runner in this stack. One more container in the stack, shared.",
+    "form.summary.dockerApi.label": "Container: docker",
+    "form.summary.dockerApi.text":
+        "Starts the containers of jobs as services of this stack. One more container in the stack, shared, plus one per container a job starts.",
     "form.section.cache": "Cache",
     "form.section.runner": "Runner",
     "form.section.resources": "Resources",
@@ -236,6 +242,9 @@ export const en = {
     "form.imageBuilds.label": "Image builds in jobs",
     "form.imageBuilds.help":
         "Lets jobs run docker build although the container has no Docker daemon. The build runs in a builder container of the same stack (kaniko) and the runner pushes the image with the credentials from docker login. The builder is added to the stack once and serves every runner in it. Without a layer cache, every build starts from the base image. BuildKit features such as RUN --mount, --secret, --ssh and builds for another architecture do not work; the docker command says so instead of building something else.",
+    "form.dockerApi.label": "Docker in jobs",
+    "form.dockerApi.help":
+        "Lets jobs run docker run and Testcontainers although the runner has no Docker daemon. A docker container in the same stack speaks the Docker API and starts every container of a job as a container of this stack. It is added once and serves every runner in the stack. Containers take a few seconds to start, have no stdin, no TTY and no privileges, and bind mounts must lie in the project file system. Every container counts against the resources of the project.",
     "form.concurrency.label": "Jobs at once",
     "form.concurrency.required": "Enter how many jobs run at once",
     "form.concurrency.range": "Enter a value between 1 and 8",
@@ -287,6 +296,10 @@ export const en = {
         "The project could not be loaded (status {status}). Try again in a moment.",
     "error.builder.nameTaken":
         "The stack already has a container called builder that this extension did not create. Image builds need that name. Rename your container or pick another stack.",
+    "error.dockerApi.nameTaken":
+        "The stack already has a container called docker that this extension did not create. Docker in jobs needs that name. Rename your container or pick another stack.",
+    "error.dockerApi.unconfigured":
+        "Docker in jobs is not available in this installation of the extension. Create the runner without it.",
     "error.containerHosting.unavailable":
         "This project does not support Container Hosting, so it cannot run CI runners. Move the extension to a project on a server that offers Container Hosting.",
     "error.upstream.cronjobCreate":
