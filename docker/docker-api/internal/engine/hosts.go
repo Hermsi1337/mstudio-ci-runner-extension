@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
 )
 
 // containerIP is the address the wrapper reported for the current run. The

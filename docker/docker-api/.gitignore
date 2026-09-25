@@ -1,34 +1,4 @@
-# Binaries
-bin/
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
+# go test -c and coverage output
 *.test
-
-# Output of the go coverage tool
 *.out
 coverage.html
-
-# Dependency directories
-vendor/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment files
-.env
-.env.local
-
-# Build output
-adapter-linux

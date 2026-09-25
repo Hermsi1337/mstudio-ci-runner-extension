@@ -67,6 +67,15 @@ every create would stop at the capability check ([codegen.md](codegen.md)).
 Prism rejects requests that contradict the upstream spec. The request bodies of the
 extension are therefore checked against the real API contracts without the real APIs.
 
+## Docker API adapter
+
+`docker/docker-api` is a Go module with its own tests (`pnpm run docker-api:test`,
+CI job `docker-api`). Unit tests cover the wrapper and the state files;
+`internal/docker/cli_test.go` drives the `docker` CLI against the adapter with a fake
+platform that runs every container as a local process. No daemon is involved, only
+the CLI binary. Details and the live Testcontainers suite in
+[docker-api.md](docker-api.md#development-and-tests).
+
 ## Tests on the real platform
 
 Everything above runs without credentials. What only the real platform can answer

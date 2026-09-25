@@ -15,7 +15,7 @@ import (
 	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/api/types/network"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
 )
 
 const zeroTime = "0001-01-01T00:00:00Z"

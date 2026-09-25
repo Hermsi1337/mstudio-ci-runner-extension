@@ -11,11 +11,11 @@ import (
 	"github.com/mittwald/api-client-go/mittwaldv2"
 	"github.com/mittwald/api-client-go/mittwaldv2/generated/clients/projectclientv2"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/config"
-	"github.com/mittwald/mittwald-container-adapter/internal/docker"
-	"github.com/mittwald/mittwald-container-adapter/internal/engine"
-	"github.com/mittwald/mittwald-container-adapter/internal/initproc"
-	"github.com/mittwald/mittwald-container-adapter/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/config"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/docker"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/initproc"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".

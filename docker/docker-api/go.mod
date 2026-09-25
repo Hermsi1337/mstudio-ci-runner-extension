@@ -1,4 +1,4 @@
-module github.com/mittwald/mittwald-container-adapter
+module github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api
 
 go 1.25.0
 

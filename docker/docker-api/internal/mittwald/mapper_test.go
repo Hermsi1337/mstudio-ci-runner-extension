@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/mittwald"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/mittwald"
 )
 
 func TestMapper(t *testing.T) {

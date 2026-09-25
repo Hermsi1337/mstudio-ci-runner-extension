@@ -8,6 +8,7 @@
 | Server functions | TanStack Start | `src/serverFunctions/` |
 | Domain logic | TypeScript, `@mittwald/api-client` | `src/domain/runner.ts`, `src/domain/project.ts` |
 | Image builds | kaniko in a builder service per stack, crane in the runner | `src/domain/builder.ts`, `src/build-queue.ts` ([image-builds.md](image-builds.md)) |
+| Docker API for jobs | Go service per stack, `mstudio-init` wrapper in every container, not declared by the extension yet | `docker/docker-api/` ([docker-api.md](docker-api.md)) |
 | Changelog | GitHub releases via `@octokit/rest`, cached for ten minutes, cut at the running version | `src/domain/changelog.ts` |
 | CI providers | `@octokit/rest`, generated GitLab client | `src/domain/providers/` ([providers.md](providers.md)) |
 | Persistence | PostgreSQL, Drizzle ORM | `src/db/` |

@@ -15,11 +15,11 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/docker"
-	"github.com/mittwald/mittwald-container-adapter/internal/engine"
-	"github.com/mittwald/mittwald-container-adapter/internal/fakeplatform"
-	"github.com/mittwald/mittwald-container-adapter/internal/initproc"
-	"github.com/mittwald/mittwald-container-adapter/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/docker"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/fakeplatform"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/initproc"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
 )
 
 func main() {

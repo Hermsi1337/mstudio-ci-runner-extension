@@ -59,6 +59,7 @@ the builder image from `docker/builder/versions.json` ([image-builds.md](image-b
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `docker/runner/github/` | must be **public**, mittwald pulls it without credentials |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `docker/runner/gitlab/` | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-builder` | `docker/builder/` | must be **public** |
+| `ghcr.io/hermsi1337/mstudio-ci-docker-api` | `docker/docker-api/` ([docker-api.md](docker-api.md)) | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `docker/extension/Dockerfile`, build context is the repo root, ignore rules in `docker/extension/Dockerfile.dockerignore` | any |
 
 Package visibility is independent of the repository and can only be changed on the web:
@@ -71,9 +72,9 @@ Package visibility is independent of the repository and can only be changed on t
 
 | Workflow | Trigger | Content |
 |---|---|---|
-| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
+| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests, `gofmt`, `go vet` and `go test` of `docker/docker-api` |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
-| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)), `linux/amd64` |
+| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)) and the Docker API image ([docker-api.md](docker-api.md)), `linux/amd64` |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
 | `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
 | `deploy-production.yml` | Manual | Deploys into the production installation |

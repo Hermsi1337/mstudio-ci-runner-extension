@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/moby/moby/api/types/network"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/engine"
-	"github.com/mittwald/mittwald-container-adapter/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
 )
 
 type NetworkHandler struct {

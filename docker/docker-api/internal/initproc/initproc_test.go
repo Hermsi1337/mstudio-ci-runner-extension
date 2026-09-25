@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/initproc"
-	"github.com/mittwald/mittwald-container-adapter/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/initproc"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
 )
 
 func prepare(t *testing.T, proc state.Process) state.Dir {

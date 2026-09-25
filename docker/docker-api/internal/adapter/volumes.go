@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/mittwald"
 	"github.com/mittwald/api-client-go/mittwaldv2/generated/clients/containerclientv2"
 	"github.com/mittwald/api-client-go/mittwaldv2/generated/schemas/containerv2"
-	"github.com/mittwald/mittwald-container-adapter/internal/mittwald"
 	"github.com/moby/moby/api/types/volume"
 )
 

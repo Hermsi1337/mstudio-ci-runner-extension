@@ -22,8 +22,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/state"
-	"github.com/mittwald/mittwald-container-adapter/internal/tarutil"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/tarutil"
 )
 
 const (

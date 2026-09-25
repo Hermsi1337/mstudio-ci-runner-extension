@@ -1,0 +1,168 @@
+# Docker API for jobs
+
+`docker/docker-api/` is a Docker Engine API (v1.44) on top of mittwald Container
+Hosting. Docker clients in a job (the `docker` CLI, Testcontainers, dockerode)
+create, run, exec into and remove containers, and each container becomes a
+service of the stack the runner lives in. It started as a rework of
+`mittwald/mstudio-docker-adapter`.
+
+Status: the service works on its own and runs Testcontainers suites, including
+the integration tests of this repository. The extension does not declare it yet.
+
+## Why it looks like this
+
+The platform has no API to attach to a process, read its exit code or run a
+command in it. It also restarts every container that exits, whatever its restart
+policy says. A plain translation of Docker calls into mittwald calls therefore
+cannot answer `docker run`, `docker wait` or `docker exec`.
+
+So every container runs `mstudio-init` as its entrypoint, and the adapter and the
+wrapper talk through files on the project file system:
+
+```
+ job / Testcontainers                   docker service                 stack services
+ DOCKER_HOST=tcp://docker:2375   --->   Docker API, port forwards --> mstudio-init
+                                        mittwald API client            + the process
+                                              |                              |
+                                              +---- shared directory --------+
+                                                    on the project file system
+```
+
+`mstudio-init` is the adapter binary itself. On startup the adapter copies itself
+into the shared directory, where every container finds it.
+
+| Concern | How |
+|---|---|
+| Output | The wrapper writes stdout and stderr as timestamped frames into a log file. `logs`, `attach` and `docker run` read it, with follow, tail, since and timestamps. |
+| Exit code | The wrapper records it and stays alive, so the container stays exited instead of being restarted. `wait`, `inspect` and `docker run` report it. |
+| exec | The adapter writes a request, the wrapper runs it and streams output and exit code back. No SSH. |
+| Files | `docker cp` and Testcontainers copies go through the shared directory. Files copied into a created container are extracted before its process starts. |
+| Health checks | The wrapper runs the `HEALTHCHECK` of the container, `State.Health` reports it. |
+| Ports | Published ports are opened on the adapter and forwarded to the address the wrapper reports. Clients connect to the host in `DOCKER_HOST`. |
+| Names | The DNS of a stack resolves a new service only after some seconds and caches the miss. The adapter publishes names and network aliases as `/etc/hosts` entries, which the wrapper merges. |
+| Ryuk | Testcontainers starts Ryuk to clean up after a session. Ryuk needs the Docker socket, so the adapter plays Ryuk in-process and removes the containers of a session ten seconds after it disconnected. |
+
+A container is declared as a service only when it starts: mittwald starts a
+service as soon as it exists, and clients copy files into a container between
+create and start.
+
+The adapter lists and touches only services it created, recognised by the
+description prefix `docker-adapter `. The runner, the builder and every other
+service of the stack are invisible to Docker clients. Services are removed with
+`PATCH` and an empty body, never by declaring the whole stack.
+
+## Shared directory
+
+The adapter mounts `<project home>/.docker-adapter/<stack id>` at `STATE_DIR`.
+A container sees only `bin/` and its own directory below `/.mstudio`.
+
+| Path | Written by | Content |
+|---|---|---|
+| `bin/mstudio-init` | adapter | the wrapper |
+| `containers/<id>/config.json` | adapter | the container as created: process, env, ports, networks |
+| `containers/<id>/log` | wrapper | output frames: stream, unix nanos, length, payload |
+| `containers/<id>/run.json`, `exit.json` | wrapper | generation, start, pid, addresses; exit code of the last run |
+| `containers/<id>/heartbeat` | wrapper | touched every two seconds |
+| `containers/<id>/health.json` | wrapper | health check state |
+| `containers/<id>/hosts` | adapter | hosts entries of the other containers |
+| `containers/<id>/control/<n>.json` | adapter | start and signal requests |
+| `containers/<id>/archives/<n>.tar`, `<n>.json` | adapter | files to extract, answered with `<n>.done` or `<n>.error` |
+| `containers/<id>/tasks/<id>/` | both | exec, stat and archive requests, output and result |
+| `networks/<id>.json` | adapter | networks, bookkeeping only |
+
+The environment of a container travels in `config.json`, not in the service,
+because the API limits every environment value and every command element to 800
+characters.
+
+## Running it
+
+The adapter runs as a service of the stack it manages:
+
+```yaml
+docker:
+  image: ghcr.io/hermsi1337/mstudio-ci-docker-api:<version>
+  environment:
+    MITTWALD_API_TOKEN: <token with access to the project>
+    MITTWALD_PROJECT_ID: <project id>
+    MITTWALD_STACK_ID: <stack id>
+  volumes:
+    - /home/<project short id>/.docker-adapter/<stack id>:/state
+```
+
+Clients in the same stack use `DOCKER_HOST=tcp://docker:2375`.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `MITTWALD_API_TOKEN` | required | API token |
+| `MITTWALD_PROJECT_ID` | required | project of the stack |
+| `MITTWALD_STACK_ID` | project id | stack the containers go into |
+| `MITTWALD_API_BASE_URL` | `https://api.mittwald.de/v2` | API endpoint |
+| `STATE_DIR` | `/state` | shared directory inside the adapter |
+| `STATE_HOST_PATH` | `<project home>/.docker-adapter/<stack id>` | the same directory as a project path |
+| `BIND_TRANSLATIONS` | | `/client/path=/project/path,...`, maps bind mount sources of clients to the project file system |
+| `DEFAULT_CPUS` | `1` | CPU limit of a container without `--cpus` |
+| `DEFAULT_MEMORY` | `2048mb` | memory limit of a container without `--memory` |
+| `ADAPTER_HOST`, `ADAPTER_PORT` | `0.0.0.0`, `2375` | listen address |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
+
+The adapter has no authentication. Everything that reaches its port controls the
+containers it created; keep it inside the stack. That is the same trust boundary
+as the build queue ([image-builds.md](image-builds.md)): one stack per trust
+boundary.
+
+## Limits
+
+- No image builds. `POST /build` answers 501. Build and push in the pipeline,
+  then run the image from the registry.
+- No stdin. `docker run -i` and `docker exec -i` get an empty input.
+- No TTY. `-t` is accepted, the output is not a terminal.
+- No read-only mounts, no tmpfs, no `--privileged`, no capabilities. The API
+  rejects `:ro` and has no field for the others.
+- Bind mount sources must lie on the project file system (see `BIND_TRANSLATIONS`).
+- One network per stack. Network create and connect are bookkeeping; names and
+  aliases resolve for every container of the stack.
+- The first start of an image includes the pull by the platform. With a cached
+  image a container starts in about four seconds.
+- Stats and top return empty values.
+
+## Development and tests
+
+```bash
+cd docker/docker-api
+go test ./...                          # unit tests, docker CLI tests against a fake platform
+go run ./cmd/localsim 127.0.0.1:2375   # Docker API on this machine, containers run as local processes
+```
+
+`internal/docker/cli_test.go` drives the real `docker` CLI against the adapter
+with `internal/fakeplatform`, which runs every service as a local `mstudio-init`
+process. The tests skip when no `docker` CLI is installed. `cmd/localsim` does the
+same interactively, for trying clients such as Testcontainers.
+
+`e2e/testcontainers` is a Testcontainers suite for a live stack. Run it in a
+container of the stack with `DOCKER_HOST=tcp://docker:2375` and `npm test`.
+
+| Package | Content |
+|---|---|
+| `cmd/adapter` | entrypoint; `mstudio-init` when called as such |
+| `cmd/localsim` | Docker API with a fake platform |
+| `internal/engine` | containers as services: create, start, stop, logs, exec, archives, ports, networks, Ryuk |
+| `internal/initproc` | `mstudio-init`: process, exit code, exec, archives, health checks, hosts |
+| `internal/state` | the shared directory: layout, records, log frames |
+| `internal/tarutil` | archive extraction and packing with Docker semantics |
+| `internal/docker` | HTTP routing and handlers |
+| `internal/adapter` | volumes |
+| `internal/mittwald` | client interfaces |
+| `internal/fakeplatform` | fake mittwald API for tests |
+
+## Platform behaviour this relies on
+
+Measured in a project, not documented by mittwald:
+
+- Every container that exits is restarted, `restart: "no"` included.
+- A `PATCH` on a stack is pending for a moment. A `recreate` right after it
+  redeploys the old state, and the service list lags behind as well.
+- The DNS of a stack resolves a new service after several seconds and caches the
+  miss.
+- The project file system is shared by every container of the project, not
+  mounted `noexec`, and idmapped, so directories the wrapper writes to are
+  world-writable.

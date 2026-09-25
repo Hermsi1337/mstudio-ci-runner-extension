@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/adapter"
-	"github.com/mittwald/mittwald-container-adapter/internal/mocks"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/adapter"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/mocks"
 	"github.com/moby/moby/api/types/volume"
 )
 

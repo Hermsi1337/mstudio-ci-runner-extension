@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
 )
 
 // Testcontainers starts Ryuk, a container that removes everything a test

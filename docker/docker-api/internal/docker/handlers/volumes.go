@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/mittwald/mittwald-container-adapter/internal/adapter"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/adapter"
 	"github.com/moby/moby/api/types/volume"
 )
 

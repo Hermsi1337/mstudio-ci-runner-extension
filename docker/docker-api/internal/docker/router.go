@@ -7,10 +7,10 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/adapter"
-	"github.com/mittwald/mittwald-container-adapter/internal/docker/handlers"
-	"github.com/mittwald/mittwald-container-adapter/internal/engine"
-	"github.com/mittwald/mittwald-container-adapter/internal/mittwald"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/adapter"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/docker/handlers"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/mittwald"
 )
 
 // RouterConfig holds the configuration for creating a new router.

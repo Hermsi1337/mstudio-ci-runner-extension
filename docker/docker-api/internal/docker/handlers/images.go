@@ -13,7 +13,7 @@ import (
 	"github.com/moby/moby/api/types/jsonstream"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/engine"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
 )
 
 // ImageHandler answers from the registry lookup of the mittwald API. Images

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Builds the runner images and the builder image locally, with the versions and
-# checksums from docker/runner/versions.json and docker/builder/versions.json.
-# Images are tagged mstudio-ci-runner-<provider>:local and mstudio-ci-builder:local.
+# Builds the runner images, the builder image and the Docker API image locally,
+# with the versions and checksums from docker/runner/versions.json and
+# docker/builder/versions.json. Images are tagged mstudio-ci-runner-<provider>:local,
+# mstudio-ci-builder:local and mstudio-ci-docker-api:local.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -35,3 +36,9 @@ docker build \
     --build-arg "KANIKO_REPOSITORY=$(jq -r .kaniko.repository "${builder_versions}")" \
     -t mstudio-ci-builder:local \
     docker/builder
+
+echo "building mstudio-ci-docker-api:local"
+docker build \
+    -f docker/docker-api/Dockerfile \
+    -t mstudio-ci-docker-api:local \
+    docker/docker-api

@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/mittwald/mittwald-container-adapter/internal/docker/handlers"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/docker/handlers"
 )
 
 var _ = Describe("SystemHandler", func() {
