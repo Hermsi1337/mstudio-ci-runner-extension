@@ -24,6 +24,26 @@ while IFS= read -r finding; do
     echo "mstudio-build: ${dockerfile}:${line}: ${instruction} is ignored by the builder" >&2
 done < <(grep -n -o -E -- '--link' "${dockerfile}" || true)
 
+# kaniko ignores --platform in FROM and always pulls the platform of the node it
+# runs on. BUILDPLATFORM and TARGETPLATFORM resolve to that platform here,
+# because mstudio-platform-check refuses cross builds.
+while IFS= read -r finding; do
+    line="${finding%%:*}"
+    platform="${finding#*--platform=}"
+    case "${platform}" in
+        '$BUILDPLATFORM' | '${BUILDPLATFORM}' | '$TARGETPLATFORM' | '${TARGETPLATFORM}') ;;
+        *'$'*)
+            echo "mstudio-build: ${dockerfile}:${line}: FROM --platform=${platform} is ignored by the builder, it pulls the platform of this runner" >&2
+            ;;
+        *)
+            if ! message="$(mstudio-platform-check "${platform}" 2>&1)"; then
+                echo "mstudio-build: ${dockerfile}:${line}: FROM --platform=${platform}: ${message#mstudio-build: }" >&2
+                status=1
+            fi
+            ;;
+    esac
+done < <(grep -n -i -o -E -- '^[[:space:]]*FROM[[:space:]]+--platform=[^[:space:]]+' "${dockerfile}" | sed -E 's/^([0-9]+):.*--[pP][lL][aA][tT][fF][oO][rR][mM]=/\1:--platform=/' || true)
+
 if grep -q -E '^[[:space:]]*(RUN|COPY|ADD).*<<-?[A-Za-z"'\''(]' "${dockerfile}"; then
     echo "mstudio-build: ${dockerfile}: here-documents in RUN/COPY are untested with the builder, prefer a script file" >&2
 fi

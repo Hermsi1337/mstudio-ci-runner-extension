@@ -215,12 +215,18 @@ Failing early with a clear message beats a build that silently does something el
 | `--secret`, `--ssh`, `--build-context` | BuildKit features the builder cannot provide |
 | `--platform` with a foreign or multiple platforms | kaniko cannot emulate another architecture |
 | `RUN --mount=...`, `--network=`, `--security=` in the Dockerfile | checked before the job is queued |
+| `FROM --platform=` with a foreign or multiple platforms | kaniko ignores the flag and pulls the platform of the runner |
 | `--output` other than `type=registry`, `push=true` or `type=docker,dest=` | no equivalent |
 | `docker run`, `exec`, `compose`, `ps`, `network`, `volume`, `commit` | need a daemon |
 | `docker buildx bake` | not supported, call `docker build` per image |
 
 `COPY --link` and here-documents in `RUN` produce a warning: kaniko ignores the first and
 is untested with the second.
+
+`FROM --platform=$BUILDPLATFORM` and `FROM --platform=$TARGETPLATFORM` pass without a
+message. Cross builds are refused, so both name the platform of the runner. Any other
+variable in `FROM --platform=` produces a warning, because the check cannot resolve it
+and kaniko ignores it anyway.
 
 ## Limits
 

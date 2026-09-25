@@ -266,4 +266,27 @@ describe("image builds", () => {
             await runner.stop();
         }
     }, 300_000);
+
+    it("refuses a foreign platform in FROM before it queues a job", async () => {
+        const runner = await startRunner();
+        try {
+            await writeContext(
+                runner,
+                "FROM --platform=linux/s390x alpine:3.20\nRUN true",
+            );
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                "cd /home/runner/app && docker build -t foreign:local . 2>&1",
+            ]);
+            expect(build.exitCode).not.toBe(0);
+            expect(build.output).toContain(
+                "FROM --platform=linux/s390x: platform linux/s390x is not supported",
+            );
+            const queue = await runner.exec(["ls", "/builds/queue"]);
+            expect(queue.output.trim()).toBe("");
+        } finally {
+            await runner.stop();
+        }
+    }, 300_000);
 });
