@@ -1,5 +1,5 @@
 {
-  "id": "bdb24d6d-1713-409f-8fe9-fc28b62a19bb",
+  "id": "e36f0023-b086-4924-94ad-348d601b0df9",
   "prevId": "81528174-5c25-45b9-9579-215760a34907",
   "version": "7",
   "dialect": "postgresql",
@@ -26,8 +26,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "nonce": {
-          "name": "nonce",
+        "secretHash": {
+          "name": "secretHash",
           "type": "varchar(64)",
           "primaryKey": false,
           "notNull": true

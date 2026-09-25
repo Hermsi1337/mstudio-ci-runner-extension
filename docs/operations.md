@@ -174,7 +174,7 @@ mittwald.
    | `MITTWALD_API_TOKEN` | secret | mStudio, *User → API tokens*, needs access to the project and to the extension |
    | `MITTWALD_CONTRIBUTOR_ID` | secret | Contributor of the extension, in mStudio under *Organization → Development* |
    | `EXTENSION_ID`, `EXTENSION_SECRET` | secret | Extension registration ([mstudio-setup.md](mstudio-setup.md)) |
-   | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes the stored instance secrets unreadable, so the cleanup after an uninstall stops working, and invalidates the secrets of every service `docker` until the next runner update redeclares it. |
+   | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes the stored instance secrets unreadable, so the cleanup after an uninstall stops working. |
    | `POSTGRES_PASSWORD` | secret | Any strong value. Used by both services. |
    | `PUBLIC_URL` | variable | The URL of step 4, e.g. `https://ci-runner.example.com`. The service `docker` of a stack fetches its tokens there ([docker-api.md](docker-api.md#tokens)). Without it *Docker in jobs* is refused. |
 

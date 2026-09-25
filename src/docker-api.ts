@@ -1,4 +1,4 @@
-import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 /**
  * Pieces of "Docker in jobs" without server dependencies, so the domain and
@@ -54,36 +54,22 @@ export function stateMountFor(
     return `${projectDirectory}/${DOCKER_API_STATE_DIRECTORY}/${stackId}:${DOCKER_API_STATE_PATH}`;
 }
 
+/** 32 random bytes, prefixed so secret scanners recognize a leaked one. */
+export function generateSecret(): string {
+    return `${SECRET_PREFIX}${randomBytes(32).toString("base64url")}`;
+}
+
 /**
- * The key is derived from the encryption secrets of the extension, so neither
- * a database dump nor the environment of a stack reveals it.
+ * A plain SHA-256 is enough: the secret is random with 256 bits, so there is
+ * nothing to guess and no need for a slow or keyed hash.
  */
-export function deriveSecretKey(masterPassword: string, salt: string): Buffer {
-    return Buffer.from(
-        hkdfSync("sha256", masterPassword, salt, "docker-api-secret", 32),
-    );
+export function hashSecret(secret: string): string {
+    return createHash("sha256").update(secret).digest("hex");
 }
 
-export function deriveSecret(
-    key: Buffer,
-    stackId: string,
-    nonce: string,
-): string {
-    const mac = createHmac("sha256", key)
-        .update(`${stackId}:${nonce}`)
-        .digest("base64url");
-
-    return `${SECRET_PREFIX}${mac}`;
-}
-
-export function secretMatches(
-    key: Buffer,
-    stackId: string,
-    nonce: string,
-    presented: string,
-): boolean {
-    const expected = Buffer.from(deriveSecret(key, stackId, nonce));
-    const actual = Buffer.from(presented);
+export function secretMatches(storedHash: string, presented: string): boolean {
+    const expected = Buffer.from(storedHash, "hex");
+    const actual = Buffer.from(hashSecret(presented), "hex");
 
     return (
         expected.length === actual.length && timingSafeEqual(expected, actual)

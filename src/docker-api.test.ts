@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
     bearerToken,
     DOCKER_HOST,
-    deriveSecret,
-    deriveSecretKey,
+    generateSecret,
+    hashSecret,
     secretMatches,
     stateMountFor,
     tokenUrlFor,
@@ -12,32 +12,28 @@ import {
     withoutDockerApi,
 } from "./docker-api.ts";
 
-const key = deriveSecretKey("master", "salt");
 const stackId = "3f9a7c21-6d4e-4b8a-a1c2-7e5d9f0b2c4a";
 
 describe("docker api secret", () => {
-    it("is stable for a stack and nonce", () => {
-        expect(deriveSecret(key, stackId, "n1")).toBe(
-            deriveSecret(key, stackId, "n1"),
-        );
-        expect(deriveSecret(key, stackId, "n1")).toMatch(/^mdapi_[\w-]{43}$/);
+    it("is random and recognizable", () => {
+        const secret = generateSecret();
+        expect(secret).toMatch(/^mdapi_[\w-]{43}$/);
+        expect(generateSecret()).not.toBe(secret);
     });
 
-    it("changes with the nonce, the stack and the key", () => {
-        const secret = deriveSecret(key, stackId, "n1");
-        expect(deriveSecret(key, stackId, "n2")).not.toBe(secret);
-        expect(deriveSecret(key, "other-stack", "n1")).not.toBe(secret);
-        expect(
-            deriveSecret(deriveSecretKey("other", "salt"), stackId, "n1"),
-        ).not.toBe(secret);
+    it("stores only the SHA-256", () => {
+        expect(hashSecret("mdapi_abc")).toBe(
+            "16c5874533ccf19559ce8372f6415e1f90eb8a74c18d98561bd1efed762d5a08",
+        );
     });
 
     it("accepts only the matching secret", () => {
-        const secret = deriveSecret(key, stackId, "n1");
-        expect(secretMatches(key, stackId, "n1", secret)).toBe(true);
-        expect(secretMatches(key, stackId, "n2", secret)).toBe(false);
-        expect(secretMatches(key, stackId, "n1", `${secret}x`)).toBe(false);
-        expect(secretMatches(key, stackId, "n1", "")).toBe(false);
+        const secret = generateSecret();
+        const stored = hashSecret(secret);
+        expect(secretMatches(stored, secret)).toBe(true);
+        expect(secretMatches(stored, `${secret}x`)).toBe(false);
+        expect(secretMatches(stored, "")).toBe(false);
+        expect(secretMatches(hashSecret(generateSecret()), secret)).toBe(false);
     });
 
     it("reads the bearer token", () => {

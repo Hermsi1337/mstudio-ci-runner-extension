@@ -2,7 +2,7 @@ CREATE TABLE "docker_api_stacks" (
 	"stackId" varchar(36) PRIMARY KEY NOT NULL,
 	"extensionInstanceId" varchar(36) NOT NULL,
 	"projectId" varchar(36) NOT NULL,
-	"nonce" varchar(64) NOT NULL,
+	"secretHash" varchar(64) NOT NULL,
 	"createdAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint

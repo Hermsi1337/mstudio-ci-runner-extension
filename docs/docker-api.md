@@ -109,27 +109,30 @@ is refused.
 The adapter never sees a user token. It asks the extension for short-lived
 tokens:
 
-1. On first use, the extension stores a random nonce for the stack in
-   `docker_api_stacks` and derives the secret of the stack:
-   `mdapi_` + base64url(HMAC-SHA256(key, "<stack id>:<nonce>")). The key is derived
-   with HKDF from `ENCRYPTION_MASTER_PASSWORD` and `ENCRYPTION_SALT`.
+1. Whenever it declares the service, the extension generates a random secret
+   (32 bytes, base64url, prefix `mdapi_` for secret scanners) and stores its
+   SHA-256 in `docker_api_stacks`.
 2. The secret goes into the environment of the service `docker` as
    `DOCKER_API_SECRET`, together with `DOCKER_API_TOKEN_URL`
-   (`<PUBLIC_URL>/api/docker-api/token`, a path in `PUBLIC_URL` is kept). The database holds only the nonce.
+   (`<PUBLIC_URL>/api/docker-api/token`, a path in `PUBLIC_URL` is kept). The
+   database holds only the hash.
 3. The adapter calls `POST /api/docker-api/token` with `Authorization: Bearer
-   <secret>` and `{"stackId": "..."}`. The extension recomputes the secret from
-   the row of the stack, compares it in constant time and answers with an access
-   token of the extension instance (`extensionAuthenticateInstance`) and its
-   expiry. The row exists exactly as long as the extension keeps the service, so
-   a removed service gets no token.
+   <secret>` and `{"stackId": "..."}`. The extension hashes the secret, compares
+   it with the stored hash in constant time and answers with an access token of
+   the extension instance (`extensionAuthenticateInstance`) and its expiry. The
+   row exists exactly as long as the extension keeps the service, so a removed
+   service gets no token.
 4. The adapter keeps the token in memory and fetches a new one before it
    expires (`internal/tokensource`).
 
-Parallel runners of one stack read the same nonce and therefore declare the same
-secret. A new nonce, and with it a new secret, comes with the next first use
-after the service was removed. A database dump alone opens nothing: without the
-key the nonce is useless. The token carries the scopes of the extension, which
-the adapter needs anyway ([mstudio-setup.md](mstudio-setup.md)).
+A plain SHA-256 is enough because the secret is random with 256 bits: a stolen
+hash leaves nothing to guess. Every redeclaration of the service (image update,
+changed `PUBLIC_URL`, secret not matching the hash) writes a new secret and a
+new hash, all under the advisory lock of the stack, so parallel calls cannot
+leave a service and a hash from different secrets. The hash is written before the
+service is declared; a crash in between leaves a mismatch that the next call
+detects and replaces. The token carries the scopes of the extension, which the
+adapter needs anyway ([mstudio-setup.md](mstudio-setup.md)).
 
 ## Running it
 

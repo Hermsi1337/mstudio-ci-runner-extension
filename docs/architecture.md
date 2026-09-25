@@ -136,7 +136,8 @@ Tables in `src/db/schema.ts`:
   reads the owned stack ids before the default chain removes the instance, because the
   rows go with it through the foreign key cascade.
 - `docker_api_stacks`: one row per stack that runs the service `docker`, with the
-  nonce its secret is derived from ([docker-api.md](docker-api.md#tokens)). Foreign
+  SHA-256 of the secret the service trades for tokens
+  ([docker-api.md](docker-api.md#tokens)). Foreign
   key to `extension_instance` with `ON DELETE CASCADE`. The row goes when the service
   goes.
 
@@ -178,8 +179,8 @@ answer within 6 seconds.
   mitthooks-drizzle). It authenticates the cleanup after an uninstall and the tokens
   of the service `docker`.
 - `POST /api/docker-api/token` is the only endpoint outside the session middleware
-  besides the webhook. It answers only a bearer secret derived for the stack from a
-  key the database does not hold, and only while the extension keeps the service
+  besides the webhook. It answers only the random bearer secret of the stack, whose
+  SHA-256 the database keeps, and only while the extension keeps the service
   `docker` of that stack ([docker-api.md](docker-api.md#tokens)).
 - Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
 - Errors reach the client only through `PublicError` subclasses (`src/global-errors.ts`);

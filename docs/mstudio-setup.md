@@ -82,8 +82,8 @@ The PAT mode is disabled, see [providers.md](providers.md#existing-providers).
 
 ### Docker in jobs
 
-The service `docker` of a stack holds a secret derived for that stack
-(`DOCKER_API_SECRET`) and trades it at `PUBLIC_URL` for short-lived instance tokens.
+The service `docker` of a stack holds a random secret of that stack
+(`DOCKER_API_SECRET`, the database keeps its SHA-256) and trades it at `PUBLIC_URL` for short-lived instance tokens.
 No user token and no extension secret reach a container. Details in
 [docker-api.md](docker-api.md#tokens).
 

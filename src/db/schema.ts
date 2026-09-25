@@ -81,10 +81,8 @@ export type RunnerRow = typeof runners.$inferSelect;
 export type NewRunnerRow = typeof runners.$inferInsert;
 
 /**
- * One row per stack that runs the service `docker` (docs/docker-api.md). The
- * secret of the service is derived from the nonce with a key only the
- * extension holds, so the row alone opens nothing. Two runners that turn the
- * option on at the same time read the same nonce and declare the same secret.
+ * One row per stack that runs the service `docker` (docs/docker-api.md), with
+ * the SHA-256 of the secret the service trades for tokens.
  */
 export const dockerApiStacks = pgTable("docker_api_stacks", {
     stackId: varchar({ length: 36 }).primaryKey(),
@@ -92,7 +90,7 @@ export const dockerApiStacks = pgTable("docker_api_stacks", {
         .notNull()
         .references(() => extensionInstances.id, { onDelete: "cascade" }),
     projectId: varchar({ length: 36 }).notNull(),
-    nonce: varchar({ length: 64 }).notNull(),
+    secretHash: varchar({ length: 64 }).notNull(),
     createdAt: timestamp().defaultNow().notNull(),
 });
 

@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import type { MittwaldAPIV2Client } from "@mittwald/api-client";
 import { eq, sql } from "drizzle-orm";
 import { imageMatches, imageRepository } from "@/build-queue.ts";
@@ -7,8 +6,8 @@ import { dockerApiStacks, extensionInstances } from "@/db/schema.ts";
 import {
     DOCKER_API_CONTAINER_PREFIX,
     DOCKER_API_SERVICE_NAME,
-    deriveSecret,
-    deriveSecretKey,
+    generateSecret,
+    hashSecret,
     secretMatches,
     stateMountFor,
     tokenUrlFor,
@@ -38,8 +37,8 @@ import {
  * docs/docker-api.md). Runners reach it through DOCKER_HOST.
  *
  * The service needs a mittwald token. It gets short-lived instance tokens from
- * this extension, authenticated with a secret derived from a per-stack nonce,
- * so no user token ever sits in a container.
+ * this extension, authenticated with a random secret per stack whose SHA-256
+ * the database keeps, so no user token ever sits in a container.
  */
 const log = createLogger("docker-api");
 
@@ -68,38 +67,6 @@ function isOurDockerApi(service: ServiceResponse): boolean {
 
 function isAdapterContainer(service: ServiceResponse): boolean {
     return service.description.startsWith(DOCKER_API_CONTAINER_PREFIX);
-}
-
-function secretKey(): Buffer {
-    const env = getEnvironmentVariables();
-
-    return deriveSecretKey(env.ENCRYPTION_MASTER_PASSWORD, env.ENCRYPTION_SALT);
-}
-
-/**
- * Reads the nonce of the stack and creates it on first use. Parallel callers
- * end up with the same row and therefore with the same secret.
- */
-async function nonceFor(
-    extensionInstanceId: string,
-    projectId: string,
-    stackId: string,
-): Promise<string> {
-    const [row] = await getDatabase()
-        .insert(dockerApiStacks)
-        .values({
-            stackId,
-            extensionInstanceId,
-            projectId,
-            nonce: randomBytes(24).toString("base64url"),
-        })
-        .onConflictDoUpdate({
-            target: dockerApiStacks.stackId,
-            set: { stackId: sql`excluded."stackId"` },
-        })
-        .returning({ nonce: dockerApiStacks.nonce });
-
-    return row.nonce;
 }
 
 /**
@@ -145,7 +112,9 @@ export function assertDockerApiAvailable(): void {
 
 /**
  * Declares the service `docker` of a stack, and redeclares it when its image
- * is behind this release or its secret is not the current one.
+ * is behind this release, its environment changed or its secret does not match
+ * the stored hash. A redeclaration always gets a new secret; the old one stops
+ * working with the stored hash, and the service is recreated anyway.
  */
 export async function ensureDockerApi(
     client: MittwaldAPIV2Client,
@@ -173,24 +142,26 @@ async function declareDockerApi(
     if (existing && !isOurDockerApi(existing)) {
         throw new DockerApiNameTakenError(stackId);
     }
-    const environment = {
+    const settings = {
         MITTWALD_PROJECT_ID: projectId,
         MITTWALD_STACK_ID: stackId,
         DOCKER_API_TOKEN_URL: tokenUrlFor(env.PUBLIC_URL),
-        DOCKER_API_SECRET: deriveSecret(
-            secretKey(),
-            stackId,
-            await nonceFor(extensionInstanceId, projectId, stackId),
-        ),
     };
     if (existing) {
         const state = existing.pendingState ?? existing.deployedState;
         const current = state?.envs ?? {};
+        const [row] = await getDatabase()
+            .select({ secretHash: dockerApiStacks.secretHash })
+            .from(dockerApiStacks)
+            .where(eq(dockerApiStacks.stackId, stackId));
         if (
             imageMatches(state?.image, env.DOCKER_API_IMAGE) &&
-            Object.entries(environment).every(
+            Object.entries(settings).every(
                 ([key, value]) => current[key] === value,
-            )
+            ) &&
+            row !== undefined &&
+            current.DOCKER_API_SECRET !== undefined &&
+            secretMatches(row.secretHash, current.DOCKER_API_SECRET)
         ) {
             log.debug("docker api already declared", { stackId });
 
@@ -202,6 +173,21 @@ async function declareDockerApi(
             to: env.DOCKER_API_IMAGE,
         });
     }
+    // The hash goes first: a crash between the two leaves a service whose
+    // secret does not match, which the next call notices and replaces.
+    const secret = generateSecret();
+    await getDatabase()
+        .insert(dockerApiStacks)
+        .values({
+            stackId,
+            extensionInstanceId,
+            projectId,
+            secretHash: hashSecret(secret),
+        })
+        .onConflictDoUpdate({
+            target: dockerApiStacks.stackId,
+            set: { secretHash: hashSecret(secret) },
+        });
     await declareService(
         client,
         extensionInstanceId,
@@ -212,7 +198,7 @@ async function declareDockerApi(
             image: env.DOCKER_API_IMAGE,
             restartPolicy: "always",
             deploy: { resources: { limits: DOCKER_API_LIMITS } },
-            environment,
+            environment: { ...settings, DOCKER_API_SECRET: secret },
             volumes: [
                 stateMountFor(
                     await getProjectDirectory(client, projectId),
@@ -344,10 +330,7 @@ export async function issueDockerApiToken(
         .select()
         .from(dockerApiStacks)
         .where(eq(dockerApiStacks.stackId, stackId));
-    if (
-        !row ||
-        !secretMatches(secretKey(), stackId, row.nonce, presentedSecret)
-    ) {
+    if (!row || !secretMatches(row.secretHash, presentedSecret)) {
         log.warn("docker api token refused, secret does not match", {
             stackId,
             known: Boolean(row),

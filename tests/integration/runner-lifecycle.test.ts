@@ -287,7 +287,7 @@ describe.each(cases)(
                 .select()
                 .from(schema.dockerApiStacks)
                 .where(eq(schema.dockerApiStacks.stackId, enabled.stackId));
-            expect(row?.nonce).toMatch(/^[\w-]{32}$/);
+            expect(row?.secretHash).toMatch(/^[0-9a-f]{64}$/);
 
             const disabled = await runner.configureRunner(
                 client,
@@ -576,16 +576,15 @@ describe("Docker in jobs", () => {
     let secrets: typeof import("@/docker-api.ts");
     let created: Runner;
 
-    const secretOf = async (stackId: string) => {
-        const [row] = await db
-            .select()
-            .from(schema.dockerApiStacks)
+    // Prism does not echo the declared environment, so the tests put a known
+    // secret in place of the one the extension generated.
+    const secret = "mdapi_integration-test-secret";
+    const useKnownSecret = async (stackId: string) => {
+        await db
+            .update(schema.dockerApiStacks)
+            .set({ secretHash: secrets.hashSecret(secret) })
             .where(eq(schema.dockerApiStacks.stackId, stackId));
-        return secrets.deriveSecret(
-            secrets.deriveSecretKey("test-master-password", "test-salt"),
-            stackId,
-            row.nonce,
-        );
+        return secret;
     };
 
     beforeAll(async () => {
@@ -622,7 +621,7 @@ describe("Docker in jobs", () => {
     it("issues an instance token for the secret of the stack", async () => {
         const token = await dockerApi.issueDockerApiToken(
             created.stackId,
-            await secretOf(created.stackId),
+            await useKnownSecret(created.stackId),
         );
         expect(token.token).toEqual(expect.any(String));
         expect(Number.isNaN(Date.parse(token.expiresAt))).toBe(false);
@@ -635,13 +634,13 @@ describe("Docker in jobs", () => {
         await expect(
             dockerApi.issueDockerApiToken(
                 "99999999-9999-9999-9999-999999999999",
-                await secretOf(created.stackId),
+                await useKnownSecret(created.stackId),
             ),
         ).rejects.toBeInstanceOf(dockerApi.DockerApiTokenDenied);
     });
 
     it("refuses the secret once the option is off for the last runner", async () => {
-        const secret = await secretOf(created.stackId);
+        await useKnownSecret(created.stackId);
         await runner.configureRunner(client, extensionInstanceId, {
             runnerId: created.id,
             cache: false,
