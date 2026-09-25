@@ -29,7 +29,13 @@ LABEL org.opencontainers.image.source="https://github.com/Hermsi1337/mstudio-ci-
 ENV BUILD_QUEUE_DIR=/builds \
     DOCKER_CONFIG=/kaniko/.docker
 
-RUN apk add --no-cache ca-certificates bash
+# kaniko unpacks the base image over the root file system of this container.
+# Files only Alpine ships survive that unpack, and dpkg then finds them where a
+# Debian package installs a conffile. It asks what to do, reads EOF from stdin
+# and fails (procps with /etc/sysctl.conf). The other three have not collided
+# yet and are removed as a precaution.
+RUN apk add --no-cache ca-certificates bash \
+    && rm -f /etc/sysctl.conf /etc/inittab /etc/modules /etc/securetty
 
 COPY --from=kaniko /out/executor /kaniko/executor
 COPY loop.sh /kaniko/loop.sh

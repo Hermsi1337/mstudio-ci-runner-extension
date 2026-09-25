@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+    chmod,
+    mkdir,
+    mkdtemp,
+    readFile,
+    rm,
+    writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -94,6 +101,9 @@ beforeAll(async () => {
         .withExposedPorts(registryPort)
         .start();
     queueDirectory = await mkdtemp(join(tmpdir(), "mstudio-builds-"));
+    // mkdtemp creates the directory with mode 0700 for the host user. The runner
+    // runs as uid 1001, which only matches the host user on GitHub Actions.
+    await chmod(queueDirectory, 0o777);
 }, 900_000);
 
 afterAll(async () => {
@@ -169,6 +179,30 @@ describe("image builds", () => {
             expect(build.output).toContain(
                 'could not restore "security.capability" on "/usr/bin/caddy"',
             );
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
+
+    it("installs a package with an Alpine conffile on a Debian base image", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            await writeContext(
+                runner,
+                [
+                    "FROM python:3.12-slim-bookworm",
+                    "RUN apt-get update && apt-get install -y --no-install-recommends procps",
+                ].join("\n"),
+            );
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                "cd /home/runner/app && docker build -t conffile:local . 2>&1",
+            ]);
+            expect(build.output).not.toContain("conffile prompt");
+            expect(build.exitCode).toBe(0);
         } finally {
             await runner.stop();
             await builder.stop();
