@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,15 +29,22 @@ type Image struct {
 	Resolved     time.Time
 }
 
+// ImageResolver reads image configs from the registry itself and falls back
+// to the lookup of the mittwald API, which refuses extension tokens.
 type ImageResolver struct {
 	client    mittwald.ContainerClient
 	projectID string
+	registry  func(ctx context.Context, ref string) (*Image, error)
 	mu        sync.Mutex
 	cache     map[string]*Image
 }
 
-func NewImageResolver(client mittwald.ContainerClient, projectID string) *ImageResolver {
-	return &ImageResolver{client: client, projectID: projectID, cache: map[string]*Image{}}
+func NewImageResolver(client mittwald.ContainerClient, projectID string, useRegistry bool) *ImageResolver {
+	r := &ImageResolver{client: client, projectID: projectID, cache: map[string]*Image{}}
+	if useRegistry {
+		r.registry = registryImage
+	}
+	return r
 }
 
 // Normalize adds the tag Docker would add.
@@ -59,6 +67,36 @@ func (r *ImageResolver) Resolve(ctx context.Context, ref string) (*Image, error)
 	if ok && time.Since(cached.Resolved) < 10*time.Minute {
 		return cached, nil
 	}
+	var registryErr error
+	if r.registry != nil {
+		img, err := r.registry(ctx, ref)
+		if err == nil {
+			r.remember(img)
+			return img, nil
+		}
+		if errors.Is(err, ErrImageNotFound) {
+			return nil, err
+		}
+		registryErr = err
+	}
+	img, err := r.fromMittwald(ctx, ref)
+	if err != nil && registryErr != nil {
+		return nil, fmt.Errorf("look up image %s: registry: %v; mittwald: %w", ref, registryErr, err)
+	}
+	if err != nil {
+		return nil, err
+	}
+	r.remember(img)
+	return img, nil
+}
+
+func (r *ImageResolver) remember(img *Image) {
+	r.mu.Lock()
+	r.cache[img.Reference] = img
+	r.mu.Unlock()
+}
+
+func (r *ImageResolver) fromMittwald(ctx context.Context, ref string) (*Image, error) {
 	noAI := false
 	cfg, res, err := r.client.GetContainerImageConfig(ctx, containerclientv2.GetContainerImageConfigRequest{
 		ImageReference:             ref,
@@ -94,9 +132,6 @@ func (r *ImageResolver) Resolve(ctx context.Context, ref string) (*Image, error)
 			img.ExposedPorts = append(img.ExposedPorts, port)
 		}
 	}
-	r.mu.Lock()
-	r.cache[ref] = img
-	r.mu.Unlock()
 	return img, nil
 }
 

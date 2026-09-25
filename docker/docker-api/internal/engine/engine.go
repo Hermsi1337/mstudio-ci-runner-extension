@@ -61,6 +61,10 @@ type Config struct {
 	ProjectHome      string
 	BindTranslations map[string]string
 
+	// SkipRegistry resolves images through the mittwald API only. Tests set
+	// it, they run without network access to registries.
+	SkipRegistry bool
+
 	DefaultCPUs   string
 	DefaultMemory string
 	StartTimeout  time.Duration
@@ -105,7 +109,7 @@ func New(cfg Config, client mittwald.ContainerClient) (*Engine, error) {
 		cfg:    cfg,
 		client: client,
 		log:    cfg.Logger,
-		images: NewImageResolver(client, cfg.ProjectID),
+		images: NewImageResolver(client, cfg.ProjectID, !cfg.SkipRegistry),
 		execs:  newExecStore(),
 	}
 	e.forwards = newForwarder(e.log, cfg.Dial)

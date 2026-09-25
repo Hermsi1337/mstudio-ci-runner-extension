@@ -49,6 +49,7 @@ func main() {
 		StateDir:      stateDir,
 		StateHostPath: stateDir,
 		ProjectHome:   filepath.Dir(stateDir),
+		SkipRegistry:  true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 			_, port, _ := net.SplitHostPort(address)
 			return dialer.DialContext(ctx, network, net.JoinHostPort("127.0.0.1", port))

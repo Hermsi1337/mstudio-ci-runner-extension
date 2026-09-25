@@ -179,6 +179,13 @@ boundary.
 
 ## Limits
 
+- Images come from public registries. The adapter reads entrypoint, command,
+  environment and ports of an image anonymously from its registry, because the
+  image lookup of the mittwald API (`GET /v2/container-image-config`) refuses
+  extension tokens. It falls back to that lookup, which only helps when the
+  adapter runs with a user token (`MITTWALD_API_TOKEN`). Anonymous manifest reads
+  count against the Docker Hub rate limit of the project's address; results are
+  cached for ten minutes.
 - No image builds. `POST /build` answers 501. Build and push in the pipeline,
   then run the image from the registry.
 - No stdin. `docker run -i` and `docker exec -i` get an empty input.

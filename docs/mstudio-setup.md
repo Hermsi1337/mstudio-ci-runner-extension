@@ -32,11 +32,10 @@ again.
 *Docker in jobs* needs no new scope. The service `docker` works with access tokens of
 the extension instance, which the extension issues through `POST
 /api/docker-api/token` ([docker-api.md](docker-api.md#tokens)). With them it reads the
-project, declares and removes services and volumes in its stack and looks up image
-configurations (`GET /v2/container-image-config`). The API documentation names no
-scope for the image lookup; if an installation answers it with 403, `docker run` and
-Testcontainers fail on every image and the adapter log of the service shows the
-status.
+project and declares and removes services and volumes in its stack. The image lookup
+of the API (`GET /v2/container-image-config`) answers extension tokens with 403
+(`access denied; verdict: abstain`) whatever the scopes, so the adapter reads image
+configurations from the registries itself ([docker-api.md](docker-api.md#limits)).
 
 After creation:
 
