@@ -118,7 +118,7 @@ docker/builder/              image builder service: Dockerfile, loop.sh, kaniko 
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
 docker/runner/common/        scripts shared by all runner images (trim-cache.sh, docker-shim, mstudio-build and friends)
 docker/runner/probes/        probe suite run inside the built images by the integration tests
-docker/runner/versions.json  runner software version per provider plus the crane version, single source for workflow, build and UI
+docker/runner/versions.json  runner software version per provider plus the crane and docker CLI versions, single source for workflow, build and UI
 docker/docker-api/           Docker API adapter for jobs, a Go module (build context is docker/docker-api)
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml (dev and production)
 deploy/mstudio/extension.yaml  marketplace entry and fragment properties, applied by deploy.yml

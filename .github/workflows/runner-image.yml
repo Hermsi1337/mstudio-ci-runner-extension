@@ -30,6 +30,9 @@ jobs:
             echo "crane_version=$(jq -r '.crane.version' docker/runner/versions.json)"
             echo "crane_sha256_amd64=$(jq -r '.crane.sha256.amd64' docker/runner/versions.json)"
             echo "crane_sha256_arm64=$(jq -r '.crane.sha256.arm64' docker/runner/versions.json)"
+            echo "docker_cli_version=$(jq -r '.dockerCli.version' docker/runner/versions.json)"
+            echo "docker_cli_sha256_amd64=$(jq -r '.dockerCli.sha256.amd64' docker/runner/versions.json)"
+            echo "docker_cli_sha256_arm64=$(jq -r '.dockerCli.sha256.arm64' docker/runner/versions.json)"
           } >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4
@@ -60,6 +63,9 @@ jobs:
             CRANE_VERSION=${{ steps.runner.outputs.crane_version }}
             CRANE_SHA256_AMD64=${{ steps.runner.outputs.crane_sha256_amd64 }}
             CRANE_SHA256_ARM64=${{ steps.runner.outputs.crane_sha256_arm64 }}
+            DOCKER_CLI_VERSION=${{ steps.runner.outputs.docker_cli_version }}
+            DOCKER_CLI_SHA256_AMD64=${{ steps.runner.outputs.docker_cli_sha256_amd64 }}
+            DOCKER_CLI_SHA256_ARM64=${{ steps.runner.outputs.docker_cli_sha256_arm64 }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.provider }}

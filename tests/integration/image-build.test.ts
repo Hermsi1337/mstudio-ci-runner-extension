@@ -84,6 +84,9 @@ beforeAll(async () => {
             CRANE_VERSION: runnerVersions.crane.version,
             CRANE_SHA256_AMD64: runnerVersions.crane.sha256.amd64,
             CRANE_SHA256_ARM64: runnerVersions.crane.sha256.arm64,
+            DOCKER_CLI_VERSION: runnerVersions.dockerCli.version,
+            DOCKER_CLI_SHA256_AMD64: runnerVersions.dockerCli.sha256.amd64,
+            DOCKER_CLI_SHA256_ARM64: runnerVersions.dockerCli.sha256.arm64,
         })
         .build(runnerTag, { deleteOnExit: false });
 

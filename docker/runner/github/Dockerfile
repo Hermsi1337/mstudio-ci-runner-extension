@@ -58,6 +58,25 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && tar xzf crane.tar.gz -C /usr/local/bin crane \
     && rm crane.tar.gz
 
+ARG DOCKER_CLI_VERSION
+ARG DOCKER_CLI_SHA256_AMD64
+ARG DOCKER_CLI_SHA256_ARM64
+
+# The real CLI stays off PATH: `docker` is the shim, which hands container
+# commands to this binary only when DOCKER_HOST points at the docker service.
+RUN case "${TARGETARCH:-$(uname -m)}" in \
+        amd64|x86_64) DOCKER_ARCH=x86_64; DOCKER_SHA256="${DOCKER_CLI_SHA256_AMD64:?DOCKER_CLI_SHA256_AMD64 is required}" ;; \
+        arm64|aarch64) DOCKER_ARCH=aarch64; DOCKER_SHA256="${DOCKER_CLI_SHA256_ARM64:?DOCKER_CLI_SHA256_ARM64 is required}" ;; \
+        *) echo "unsupported arch ${TARGETARCH:-$(uname -m)}" && exit 1 ;; \
+    esac \
+    && curl -fsSL -o docker.tgz \
+        "https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-${DOCKER_CLI_VERSION:?DOCKER_CLI_VERSION is required}.tgz" \
+    && echo "${DOCKER_SHA256}  docker.tgz" | sha256sum -c - \
+    && mkdir -p /usr/local/libexec/docker-cli \
+    && tar xzf docker.tgz -C /usr/local/libexec/docker-cli --strip-components=1 docker/docker \
+    && chmod 755 /usr/local/libexec/docker-cli/docker \
+    && rm docker.tgz
+
 COPY --chown=runner:runner github/entrypoint.sh /entrypoint.sh
 COPY --chown=runner:runner common/trim-cache.sh /usr/local/bin/trim-cache.sh
 RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh

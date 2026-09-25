@@ -7,7 +7,10 @@ Hosting runs on amd64, called by
 image also gets `docker/runner/common/`: `trim-cache.sh`, the cache cleanup called by the
 cronjob (see [providers.md](providers.md)), and the tools for image builds, `docker-shim`
 plus `mstudio-build`, `mstudio-image-store`, `mstudio-crane`, `mstudio-dockerfile-check`
-and `mstudio-platform-check` ([image-builds.md](image-builds.md)). All images: Ubuntu
+and `mstudio-platform-check` ([image-builds.md](image-builds.md)). Both images also ship
+the static docker CLI from download.docker.com at `/usr/local/libexec/docker-cli/docker`.
+It is not on `PATH`: `docker` is always the shim, which calls the real CLI for container
+commands when `DOCKER_HOST` is set ([Docker in jobs](#docker-in-jobs)). All images: Ubuntu
 24.04, user `runner`, no Docker daemon.
 
 | Provider | Image | Base |
@@ -17,7 +20,8 @@ and `mstudio-platform-check` ([image-builds.md](image-builds.md)). All images: U
 
 The runner software version per provider lives in `docker/runner/versions.json`
 together with the SHA-256 checksums of the upstream binaries for amd64 and arm64, next to
-the `crane` version the images ship for pushing built images. CI builds amd64 only, the
+the `crane` version the images ship for pushing built images and the docker CLI version
+under `dockerCli` (checksums of the `.tgz` archives). CI builds amd64 only, the
 arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine:
 
 ```json
@@ -27,8 +31,9 @@ arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine
 It is the only place to bump them: the workflow, `pnpm run runner:build`, the image test
 and the extension (shown as runner version in the UI, `runnerVersion` on the provider)
 read it. The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64`,
-`RUNNER_SHA256_ARM64`, `CRANE_VERSION`, `CRANE_SHA256_AMD64` and `CRANE_SHA256_ARM64` as
-build args without defaults and stop the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
+`RUNNER_SHA256_ARM64`, `CRANE_VERSION`, `CRANE_SHA256_AMD64`, `CRANE_SHA256_ARM64`,
+`DOCKER_CLI_VERSION`, `DOCKER_CLI_SHA256_AMD64` and `DOCKER_CLI_SHA256_ARM64` as build args
+without defaults and stop the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
 
 The extension creates runners from `ghcr.io/hermsi1337/mstudio-ci-runner-<provider>:<EXTENSION_VERSION>`,
 the same release as the extension itself. A runner created by an older release shows an
@@ -140,12 +145,29 @@ docker run --rm -e CI_SERVER_URL=https://gitlab.com -e CI_SERVER_TOKEN=glrt-... 
 
 Automated: `tests/integration/runner-image.test.ts` ([testing.md](testing.md)).
 
+## Docker in jobs
+
+With Docker in jobs turned on for a runner, the extension sets
+`DOCKER_HOST=tcp://docker:2375` in the runner container. `docker` in the same stack is a
+service that speaks the Docker Engine API and runs every container as a service of the
+stack ([docker-api.md](docker-api.md)). Testcontainers, dockerode and other clients that
+read `DOCKER_HOST` talk to it directly.
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `DOCKER_HOST` | Docker API for container commands. Set by the extension when Docker in jobs is on. The shim forwards `docker run`, `exec`, `ps` and the other container commands to the real CLI only when it is set | unset |
+
+`docker build` stays with the builder service, the Docker API builds no images. The
+commands the shim forwards and the ones it still refuses are in
+[image-builds.md](image-builds.md#what-docker-in-jobs-forwards).
+
 ## Limitations
 
-No Docker daemon, so nothing that starts a container works: `docker run`, `docker
-compose`, `container:` and `services:` in GitHub Actions, Docker container actions. In
-GitLab `image:` and `services:` are ignored by the shell executor; jobs run directly in
-the Ubuntu userland.
+No Docker daemon in the runner. Without Docker in jobs nothing that starts a container
+works: `docker run` and the other container commands fail with a message. `docker
+compose`, `container:` and `services:` in GitHub Actions and Docker container actions do
+not work either way. In GitLab `image:` and `services:` are ignored by the shell
+executor; jobs run directly in the Ubuntu userland.
 
 `docker build` works: the `docker` in the image is a shim that hands the build to the
 builder service of the stack and pushes with crane. What it supports, fills in, warns
@@ -170,4 +192,15 @@ build:
   script:
     - npm ci
     - npm test
+```
+
+```yaml
+# GitHub Actions with Docker in jobs turned on for the runner
+jobs:
+  test:
+    runs-on: [self-hosted, mittwald]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker run --rm alpine:3.20 echo ok
+      - run: npm ci && npm test   # Testcontainers reads DOCKER_HOST
 ```

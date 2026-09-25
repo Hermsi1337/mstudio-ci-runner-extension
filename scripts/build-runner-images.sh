@@ -13,6 +13,9 @@ builder_versions="docker/builder/versions.json"
 crane_version="$(jq -r .crane.version "${runner_versions}")"
 crane_sha256_amd64="$(jq -r .crane.sha256.amd64 "${runner_versions}")"
 crane_sha256_arm64="$(jq -r .crane.sha256.arm64 "${runner_versions}")"
+docker_cli_version="$(jq -r .dockerCli.version "${runner_versions}")"
+docker_cli_sha256_amd64="$(jq -r .dockerCli.sha256.amd64 "${runner_versions}")"
+docker_cli_sha256_arm64="$(jq -r .dockerCli.sha256.arm64 "${runner_versions}")"
 
 for provider in github gitlab; do
     echo "building mstudio-ci-runner-${provider}:local"
@@ -24,6 +27,9 @@ for provider in github gitlab; do
         --build-arg "CRANE_VERSION=${crane_version}" \
         --build-arg "CRANE_SHA256_AMD64=${crane_sha256_amd64}" \
         --build-arg "CRANE_SHA256_ARM64=${crane_sha256_arm64}" \
+        --build-arg "DOCKER_CLI_VERSION=${docker_cli_version}" \
+        --build-arg "DOCKER_CLI_SHA256_AMD64=${docker_cli_sha256_amd64}" \
+        --build-arg "DOCKER_CLI_SHA256_ARM64=${docker_cli_sha256_arm64}" \
         -t "mstudio-ci-runner-${provider}:local" \
         docker/runner
 done

@@ -36,6 +36,15 @@ expect_output "buildx create returns the builder name" "probe-builder" \
 expect_output "buildx inspect reports a running node" "Status:    running" \
     docker buildx inspect --bootstrap
 expect "docker run is rejected" bash -c "! docker run alpine 2>/dev/null"
+expect "real docker CLI is installed" test -x /usr/local/libexec/docker-cli/docker
+expect "real docker CLI stays off PATH" test "$(command -v docker)" = /usr/local/bin/docker
+expect_output "docker run without DOCKER_HOST names the runner option" \
+    "turn on Docker in jobs in the runner settings" \
+    bash -c "unset DOCKER_HOST; ! docker run alpine 2>&1"
+expect_output "docker ps with DOCKER_HOST reaches the real CLI" "127.0.0.1:1" \
+    bash -c "! DOCKER_HOST=tcp://127.0.0.1:1 docker ps 2>&1"
+expect_output "docker inspect with DOCKER_HOST forwards unknown references" "127.0.0.1:1" \
+    bash -c "! DOCKER_HOST=tcp://127.0.0.1:1 docker inspect probe-container 2>&1"
 expect_output "docker build without a builder explains itself" "image builds are turned off" \
     bash -c "cd \$(mktemp -d) && echo FROM alpine > Dockerfile && docker build -t probe:local . 2>&1"
 
