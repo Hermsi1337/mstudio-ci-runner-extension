@@ -29,6 +29,15 @@ the built image afterwards, `cat` and `sleep` are gone. So a builder container s
 exactly one build and then exits. The service runs with `restartPolicy: always`, and the
 platform replaces it within about a second, with a clean root filesystem.
 
+Files that the builder image has and the base image does not have survive the unpack.
+The builder image is Alpine, and Alpine ships `/etc/sysctl.conf`. Debian's `procps`
+installs the same path as a conffile, so dpkg finds an unknown file there, asks what to
+do, reads EOF from stdin and fails the `apt-get install`. `DEBIAN_FRONTEND` does not
+help, it steers debconf, not dpkg. `docker/builder/Dockerfile` therefore deletes
+`/etc/sysctl.conf`, and as a precaution `/etc/inittab`, `/etc/modules` and
+`/etc/securetty`, which are Alpine only as well. The remaining Alpine only files under
+`/etc` (terminfo, apk keys, `profile.d`) have not collided with a package so far.
+
 ## Building blocks
 
 ```
