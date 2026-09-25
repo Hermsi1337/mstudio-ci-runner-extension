@@ -16,6 +16,7 @@ import (
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/initproc"
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/tokensource"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
@@ -46,8 +47,17 @@ func main() {
 	slog.SetDefault(logger)
 	ctx := context.Background()
 
+	auth := mittwaldv2.WithAccessToken(cfg.MittwaldAPIToken)
+	if cfg.UsesTokenSource() {
+		tokens := tokensource.New(cfg.DockerAPITokenURL, cfg.DockerAPISecret, cfg.MittwaldStackID, logger)
+		if _, err := tokens.Token(ctx); err != nil {
+			slog.Error("Failed to fetch an API token from the extension, check DOCKER_API_TOKEN_URL and DOCKER_API_SECRET", "error", err)
+			os.Exit(1)
+		}
+		auth = tokens.ClientOption()
+	}
 	options := []mittwaldv2.ClientOption{
-		mittwaldv2.WithAccessToken(cfg.MittwaldAPIToken),
+		auth,
 		mittwaldv2.WithRequestLogging(logger, false, true),
 	}
 	if cfg.MittwaldAPIBaseURL != "" {

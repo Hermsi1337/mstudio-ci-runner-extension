@@ -10,6 +10,8 @@ import (
 
 type Config struct {
 	MittwaldAPIToken   string
+	DockerAPITokenURL  string
+	DockerAPISecret    string
 	MittwaldAPIBaseURL string
 	MittwaldProjectID  string
 	MittwaldStackID    string
@@ -27,6 +29,8 @@ type Config struct {
 func Load() (*Config, error) {
 	cfg := &Config{
 		MittwaldAPIToken:   os.Getenv("MITTWALD_API_TOKEN"),
+		DockerAPITokenURL:  os.Getenv("DOCKER_API_TOKEN_URL"),
+		DockerAPISecret:    os.Getenv("DOCKER_API_SECRET"),
 		MittwaldAPIBaseURL: os.Getenv("MITTWALD_API_BASE_URL"),
 		MittwaldProjectID:  os.Getenv("MITTWALD_PROJECT_ID"),
 		MittwaldStackID:    os.Getenv("MITTWALD_STACK_ID"),
@@ -39,8 +43,11 @@ func Load() (*Config, error) {
 		BindTranslations:   map[string]string{},
 	}
 
-	if cfg.MittwaldAPIToken == "" {
-		return nil, errors.New("MITTWALD_API_TOKEN environment variable is required")
+	if (cfg.DockerAPITokenURL == "") != (cfg.DockerAPISecret == "") {
+		return nil, errors.New("DOCKER_API_TOKEN_URL and DOCKER_API_SECRET must be set together")
+	}
+	if cfg.MittwaldAPIToken == "" && !cfg.UsesTokenSource() {
+		return nil, errors.New("set either MITTWALD_API_TOKEN or both DOCKER_API_TOKEN_URL and DOCKER_API_SECRET")
 	}
 	if cfg.MittwaldProjectID == "" {
 		return nil, errors.New("MITTWALD_PROJECT_ID environment variable is required")
@@ -74,4 +81,8 @@ func envOr(key, fallback string) string {
 
 func (c *Config) ListenAddress() string {
 	return c.AdapterHost + ":" + c.AdapterPort
+}
+
+func (c *Config) UsesTokenSource() bool {
+	return c.DockerAPITokenURL != ""
 }
