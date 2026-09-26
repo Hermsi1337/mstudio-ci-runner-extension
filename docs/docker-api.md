@@ -250,14 +250,31 @@ boundary.
 | GitHub `container:`, `uses: docker://...`, Docker container actions | Work: the work directory and the externals of the runner lie on the project file system ([Workspace](#workspace)) | |
 | GitLab `image:`, `services:` | Ignored by the shell executor | `docker run` or Testcontainers in `script:` |
 | `-v "$PWD:/src"`, bind mounts of the workspace | Work below the work directory of the runner ([Workspace](#workspace)). Other paths, `/tmp` for example, are refused | Copy the files into the workspace, or use `docker cp` |
-| `docker build` then `docker run` of that image | The image exists only in the image store of the runner | Push it and run it from the registry |
-| `docker compose` | Works for services from images: `up` with and without `-d`, `depends_on` with health checks, `ps`, `logs`, `exec`, `run`, `down`. Relative bind mounts (`./dir:/path`) work inside the workspace. Not: `build:` | Build and push first |
+| `docker build` then `docker run` of that image | Does not work yet ([#53](https://github.com/Hermsi1337/mstudio-ci-runner-extension/issues/53)): the image exists only in the image store of the runner, the platform pulls only from registries it reaches from outside | Push it under a tag of the run and run that tag ([Images built in the job](#images-built-in-the-job)) |
+| `docker compose` | Works for services from images: `up` with and without `-d`, `depends_on` with health checks, `ps`, `logs`, `exec`, `run`, `down`. Relative bind mounts (`./dir:/path`) work inside the workspace. Not yet: `build:` ([#53](https://github.com/Hermsi1337/mstudio-ci-runner-extension/issues/53)) | Build and push first, then `image:` with that tag |
 | `docker run -t` | Accepted, the output is no terminal | |
 | Ports | Published ports reach the runner on `localhost` and every container of the stack on `docker:<port>`. The runner forwards the ports of all containers the service `docker` started, also those of other runners in the stack | |
 | Docker Hub | Anonymous manifest reads count against the rate limit of the project's address. The adapter caches image configs by digest and asks with HEAD first, which does not count | `docker login` raises the limit |
 | Start time | About 4 seconds per container with a cached image, the first start of an image includes the pull by the platform | |
 | Resources | Every container is a service with 1 CPU and 2 GB unless `--cpus` and `--memory` say otherwise, and counts against the project | |
 | Volumes | `docker volume` sees only the volumes the adapter created, never the data volume of the runner | |
+
+## Images built in the job
+
+Running an image built in the same job does not work yet ([#53](https://github.com/Hermsi1337/mstudio-ci-runner-extension/issues/53)). Push it
+to a registry of your own under a tag of the run, then run that tag. The
+registry must be added to the project once, see [Private images](#private-images).
+
+```yaml
+# GitHub Actions, runner with image builds and Docker in jobs
+- run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+- run: |
+    image=ghcr.io/${{ github.repository }}/ci:${{ github.run_id }}
+    docker build -t "$image" --push .
+    docker run --rm "$image" npm test
+```
+
+Delete old tags in the registry from time to time; the run ID makes every tag unique.
 
 ## Workspace
 
