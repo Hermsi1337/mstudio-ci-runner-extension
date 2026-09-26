@@ -2,6 +2,7 @@ import { Octokit } from "@octokit/rest";
 import { getEnvironmentVariables } from "@/env.ts";
 import type { Changelog, Release } from "@/generated/extension-api";
 import { createLogger } from "@/logger.ts";
+import { cleanReleaseNotes } from "@/release-notes.ts";
 import { isNewerVersion } from "@/version-compare.ts";
 
 const log = createLogger("changelog");
@@ -27,7 +28,7 @@ async function fetchReleases(): Promise<Release[]> {
         .map((release) => ({
             version: release.tag_name.replace(/^v/, ""),
             publishedAt: release.published_at ?? release.created_at,
-            notes: release.body ?? "",
+            notes: cleanReleaseNotes(release.body ?? ""),
             url: release.html_url,
         }));
 }
