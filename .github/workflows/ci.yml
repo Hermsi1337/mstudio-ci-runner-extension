@@ -34,7 +34,14 @@ jobs:
 
   integration:
     # Testcontainers needs a Docker daemon, which the mittwald runner has not.
-    runs-on: ubuntu-latest
+    # Container Hosting runs amd64. arm64 covers the platform checks of the
+    # runner images and local development on arm64 machines.
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    name: integration (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
