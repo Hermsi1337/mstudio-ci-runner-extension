@@ -35,11 +35,27 @@ import (
 )
 
 var (
-	ErrNotFound    = errors.New("no such container")
+	ErrNotFound    = errors.New("not found")
 	ErrConflict    = errors.New("conflict")
 	ErrNotRunning  = errors.New("container is not running")
 	ErrInvalid     = errors.New("invalid request")
 	ErrUnsupported = errors.New("not supported on mittwald Container Hosting")
+)
+
+// notFound errors carry their own message and still match ErrNotFound, which
+// the handlers turn into 404.
+type notFound string
+
+func (e notFound) Error() string { return string(e) }
+
+func (e notFound) Is(target error) bool { return target == ErrNotFound }
+
+const (
+	ErrNoSuchContainer = notFound("no such container")
+	ErrImageNotFound   = notFound("no such image")
+	ErrExecNotFound    = notFound("no such exec instance")
+	ErrNoSuchNetwork   = notFound("no such network")
+	ErrNoSuchPath      = notFound("no such file or directory")
 )
 
 // ServiceDescriptionPrefix marks the services the engine owns.
@@ -184,7 +200,7 @@ func (e *Engine) containers() []*state.Container {
 func (e *Engine) Resolve(ref string) (*state.Container, error) {
 	ref = strings.TrimPrefix(ref, "/")
 	if ref == "" {
-		return nil, ErrNotFound
+		return nil, ErrNoSuchContainer
 	}
 	if c, err := e.dir(ref).Container(); err == nil {
 		return c, nil
@@ -204,7 +220,7 @@ func (e *Engine) Resolve(ref string) (*state.Container, error) {
 	if len(byPrefix) > 1 {
 		return nil, fmt.Errorf("%w: multiple containers match %s", ErrInvalid, ref)
 	}
-	return nil, fmt.Errorf("%w: %s", ErrNotFound, ref)
+	return nil, fmt.Errorf("%w: %s", ErrNoSuchContainer, ref)
 }
 
 func (e *Engine) save(c *state.Container) error {

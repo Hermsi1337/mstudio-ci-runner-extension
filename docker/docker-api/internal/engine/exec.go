@@ -63,8 +63,6 @@ func (s *execStore) dropContainer(containerID string) {
 	}
 }
 
-var ErrExecNotFound = fmt.Errorf("%w: no such exec instance", ErrNotFound)
-
 func (e *Engine) CreateExec(ref string, req container.ExecCreateRequest) (string, error) {
 	c, err := e.Resolve(ref)
 	if err != nil {

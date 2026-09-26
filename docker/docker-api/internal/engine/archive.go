@@ -63,7 +63,7 @@ func (e *Engine) PutArchive(ctx context.Context, ref, path string, body io.Reade
 		if msg, err := os.ReadFile(base + ".error"); err == nil {
 			_ = os.Remove(base + ".error")
 			if strings.Contains(string(msg), "no such file") || strings.Contains(string(msg), "not a directory") {
-				return fmt.Errorf("%w: %s", ErrNotFound, msg)
+				return fmt.Errorf("%w: %s", ErrNoSuchPath, msg)
 			}
 			return fmt.Errorf("extracting archive failed: %s", msg)
 		}
@@ -95,7 +95,7 @@ func (e *Engine) pathTask(ctx context.Context, ref, path, kind string) (*state.T
 	}
 	if result.NotFound {
 		_ = os.RemoveAll(string(task))
-		return nil, "", fmt.Errorf("%w: could not find the file %s in container %s", ErrNotFound, path, c.Name)
+		return nil, "", fmt.Errorf("%w: %s in container %s", ErrNoSuchPath, path, c.Name)
 	}
 	if result.Error != "" {
 		_ = os.RemoveAll(string(task))

@@ -55,7 +55,7 @@ func (e *Engine) network(ref string) (*state.Network, error) {
 	if len(byPrefix) == 1 {
 		return &byPrefix[0], nil
 	}
-	return nil, fmt.Errorf("%w: network %s not found", ErrNotFound, ref)
+	return nil, fmt.Errorf("%w: %s", ErrNoSuchNetwork, ref)
 }
 
 func (e *Engine) Network(ref string) (*state.Network, error) { return e.network(ref) }

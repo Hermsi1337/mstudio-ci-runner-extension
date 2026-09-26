@@ -225,6 +225,10 @@ configuration. Both need access:
 - run: docker run --rm ghcr.io/me/private-tool:1
 ```
 
+`GITHUB_TOKEN` reads a package only when the package grants the repository of the
+workflow access (*Package settings → Manage Actions access*). A package of another
+repository needs that entry or a token with `read:packages` as a secret.
+
 ## Development and tests
 
 ```bash

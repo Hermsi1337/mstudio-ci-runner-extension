@@ -15,8 +15,6 @@ import (
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/mittwald"
 )
 
-var ErrImageNotFound = fmt.Errorf("%w: no such image", ErrNotFound)
-
 // Image is what the engine knows about an image without pulling it: the
 // registry lookup of the mittwald API returns the config of the image.
 type Image struct {
