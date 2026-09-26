@@ -20,7 +20,11 @@ interface ProviderEntry {
     id: Provider;
 }
 
-const providers: ProviderEntry[] = [{ id: "github" }, { id: "gitlab" }];
+const providers: ProviderEntry[] = [
+    { id: "github" },
+    { id: "gitlab" },
+    { id: "forgejo" },
+];
 
 const ProviderListTyped = typedList<ProviderEntry>();
 

@@ -28,7 +28,7 @@ export const extensionInstances = buildExtensionInstanceTable(encryptedText);
 /**
  * One container stack per registration target and extension instance. Every
  * runner of that target is a service inside it, so the stack list in mStudio
- * mirrors the repositories, organizations and GitLab instances.
+ * mirrors the repositories, organizations, GitLab and Forgejo instances.
  */
 export const runnerStacks = pgTable(
     "runner_stacks",

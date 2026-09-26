@@ -17,6 +17,7 @@ body:
       options:
         - GitHub Actions
         - GitLab CI
+        - Forgejo Actions
         - Not provider specific
     validations:
       required: true

@@ -14,10 +14,12 @@ and `mstudio-platform-check` ([image-builds.md](image-builds.md)). All images: U
 |---|---|---|
 | github | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | [actions/runner](https://github.com/actions/runner) release |
 | gitlab | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | [gitlab-runner](https://gitlab.com/gitlab-org/gitlab-runner) binary, executor `shell` |
+| forgejo | `ghcr.io/hermsi1337/mstudio-ci-runner-forgejo` | [forgejo-runner](https://code.forgejo.org/forgejo/runner) binary, executor `host`, plus Node |
 
 The runner software version per provider lives in `docker/runner/versions.json`
 together with the SHA-256 checksums of the upstream binaries for amd64 and arm64, next to
-the `crane` version the images ship for pushing built images. CI builds amd64 only, the
+the `crane` version the images ship for pushing built images and the Node version of the
+Forgejo image. CI builds amd64 only, the
 arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine:
 
 ```json
@@ -28,7 +30,9 @@ It is the only place to bump them: the workflow, `pnpm run runner:build`, the im
 and the extension (shown as runner version in the UI, `runnerVersion` on the provider)
 read it. The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64`,
 `RUNNER_SHA256_ARM64`, `CRANE_VERSION`, `CRANE_SHA256_AMD64` and `CRANE_SHA256_ARM64` as
-build args without defaults and stop the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
+build args without defaults, the Forgejo image also `NODE_VERSION`, `NODE_SHA256_AMD64` and
+`NODE_SHA256_ARM64`. The workflow and `pnpm run runner:build` pass the Node args to every
+image; the GitHub and GitLab Dockerfiles ignore them. Every Dockerfile stops the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
 
 The extension creates runners from `ghcr.io/hermsi1337/mstudio-ci-runner-<provider>:<EXTENSION_VERSION>`,
 the same release as the extension itself. A runner created by an older release shows an
@@ -103,6 +107,65 @@ Tags and `run_untagged` are set by the extension via the API when creating the r
 not inside the container. Volumes: `data:/home/runner/data`, optionally
 `cache:/home/runner/.cache` (see [Volumes](#volumes)).
 
+## Forgejo (`docker/runner/forgejo/`)
+
+Forgejo creates the runner on its settings page and shows a UUID and a token once. There
+is no registration step (`forgejo-runner register` is deprecated): the runner presents
+both on every start.
+
+`entrypoint.sh`:
+
+1. Checks `FORGEJO_INSTANCE_URL`, `FORGEJO_RUNNER_UUID`, `FORGEJO_RUNNER_TOKEN` and
+   `RUNNER_CAPACITY`
+2. Writes `~/.forgejo-runner/config.yml` fresh with `umask 077`, so labels and capacity
+   follow the container environment. `jq` writes it as JSON, which is valid YAML. It holds
+   `server.connections` (url, uuid, token), `runner.capacity`, `runner.labels`, the work
+   directory and `cache.enabled: false`
+3. Unsets `FORGEJO_RUNNER_TOKEN` and replaces itself with `forgejo-runner daemon`. The
+   token is never on a command line, where every job could read it from `/proc`.
+   `tini` is PID 1 (`ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]`), because
+   `forgejo-runner` does not reap orphaned job processes and they would pile up as
+   zombies
+4. On `SIGTERM`/`SIGINT` the runner cancels running jobs and exits. It never deregisters;
+   the runner stays in Forgejo until someone deletes it there
+
+Every label in `RUNNER_LABELS` becomes `<label>:host`. `forgejo-runner` reads a colon as
+the start of the executor and a question mark as the start of label options, so the
+extension rejects labels with `:` or `?` when the runner is created. The entrypoint
+still drops whatever follows a colon as a second guard. Container Hosting offers no container runtime, so the `docker` and `lxc`
+executors cannot work; `host` runs the job directly in the runner container, the same
+model as the other two images.
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `FORGEJO_INSTANCE_URL` | Forgejo base URL | required |
+| `FORGEJO_RUNNER_UUID` | Runner UUID from the runner page in Forgejo | required |
+| `FORGEJO_RUNNER_TOKEN` | Runner token from the runner page in Forgejo, letters and digits only, stays valid as long as the runner exists | required |
+| `RUNNER_NAME` | Name in the log output. Forgejo keeps the name given on its runner page | hostname |
+| `RUNNER_LABELS` | Comma separated plain label names, each registered as `<label>:host` | `mittwald` |
+| `RUNNER_CAPACITY` | Jobs at once (`runner.capacity`) | `1` |
+| `RUNNER_DATA_DIR` | Persistent state, mount point of the data volume | `/home/runner/data` |
+
+**Node.** This is the only image with Node. The host executor runs JavaScript actions
+such as `actions/checkout` with the `node` it finds in `PATH`; the GitHub runner ships
+its own and `gitlab-runner` needs none. Node comes from the official tarball of
+nodejs.org into `/usr/local`, version and checksums from `node` in `versions.json`.
+`/usr/local/etc/npmrc` sets the global prefix to `/home/runner/.npm-global`, whose `bin`
+is in `PATH`, so `npm install -g` works as the runner user without sudo. A probe keeps
+that true across Node bumps. `actions/setup-node` still installs other versions per job.
+
+**No `actions/cache`.** The internal cache server of `forgejo-runner` stays off, so
+`actions/cache` finds no `ACTIONS_CACHE_URL`. It would work when turned on, but its
+store lives in `~/.cache/actcache`, which is where the package manager cache volume
+mounts, and the hourly cronjob would trim it against the same size limit. The package
+manager cache ([providers.md](providers.md#package-manager-cache)) covers the common case.
+
+Downloaded actions land in `~/.cache/act`: in the container layer, or in the cache
+volume when the cache is on.
+
+Volumes: `data:/home/runner/data`, optionally `cache:/home/runner/.cache`
+(see [Volumes](#volumes)).
+
 ## Volumes
 
 Every runner gets exactly one volume, `data`, mounted at `/home/runner/data`. In the
@@ -113,7 +176,7 @@ gets created and why.
 
 | Volume | Mount | Content | When |
 |---|---|---|---|
-| `data` | `/home/runner/data` | GitHub: `config/` (registration), `work/` (checkouts, actions, tool cache). GitLab: `builds/`, `cache/` | always |
+| `data` | `/home/runner/data` | GitHub: `config/` (registration), `work/` (checkouts, actions, tool cache). GitLab: `builds/`, `cache/`. Forgejo: `work/` (job working directories) | always |
 | `cache` | `/home/runner/.cache` | Package manager caches, trimmed by a cronjob ([providers.md](providers.md#package-manager-cache)) | cache enabled |
 
 `work/` grows with one checkout per repository plus the toolchains of the `setup-*`
@@ -132,10 +195,12 @@ works for them as well.
 ## Building and testing
 
 ```bash
-pnpm run runner:build     # both runner images as mstudio-ci-runner-<provider>:local, plus mstudio-ci-builder:local
+pnpm run runner:build     # all runner images as mstudio-ci-runner-<provider>:local, plus mstudio-ci-builder:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e RUNNER_TOKEN=AEBI... mstudio-ci-runner-github:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e GITHUB_TOKEN=github_pat_... mstudio-ci-runner-github:local
 docker run --rm -e CI_SERVER_URL=https://gitlab.com -e CI_SERVER_TOKEN=glrt-... mstudio-ci-runner-gitlab:local
+docker run --rm -e FORGEJO_INSTANCE_URL=https://forgejo.example.com -e FORGEJO_RUNNER_UUID=c9e50be9-... \
+    -e FORGEJO_RUNNER_TOKEN=6634bb58... mstudio-ci-runner-forgejo:local
 ```
 
 Automated: `tests/integration/runner-image.test.ts` ([testing.md](testing.md)).
@@ -145,7 +210,9 @@ Automated: `tests/integration/runner-image.test.ts` ([testing.md](testing.md)).
 No Docker daemon, so nothing that starts a container works: `docker run`, `docker
 compose`, `container:` and `services:` in GitHub Actions, Docker container actions. In
 GitLab `image:` and `services:` are ignored by the shell executor; jobs run directly in
-the Ubuntu userland.
+the Ubuntu userland. In Forgejo Actions `container:`, `services:` and Docker container
+actions fail the same way, and `actions/cache` has no cache server (see
+[Forgejo](#forgejo-dockerrunnerforgejo)).
 
 `docker build` works: the `docker` in the image is a shim that hands the build to the
 builder service of the stack and pushes with crane. What it supports, fills in, warns
@@ -158,6 +225,16 @@ about and refuses is in [image-builds.md](image-builds.md).
 jobs:
   build:
     runs-on: [self-hosted, mittwald]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci && npm test
+```
+
+```yaml
+# Forgejo Actions (.forgejo/workflows/build.yml)
+jobs:
+  build:
+    runs-on: mittwald
     steps:
       - uses: actions/checkout@v4
       - run: npm ci && npm test

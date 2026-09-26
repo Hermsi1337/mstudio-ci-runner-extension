@@ -1,4 +1,9 @@
-import { GenericContainer, Wait } from "testcontainers";
+import {
+    GenericContainer,
+    getContainerRuntimeClient,
+    ImageName,
+    Wait,
+} from "testcontainers";
 import { describe, expect, it } from "vitest";
 import runnerVersions from "../../docker/runner/versions.json";
 
@@ -13,13 +18,15 @@ interface MissingEnvCase {
 }
 
 interface ImageCase {
-    provider: "github" | "gitlab";
+    provider: "github" | "gitlab" | "forgejo";
     environment: Record<string, string>;
     waitFor: RegExp;
     expectLog: string;
     versionCommand: string[];
     dataDirectories: string[];
     missingEnv: MissingEnvCase[];
+    probeEnvironment?: Record<string, string>;
+    entrypoint: string[];
 }
 
 const images: ImageCase[] = [
@@ -37,6 +44,7 @@ const images: ImageCase[] = [
             "registering integration-test at https://github.com/acme/app (labels: mittwald,test, ephemeral: false)",
         versionCommand: ["cat", "/home/runner/bin/Runner.Listener.deps.json"],
         dataDirectories: ["config", "work"],
+        entrypoint: ["/entrypoint.sh"],
         missingEnv: [
             {
                 name: "GITHUB_URL",
@@ -63,6 +71,7 @@ const images: ImageCase[] = [
             "registering integration-test at https://gitlab.invalid (executor: shell)",
         versionCommand: ["gitlab-runner", "--version"],
         dataDirectories: ["builds", "cache"],
+        entrypoint: ["/entrypoint.sh"],
         missingEnv: [
             {
                 name: "CI_SERVER_URL",
@@ -75,6 +84,59 @@ const images: ImageCase[] = [
                 message: "CI_SERVER_TOKEN is required",
             },
         ],
+    },
+    {
+        provider: "forgejo",
+        environment: {
+            FORGEJO_INSTANCE_URL: "https://forgejo.invalid",
+            FORGEJO_RUNNER_UUID: "c9e50be9-a7c3-4aee-ba35-624c4ff8c519",
+            FORGEJO_RUNNER_TOKEN: "6634bb58be0db23cc013a2e72dd1828ae0257cf",
+            RUNNER_NAME: "integration-test",
+            RUNNER_LABELS: "mittwald, node",
+            RUNNER_CAPACITY: "2",
+        },
+        waitFor: /Starting runner daemon|fail to invoke Declare/,
+        expectLog:
+            "starting integration-test for https://forgejo.invalid (labels: mittwald:host,node:host, capacity: 2, executor: host)",
+        versionCommand: ["forgejo-runner", "--version"],
+        dataDirectories: ["work"],
+        entrypoint: ["/usr/bin/tini", "--", "/entrypoint.sh"],
+        missingEnv: [
+            {
+                name: "FORGEJO_INSTANCE_URL",
+                environment: {},
+                message: "FORGEJO_INSTANCE_URL is required",
+            },
+            {
+                name: "FORGEJO_RUNNER_UUID",
+                environment: {
+                    FORGEJO_INSTANCE_URL: "https://forgejo.invalid",
+                },
+                message: "FORGEJO_RUNNER_UUID is required",
+            },
+            {
+                name: "FORGEJO_RUNNER_TOKEN",
+                environment: {
+                    FORGEJO_INSTANCE_URL: "https://forgejo.invalid",
+                    FORGEJO_RUNNER_UUID: "c9e50be9-a7c3-4aee-ba35-624c4ff8c519",
+                },
+                message: "FORGEJO_RUNNER_TOKEN is required",
+            },
+            {
+                name: "a valid RUNNER_CAPACITY",
+                environment: {
+                    FORGEJO_INSTANCE_URL: "https://forgejo.invalid",
+                    FORGEJO_RUNNER_UUID: "c9e50be9-a7c3-4aee-ba35-624c4ff8c519",
+                    FORGEJO_RUNNER_TOKEN:
+                        "6634bb58be0db23cc013a2e72dd1828ae0257cf",
+                    RUNNER_CAPACITY: "0",
+                },
+                message: "RUNNER_CAPACITY must be a positive integer",
+            },
+        ],
+        probeEnvironment: {
+            EXPECTED_NODE_VERSION: runnerVersions.node.version,
+        },
     },
 ];
 
@@ -95,6 +157,9 @@ describe.each(images)("runner image: $provider", (image) => {
                 CRANE_VERSION: runnerVersions.crane.version,
                 CRANE_SHA256_AMD64: runnerVersions.crane.sha256.amd64,
                 CRANE_SHA256_ARM64: runnerVersions.crane.sha256.arm64,
+                NODE_VERSION: runnerVersions.node.version,
+                NODE_SHA256_AMD64: runnerVersions.node.sha256.amd64,
+                NODE_SHA256_ARM64: runnerVersions.node.sha256.arm64,
             })
             .build(tag, { deleteOnExit: false });
 
@@ -113,6 +178,12 @@ describe.each(images)("runner image: $provider", (image) => {
         } finally {
             await container.stop({ timeout: 5_000 });
         }
+    });
+
+    it("starts the entrypoint through the expected init", async () => {
+        const client = await getContainerRuntimeClient();
+        const inspected = await client.image.inspect(ImageName.fromString(tag));
+        expect(inspected.Config.Entrypoint).toEqual(image.entrypoint);
     });
 
     it("runs as the unprivileged runner user", async () => {
@@ -148,12 +219,16 @@ describe.each(images)("runner image: $provider", (image) => {
             ])
             .start();
         try {
-            const expectedVersion = runnerVersions[image.provider].version;
-            const probe = await container.exec([
-                "bash",
-                "-c",
-                `EXPECTED_RUNNER_VERSION=${expectedVersion} bash /probes/${image.provider}.sh`,
-            ]);
+            const probe = await container.exec(
+                ["bash", `/probes/${image.provider}.sh`],
+                {
+                    env: {
+                        EXPECTED_RUNNER_VERSION:
+                            runnerVersions[image.provider].version,
+                        ...image.probeEnvironment,
+                    },
+                },
+            );
             expect(probe.output).toContain("probes passed");
             expect(probe.exitCode).toBe(0);
         } finally {

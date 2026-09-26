@@ -1,4 +1,4 @@
-import { siGithub, siGitlab } from "simple-icons";
+import { siForgejo, siGithub, siGitlab } from "simple-icons";
 import type { Provider } from "@/generated/extension-api";
 
 // The marks sit on a white rounded tile so the near-black GitHub logo stays
@@ -16,4 +16,5 @@ function toDataUri(icon: { path: string; hex: string }): string {
 export const providerLogos: Record<Provider, string> = {
     github: toDataUri(siGithub),
     gitlab: toDataUri(siGitlab),
+    forgejo: toDataUri(siForgejo),
 };

@@ -158,6 +158,28 @@ const cases: {
             labels: [],
         },
     },
+    {
+        title: "Forgejo runner with labels and capacity",
+        input: {
+            provider: "forgejo",
+            name: "Forgejo Runner",
+            instanceUrl: "https://forgejo.example.com/",
+            tokenType: "registration",
+            uuid: "c9e50be9-a7c3-4aee-ba35-624c4ff8c519",
+            token: "6634bb58be0db23cc013a2e72dd1828ae0257cf",
+            labels: "mittwald, node",
+            concurrency: 2,
+        },
+        expect: {
+            provider: "forgejo",
+            target: "forgejo.example.com",
+            targetUrl: "https://forgejo.example.com",
+            labels: ["mittwald", "node"],
+            ephemeral: false,
+            tokenType: "registration",
+            concurrency: 2,
+        },
+    },
 ];
 
 describe.each(cases)(
@@ -312,7 +334,7 @@ describe.each(cases)(
                 { runnerId, cache: false, concurrency: 3 },
             );
             expect(configured.concurrency).toBe(
-                input.provider === "gitlab" ? 3 : 1,
+                input.provider === "github" ? 1 : 3,
             );
         });
 

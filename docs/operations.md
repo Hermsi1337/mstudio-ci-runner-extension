@@ -41,6 +41,7 @@ succeeded. Both image workflows use `docker/metadata-action` and tag:
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `1.2.3`, `1.2`, `latest` |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.337.0`) |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-19.3.1`) |
+| `ghcr.io/hermsi1337/mstudio-ci-runner-forgejo` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-13.2.0`) |
 
 `workflow_dispatch` builds an image with a `sha-<commit>` tag only, without `latest`
 and without the `runner-<RUNNER_VERSION>` alias, which are both gated to `v*` tag refs,
@@ -58,6 +59,7 @@ the builder image from `docker/builder/versions.json` ([image-builds.md](image-b
 |---|---|---|
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `docker/runner/github/` | must be **public**, mittwald pulls it without credentials |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `docker/runner/gitlab/` | must be **public** |
+| `ghcr.io/hermsi1337/mstudio-ci-runner-forgejo` | `docker/runner/forgejo/` | must be **public**; the package does not exist before the first release that builds it, set it to public after that release |
 | `ghcr.io/hermsi1337/mstudio-ci-builder` | `docker/builder/` | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `docker/extension/Dockerfile`, build context is the repo root, ignore rules in `docker/extension/Dockerfile.dockerignore` | any |
 
@@ -234,10 +236,15 @@ under the container `extension`.
 1. Raise `<provider>.version` in `docker/runner/versions.json` and replace the two
    `sha256` values. GitHub publishes them in the release notes of
    [actions/runner](https://github.com/actions/runner/releases) (`linux-x64` and
-   `linux-arm64`); GitLab in `release.sha256` next to the binaries:
+   `linux-arm64`); GitLab in `release.sha256` next to the binaries; Forgejo in a
+   `.sha256` file next to each binary on
+   [code.forgejo.org](https://code.forgejo.org/forgejo/runner/releases):
 
    ```bash
    curl -fsSL "https://gitlab-runner-downloads.s3.amazonaws.com/v${VERSION}/release.sha256" | grep -E 'binaries/gitlab-runner-linux-(amd64|arm64)$'
+   for arch in amd64 arm64; do
+     curl -fsSL "https://code.forgejo.org/forgejo/runner/releases/download/v${VERSION}/forgejo-runner-${VERSION}-linux-${arch}.sha256"
+   done
    ```
 
 2. `pnpm run test:integration`. The image build fails when a checksum does not match.
@@ -245,12 +252,15 @@ under the container `extension`.
    is deployed; *Update* moves them to the new image. Running GitHub runners also update
    themselves unless `DISABLE_AUTO_UPDATE` is set.
 
-`crane` in the runner images and `kaniko` in the builder image follow the same path.
-`crane.version` and its two checksums live in `docker/runner/versions.json`
+`crane` and Node in the runner images and `kaniko` in the builder image follow the same
+path. `crane.version` and its two checksums live in `docker/runner/versions.json`
 ([releases](https://github.com/google/go-containerregistry/releases), file
-`checksums.txt`), `kaniko.version` and the Go version that compiles it in
+`checksums.txt`), and so do `node.version` and the checksums of the `linux-x64` and
+`linux-arm64` `.tar.xz` files (`https://nodejs.org/dist/v${VERSION}/SHASUMS256.txt`, stay
+on an LTS line). Only the Forgejo image installs Node; its probe checks the version and
+that `npm install -g` still works as the runner user. `kaniko.version` and the Go version that compiles it live in
 `docker/builder/versions.json`
-([releases](https://github.com/chainguard-forks/kaniko/releases)). Both are read by the
+([releases](https://github.com/chainguard-forks/kaniko/releases)). All of them are read by the
 workflow, by `pnpm run runner:build` and by the integration tests; a bump needs a tag
 like any other change. The builder applies the patches in `docker/builder/patches/` to
 kaniko before it compiles it, so a kaniko bump fails the image build when a patch no

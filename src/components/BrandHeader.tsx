@@ -77,6 +77,7 @@ export const BrandHeader = () => {
                             <Flex gap="xs" wrap="wrap">
                                 <Badge>{t("provider.github")}</Badge>
                                 <Badge>{t("provider.gitlab")}</Badge>
+                                <Badge>{t("provider.forgejo")}</Badge>
                                 <Badge>{t("brand.openSource")}</Badge>
                             </Flex>
                         </Flex>

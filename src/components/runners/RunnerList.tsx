@@ -39,7 +39,14 @@ const transientStatuses: RunnerStatus[] = ["creating", "starting", "stopping"];
 const providerInitials: Record<Provider, string> = {
     github: "Git Hub",
     gitlab: "Git Lab",
+    forgejo: "Forge Jo",
 };
+
+const providerColors = {
+    github: "violet",
+    gitlab: "teal",
+    forgejo: "lilac",
+} as const satisfies Record<Provider, string>;
 
 type ProviderFilter = Provider | "all";
 
@@ -90,7 +97,7 @@ const RunnerRow = ({
     const t = useTranslation();
     return (
         <Runners.ItemView s={[12]} m={[6, 3, 3]} l={[4, 2, 2, 2, 2]}>
-            <Avatar color={runner.provider === "github" ? "violet" : "teal"}>
+            <Avatar color={providerColors[runner.provider]}>
                 <Initials>{providerInitials[runner.provider]}</Initials>
             </Avatar>
             <Heading>
@@ -270,6 +277,9 @@ export const RunnerList = ({ onCreate }: { onCreate: () => void }) => {
                         <Segment value="all">{t("runners.filter.all")}</Segment>
                         <Segment value="github">{t("provider.github")}</Segment>
                         <Segment value="gitlab">{t("provider.gitlab")}</Segment>
+                        <Segment value="forgejo">
+                            {t("provider.forgejo")}
+                        </Segment>
                     </SegmentedControl>
                 </ColumnLayout>
             )}

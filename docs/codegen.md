@@ -18,8 +18,9 @@ limited to domain logic and UI. Generated files are never edited by hand.
 The contract between UI and server functions. Contains only `components.schemas`, no
 paths, because TanStack server functions have no HTTP routing in the OpenAPI sense.
 
-- `CreateRunnerRequest`: discriminated union over `provider` of `GitHubRunnerRequest`
-  and `GitLabRunnerRequest` (both allOf `RunnerBase`). The `discriminator.mapping` is
+- `CreateRunnerRequest`: discriminated union over `provider` of `GitHubRunnerRequest`,
+  `GitLabRunnerRequest` and `ForgejoRunnerRequest` (all allOf `RunnerBase`). Forgejo
+  needs no upstream spec and no generated client, the extension never calls it. The `discriminator.mapping` is
   mandatory, otherwise hey-api emits schema names as literals.
 - `RunnerIdRequest`, `RunnerLogsRequest`, `ConfigureRunnerRequest`: further inputs.
   Server functions use the generated zod schemas (`zCreateRunnerRequest`, ...) as

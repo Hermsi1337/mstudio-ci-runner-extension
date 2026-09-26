@@ -18,7 +18,7 @@ export const en = {
     "app.title": "CI Runners",
     "app.dockerNotice.title": "What runs in a job, and what does not",
     "app.dockerNotice.text":
-        "Runners run on mittwald Container Hosting without a Docker daemon. Jobs run directly on Ubuntu 24.04.\n\n**Works**\n\n- Node via `actions/setup-node`, Python, `build-essential`, `git`, `curl`, `rsync`, SSH deploys\n- Installing packages with `sudo apt-get`\n- `docker build` and `docker push`, including `docker/build-push-action`, when image builds are turned on for the runner. The build runs in a builder container of the stack\n\n**Fails**\n\n- `docker run`, `docker compose` and anything else that starts a container\n- GitHub Actions: `container:`, `services:`, Docker container actions\n- GitLab CI: `image:`, `services:`\n- BuildKit features in a Dockerfile: `RUN --mount`, `--secret`, `--ssh`, another architecture",
+        "Runners run on mittwald Container Hosting without a Docker daemon. Jobs run directly on Ubuntu 24.04.\n\n**Works**\n\n- Node via `actions/setup-node`, Python, `build-essential`, `git`, `curl`, `rsync`, SSH deploys\n- Installing packages with `sudo apt-get`\n- `docker build` and `docker push`, including `docker/build-push-action`, when image builds are turned on for the runner. The build runs in a builder container of the stack\n\n**Fails**\n\n- `docker run`, `docker compose` and anything else that starts a container\n- GitHub Actions: `container:`, `services:`, Docker container actions\n- GitLab CI: `image:`, `services:`\n- Forgejo Actions: `container:`, `services:`, Docker container actions, `actions/cache`\n- BuildKit features in a Dockerfile: `RUN --mount`, `--secret`, `--ssh`, another architecture",
 
     "runners.heading": "Runners",
     "runners.containerHosting.missing.heading": "Container Hosting missing",
@@ -26,7 +26,7 @@ export const en = {
         "This project does not support Container Hosting, so it cannot run CI runners. Install the extension in a project on a server that offers Container Hosting.",
     "runners.intro.heading": "How runners work",
     "runners.intro":
-        "Runners of the same repository, organization or GitLab instance share one container stack in this project; every runner is a container in it and registers itself on start. Jobs run directly in the container. Create as many runners as you need.",
+        "Runners of the same repository, organization, GitLab or Forgejo instance share one container stack in this project; every runner is a container in it and registers itself on start. Jobs run directly in the container. Create as many runners as you need.",
     "runners.empty.heading": "No runners yet",
     "runners.empty.text":
         'Use "Create runner" to add the first CI runner to this project.',
@@ -82,6 +82,8 @@ export const en = {
         "Removes the container and its volumes, including the cache. A stack the extension created goes with its last runner, a stack you picked stays. A running job is cancelled. GitHub keeps listing the runner as offline until it removes it after 14 days; delete it earlier under `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
         "Removes the runner from GitLab, the container and its volumes, including the cache. A stack the extension created goes with its last runner, a stack you picked stays. A running job is cancelled. If the container is already gone, the runner stays in GitLab; delete it there under `Settings` → `CI/CD` → `Runners`.",
+    "runners.delete.text.forgejo":
+        "Removes the container and its volumes, including the cache. A stack the extension created goes with its last runner, a stack you picked stays. A running job is cancelled. Forgejo keeps listing the runner as offline until you delete it there under `Settings` → `Actions` → `Runners`.",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty.heading": "No output yet",
     "runners.logs.empty.text":
@@ -94,6 +96,7 @@ export const en = {
 
     "provider.github": "GitHub Actions",
     "provider.gitlab": "GitLab CI",
+    "provider.forgejo": "Forgejo Actions",
 
     "feedback.heading": "Feedback and support",
     "feedback.text":
@@ -142,6 +145,8 @@ export const en = {
         "Runner registration and work directory: checkouts, downloaded actions, tool cache of the setup actions.",
     "form.summary.dataVolume.text.gitlab":
         "Builds directory and the storage behind the cache: keyword in .gitlab-ci.yml.",
+    "form.summary.dataVolume.text.forgejo":
+        "Work directory of the jobs: checkouts and job files.",
     "form.summary.cacheVolume.label": "Volume: {service}-cache",
     "form.summary.cacheVolume.text":
         "Package manager cache. Its usage shows separately in mStudio.",
@@ -159,9 +164,12 @@ export const en = {
     "form.snippet.text.github":
         "Jobs reach this runner through its labels in runs-on.",
     "form.snippet.text.gitlab": "Jobs reach this runner through its tags.",
+    "form.snippet.text.forgejo":
+        "Jobs reach this runner through its labels in runs-on.",
     "form.provider.question": "Which CI system?",
     "form.provider.github.text": "Repositories and organizations",
     "form.provider.gitlab.text": "gitlab.com or self-hosted",
+    "form.provider.forgejo.text": "Self-hosted Forgejo instances",
     "form.provider.change": "Change CI system",
     "form.name.label": "Name",
     "form.name.description": "Used as the runner name in the CI system.",
@@ -181,10 +189,32 @@ export const en = {
     "form.gitlab.configCommand.required": "Register command is required",
     "form.gitlab.configCommand.invalid":
         "Paste the full command with --url https://... and --token glrt-...",
+    "form.forgejo.instanceUrl.label": "Forgejo URL",
+    "form.forgejo.instanceUrl.description":
+        "Base address of the instance, for example https://forgejo.example.com.",
+    "form.forgejo.instanceUrl.required": "Forgejo URL is required",
+    "form.forgejo.instanceUrl.invalid":
+        "Enter the address with https://, for example https://forgejo.example.com.",
+    "form.forgejo.uuid.label": "Runner UUID",
+    "form.forgejo.uuid.required": "Runner UUID is required",
+    "form.forgejo.uuid.invalid":
+        "Paste the UUID as Forgejo shows it, for example c9e50be9-a7c3-4aee-ba35-624c4ff8c519.",
+    "form.forgejo.token.label": "Runner token",
+    "form.forgejo.token.description":
+        "Forgejo shows UUID and token once, right after it creates the runner.",
+    "form.forgejo.token.required": "Runner token is required",
+    "form.forgejo.token.invalid":
+        "The token is too short. Copy it in full from Forgejo.",
+    "form.forgejo.labels.invalid":
+        "Remove : and ? from the labels. The extension appends :host itself.",
+    "form.forgejo.token.characters":
+        "The token contains letters and digits only. Copy it again from Forgejo, without spaces.",
     "form.labels.label": "Labels",
     "form.tags.label": "Tags",
-    "form.labels.description":
+    "form.labels.description.github":
         "Comma separated. Reference them with runs-on: [self-hosted, mittwald].",
+    "form.labels.description.forgejo":
+        "Comma separated. Reference one with runs-on: mittwald.",
     "form.stack.label": "Target stack",
     "form.stack.automatic": "Automatic (one stack per target)",
     "form.stack.option": "{name} ({services} services)",
@@ -214,15 +244,21 @@ export const en = {
 
     "help.open": "Help for {subject}",
     "form.name.help":
-        "Shown as the runner name in GitHub or GitLab and in this list. Letters, digits and hyphens are kept, every other character becomes a hyphen.",
+        "Shown in this list and as the runner name in GitHub or GitLab. Forgejo keeps the name you gave the runner there. Letters, digits and hyphens are kept, every other character becomes a hyphen.",
     "form.github.configCommand.help":
         "On GitHub open the repository or organization, then `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Under `Configure` copy the line starting with `./config.sh` (or `./config.cmd`) and paste it here. Only `--url` and `--token` are used. The token expires after one hour, so create the runner right away. After you delete the runner here, GitHub lists it as offline until it removes it after 14 days.",
     "form.github.runnerGroup.help":
         "Only for organizations. Runner groups control which repositories may use the runner. Leave empty for the group Default.",
     "form.gitlab.configCommand.help":
         "On GitLab open the project or group, then `Settings` → `CI/CD` → `Runners` → `New project runner`. Set tags and whether untagged jobs run, click `Create runner` and copy the `gitlab-runner register` line from step 1. Only `--url` and `--token` are used. The token belongs to that runner; deleting the runner here removes it from GitLab.",
-    "form.labels.help":
+    "form.forgejo.instanceUrl.help":
+        "On Forgejo open the repository, organization or user settings (or the site administration for the whole instance), then `Settings` → `Actions` → `Runners`, and create a runner. Where you create it decides which repositories may use it. Enter the address of the instance here, without a path.",
+    "form.forgejo.token.help":
+        "Forgejo shows UUID and token of the new runner once. Copy both here. The container presents them to Forgejo on every start, so the token stays in the container environment for as long as the runner exists. Your Forgejo needs to show a UUID next to the token; an older release that hands out a registration token instead does not work. Deleting the runner here does not remove it from Forgejo.",
+    "form.labels.help.github":
         "Comma separated labels the runner registers with. Reference them in the workflow with runs-on: [self-hosted, mittwald]. Jobs whose labels do not match never reach this runner.",
+    "form.labels.help.forgejo":
+        "Comma separated labels the runner announces to Forgejo on every start. Use plain names without : or ?; the extension appends :host, so each one runs jobs directly in the container, not in a Docker image. Reference them in the workflow with runs-on: mittwald. Jobs whose labels do not match never reach this runner.",
     "form.cache.label": "Persistent cache for package managers",
     "form.cache.help":
         "Adds a cache volume at /home/runner/.cache and points npm, pnpm, yarn, pip, Composer and Go at it (XDG_CACHE_HOME plus the tool specific variables). Downloads from earlier jobs are reused, which speeds up installs. The volume survives jobs, restarts and updates. You can turn the cache on or off later in the runner settings; turning it off deletes the volume.",
@@ -240,7 +276,7 @@ export const en = {
     "form.concurrency.required": "Enter how many jobs run at once",
     "form.concurrency.range": "Enter a value between 1 and 8",
     "form.concurrency.help":
-        "How many jobs the runner takes at the same time (concurrent in the GitLab Runner config). All jobs share the CPU and memory limits of the size, so a second job slows the first one down and a build that needs more memory than its share fails.",
+        "How many jobs the runner takes at the same time (concurrent in the GitLab Runner config, capacity in the Forgejo Runner config). All jobs share the CPU and memory limits of the size, so a second job slows the first one down and a build that needs more memory than its share fails.",
     "form.concurrency.recommendation.small":
         "Small: 1 job. 0.5 CPU and 1 GB RAM fit one job.",
     "form.concurrency.recommendation.medium":
@@ -300,4 +336,8 @@ export const en = {
     "error.gitlab.status": "GitLab responded with status {status}.",
     "error.gitlab.removeFailed":
         "The GitLab runner could not be removed (status {status}).",
+    "error.forgejo.instanceUrlInvalid":
+        "The Forgejo URL must be an https address without user, query or fragment, for example https://forgejo.example.com.",
+    "error.forgejo.labelsInvalid":
+        "Forgejo labels must not contain : or ?. Enter plain names such as mittwald; the extension appends :host itself.",
 } as const;

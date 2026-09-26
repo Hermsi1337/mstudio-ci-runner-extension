@@ -58,6 +58,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           github_runner="$(jq -r .github.version docker/runner/versions.json)"
           gitlab_runner="$(jq -r .gitlab.version docker/runner/versions.json)"
+          forgejo_runner="$(jq -r .forgejo.version docker/runner/versions.json)"
           kaniko="$(jq -r .kaniko.version docker/builder/versions.json)"
           {
             echo "## Images"
@@ -67,6 +68,7 @@ jobs:
             echo "| Extension | \`docker pull ghcr.io/hermsi1337/mstudio-ci-runner-extension:${version}\` |"
             echo "| GitHub runner (actions/runner ${github_runner}) | \`docker pull ghcr.io/hermsi1337/mstudio-ci-runner-github:${version}\` |"
             echo "| GitLab runner (gitlab-runner ${gitlab_runner}) | \`docker pull ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:${version}\` |"
+            echo "| Forgejo runner (forgejo-runner ${forgejo_runner}) | \`docker pull ghcr.io/hermsi1337/mstudio-ci-runner-forgejo:${version}\` |"
             echo "| Image builder (kaniko ${kaniko}) | \`docker pull ghcr.io/hermsi1337/mstudio-ci-builder:${version}\` |"
             echo
           } > notes.md

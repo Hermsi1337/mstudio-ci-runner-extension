@@ -9,11 +9,11 @@
 | Domain logic | TypeScript, `@mittwald/api-client` | `src/domain/runner.ts`, `src/domain/project.ts` |
 | Image builds | kaniko in a builder service per stack, crane in the runner | `src/domain/builder.ts`, `src/build-queue.ts` ([image-builds.md](image-builds.md)) |
 | Changelog | GitHub releases via `@octokit/rest`, cached for ten minutes, cut at the running version | `src/domain/changelog.ts` |
-| CI providers | `@octokit/rest`, generated GitLab client | `src/domain/providers/` ([providers.md](providers.md)) |
+| CI providers | `@octokit/rest`, generated GitLab client, no client for Forgejo | `src/domain/providers/` ([providers.md](providers.md)) |
 | Persistence | PostgreSQL, Drizzle ORM | `src/db/` |
 | Lifecycle webhooks | `@weissaufschwarz/mitthooks` | `src/routes/api/webhooks.mittwald.ts` |
 | Languages | Message catalogs, locale from browser or `x-locale` header | `src/i18n/` ([i18n.md](i18n.md)) |
-| Runner containers | Ubuntu 24.04 + `actions/runner` or `gitlab-runner` | `docker/runner/<provider>/` |
+| Runner containers | Ubuntu 24.04 + `actions/runner`, `gitlab-runner` or `forgejo-runner` | `docker/runner/<provider>/` |
 | Logging | Own logger, level and format from the environment | `src/logger.ts` ([operations.md](operations.md#logging)) |
 
 Stack and structure follow the [mittwald reference extension](https://github.com/mittwald/reference-extension).
@@ -97,7 +97,7 @@ until it is recreated. The per-service action recreates only this runner, unlike
 the `recreate` query parameter of `updateStack`, which would recreate every runner
 that shares the stack. The extension skips the recreate only when mittwald reports
 `requiresRecreate: false` for the declared service. A recreate cancels the job that
-runs in the container; neither GitHub nor GitLab retries it automatically. The
+runs in the container; neither GitHub, GitLab nor Forgejo retries it automatically. The
 runner row is written after the recreate succeeded, so a failed recreate leaves the
 update on offer and the next attempt declares the same state again.
 
@@ -165,6 +165,11 @@ answer within 6 seconds.
   token from the service state at mittwald; when the container is already gone, the
   runner stays in GitLab until someone removes it there. The PAT mode is disabled, see
   [providers.md](providers.md#existing-providers).
+- Forgejo: UUID and runner token from Forgejo reach the container as
+  `FORGEJO_RUNNER_UUID` and `FORGEJO_RUNNER_TOKEN` and are not stored in the database.
+  The token stays valid as long as the runner exists in Forgejo. The extension never
+  calls Forgejo, so deleting the runner leaves it offline in Forgejo until someone
+  removes it there.
 - The database holds one secret: the instance secret in `extension_instance`, encrypted
   with `ENCRYPTION_MASTER_PASSWORD` and `ENCRYPTION_SALT` (AES-256-GCM via
   mitthooks-drizzle). It authenticates the cleanup after an uninstall.
@@ -175,8 +180,8 @@ answer within 6 seconds.
 
 ### Trust model of a runner
 
-A job is code from the repository, organization or GitLab group the runner is registered
-for, executed inside the runner container. The container is the trust boundary, not the
+A job is code from the repository, organization, GitLab group or Forgejo scope the runner
+is registered for, executed inside the runner container. The container is the trust boundary, not the
 job:
 
 - `runner` has passwordless sudo (`runner ALL=(ALL) NOPASSWD:ALL`), because jobs install
@@ -185,9 +190,10 @@ job:
   survive between jobs. A job can leave files, or a modified tool, for the next one.
   There is no filesystem reset.
 - Every job can read the environment of the runner process. The entrypoint unsets
-  `RUNNER_TOKEN` (GitHub) and `CI_SERVER_TOKEN` (GitLab) before the runner starts;
-  the GitLab `config.toml` is `chmod 600`. Secrets that a job needs come from the CI
-  system, not from the container.
+  `RUNNER_TOKEN` (GitHub), `CI_SERVER_TOKEN` (GitLab) and `FORGEJO_RUNNER_TOKEN`
+  (Forgejo) before the runner starts; the GitLab `config.toml` and the Forgejo
+  `config.yml` are `chmod 600`. Jobs run as the same user, so they can still read those
+  files. Secrets that a job needs come from the CI system, not from the container.
 - The container reaches everything in the mittwald project network, such as
   databases and apps of that project. That is the point of the extension, and it means
   a job can reach them too.
@@ -207,7 +213,8 @@ What follows for operating runners:
   access to that project.
 - Do not let untrusted pull requests run on the runner. GitHub: *Settings → Actions →
   General → Fork pull request workflows*, require approval for all outside collaborators.
-  GitLab: protect the runner or restrict it to protected branches.
+  GitLab: protect the runner or restrict it to protected branches. Forgejo: create the
+  runner in the narrowest scope that works, a repository rather than an organization.
 - Ephemeral runners (a fresh registration per job) are currently not available, see
   [providers.md](providers.md#existing-providers). Until they return, treat a runner as
   shared state between all jobs of its target.

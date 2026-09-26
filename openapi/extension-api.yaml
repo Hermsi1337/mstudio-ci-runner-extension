@@ -11,7 +11,7 @@ components:
   schemas:
     Provider:
       type: string
-      enum: [github, gitlab]
+      enum: [github, gitlab, forgejo]
       description: CI system the runner registers with.
       example: github
     RunnerSize:
@@ -59,7 +59,7 @@ components:
           type: string
           maxLength: 500
           default: mittwald
-          description: Comma separated runner labels (GitHub) or tags (GitLab).
+          description: Comma separated runner labels (GitHub, Forgejo). GitLab keeps its tags in GitLab and ignores the value.
           example: mittwald, node
         cache:
           $ref: '#/components/schemas/CacheEnabled'
@@ -89,7 +89,7 @@ components:
       minimum: 1
       maximum: 8
       default: 1
-      description: Jobs the runner takes at the same time. GitLab only; a GitHub runner takes one job at a time and ignores the value.
+      description: Jobs the runner takes at the same time. GitLab and Forgejo only; a GitHub runner takes one job at a time and ignores the value.
       example: 2
     CacheEnabled:
       type: boolean
@@ -170,15 +170,51 @@ components:
               maxLength: 500
               description: Runner authentication token from the register command.
               example: glrt-t1_AbCdEfGhIjKlMnOpQrSt
+    ForgejoRunnerRequest:
+      allOf:
+        - $ref: '#/components/schemas/RunnerBase'
+        - type: object
+          required: [provider, instanceUrl, uuid, token]
+          properties:
+            provider:
+              type: string
+              enum: [forgejo]
+            instanceUrl:
+              type: string
+              format: uri
+              maxLength: 500
+              description: Base URL of the Forgejo instance.
+              example: https://forgejo.example.com
+            tokenType:
+              type: string
+              enum: [registration]
+              default: registration
+              description: |
+                UUID and token from the runner page on Forgejo. The runner already exists there; the
+                container declares itself with both on every start.
+            uuid:
+              type: string
+              format: uuid
+              description: UUID Forgejo shows once after creating the runner.
+              example: c9e50be9-a7c3-4aee-ba35-624c4ff8c519
+            token:
+              type: string
+              minLength: 10
+              maxLength: 500
+              pattern: '^[A-Za-z0-9]+$'
+              description: Token Forgejo shows once after creating the runner. forgejo-runner accepts letters and digits only.
+              example: 6634bb58be0db23cc013a2e72dd1828ae0257cf
     CreateRunnerRequest:
       oneOf:
         - $ref: '#/components/schemas/GitHubRunnerRequest'
         - $ref: '#/components/schemas/GitLabRunnerRequest'
+        - $ref: '#/components/schemas/ForgejoRunnerRequest'
       discriminator:
         propertyName: provider
         mapping:
           github: '#/components/schemas/GitHubRunnerRequest'
           gitlab: '#/components/schemas/GitLabRunnerRequest'
+          forgejo: '#/components/schemas/ForgejoRunnerRequest'
     RunnerIdRequest:
       type: object
       required: [runnerId]

@@ -80,7 +80,7 @@
     "yaml": "^2.9.1"
   },
   "private": true,
-  "description": "mittwald mStudio extension that provisions CI runners (GitHub Actions, GitLab CI) on container hosting",
+  "description": "mittwald mStudio extension that provisions CI runners (GitHub Actions, GitLab CI, Forgejo Actions) on container hosting",
   "author": "codeBoarder - Inh. Dennis Hermsmeier <hello@codeboarder.de>",
   "license": "MIT",
   "repository": {
