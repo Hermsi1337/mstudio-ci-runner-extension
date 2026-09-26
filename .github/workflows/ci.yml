@@ -55,5 +55,10 @@ jobs:
         uses: docker/setup-qemu-action@v4
         with:
           platforms: amd64
+      # Ubuntu 24.04 strips the capabilities of an unconfined process in a user
+      # namespace it creates. The builder runs its emulated builds in one, and
+      # Container Hosting has no such restriction.
+      - name: Allow user namespaces for unconfined processes
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Integration tests (testcontainers)
         run: pnpm run test:integration
