@@ -224,9 +224,12 @@ Failing early with a clear message beats a build that silently does something el
 is untested with the second.
 
 `FROM --platform=$BUILDPLATFORM` and `FROM --platform=$TARGETPLATFORM` pass without a
-message. Cross builds are refused, so both name the platform of the runner. Any other
-variable in `FROM --platform=` produces a warning, because the check cannot resolve it
-and kaniko ignores it anyway.
+message. kaniko ignores the flag and pulls the platform of the runner, which is what
+both mean when cross builds are refused. kaniko does not set the predefined platform
+arguments (`BUILDPLATFORM`, `TARGETPLATFORM`, `TARGETOS`, `TARGETARCH`), so they are empty
+in `RUN` unless the Dockerfile gives them a default. Any other variable in
+`FROM --platform=` produces a warning, because the check cannot resolve it and kaniko
+ignores it anyway.
 
 ## Limits
 

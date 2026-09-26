@@ -25,8 +25,8 @@ while IFS= read -r finding; do
 done < <(grep -n -o -E -- '--link' "${dockerfile}" || true)
 
 # kaniko ignores --platform in FROM and always pulls the platform of the node it
-# runs on. BUILDPLATFORM and TARGETPLATFORM resolve to that platform here,
-# because mstudio-platform-check refuses cross builds.
+# runs on. That is what BUILDPLATFORM and TARGETPLATFORM mean while
+# mstudio-platform-check refuses cross builds, even though kaniko leaves both empty.
 while IFS= read -r finding; do
     line="${finding%%:*}"
     platform="${finding#*--platform=}"
