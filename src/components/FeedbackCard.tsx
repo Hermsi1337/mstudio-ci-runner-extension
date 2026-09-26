@@ -13,9 +13,7 @@ import {
 } from "@mittwald/flow-remote-react-components";
 import type { ReactNode } from "react";
 import { useTranslation } from "@/i18n/react.tsx";
-
-const REPOSITORY_URL =
-    "https://github.com/Hermsi1337/mstudio-ci-runner-extension";
+import { REPOSITORY_URL } from "@/repository.ts";
 
 /**
  * Three tiles, one per way to reach the project. Tiles instead of a link row
@@ -26,7 +24,6 @@ export const FeedbackCard = () => {
     const tiles: {
         key: string;
         icon: ReactNode;
-        color: "blue" | "green" | "neutral";
         heading: string;
         text: string;
         link: string;
@@ -35,7 +32,6 @@ export const FeedbackCard = () => {
         {
             key: "issue",
             icon: <IconTicket />,
-            color: "blue",
             heading: t("feedback.issue.heading"),
             text: t("feedback.issue.text"),
             link: t("feedback.issue.link"),
@@ -44,7 +40,6 @@ export const FeedbackCard = () => {
         {
             key: "question",
             icon: <IconSupport />,
-            color: "green",
             heading: t("feedback.question.heading"),
             text: t("feedback.question.text"),
             link: t("feedback.question.link"),
@@ -53,7 +48,6 @@ export const FeedbackCard = () => {
         {
             key: "code",
             icon: <IconCode />,
-            color: "neutral",
             heading: t("feedback.code.heading"),
             text: t("feedback.code.text"),
             link: t("feedback.code.link"),
@@ -68,7 +62,7 @@ export const FeedbackCard = () => {
                 <Text>{t("feedback.text")}</Text>
                 <ColumnLayout s={[1]} m={[1, 1, 1]}>
                     {tiles.map((tile) => (
-                        <AccentBox key={tile.key} backgroundColor={tile.color}>
+                        <AccentBox key={tile.key} backgroundColor="neutral">
                             {tile.icon}
                             <Flex direction="column" gap="s">
                                 <Heading level={4}>{tile.heading}</Heading>

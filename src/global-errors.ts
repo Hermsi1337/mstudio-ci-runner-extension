@@ -101,6 +101,23 @@ export class BuilderNameTakenError extends PublicError {
     }
 }
 
+export class DockerApiNameTakenError extends PublicError {
+    public constructor(stackId: string) {
+        super(
+            "error.dockerApi.nameTaken",
+            {},
+            { statusCode: 409, details: { stackId } },
+        );
+    }
+}
+
+/** The service `docker` needs a public URL of the extension to get tokens. */
+export class DockerApiUnconfiguredError extends PublicError {
+    public constructor() {
+        super("error.dockerApi.unconfigured", {}, { statusCode: 409 });
+    }
+}
+
 const notFoundMessageKeys = {
     runner: "error.notFound.runner",
     runnerContainer: "error.notFound.runnerContainer",

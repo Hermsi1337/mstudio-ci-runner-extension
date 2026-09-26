@@ -8,6 +8,7 @@
 | Server functions | TanStack Start | `src/serverFunctions/` |
 | Domain logic | TypeScript, `@mittwald/api-client` | `src/domain/runner.ts`, `src/domain/project.ts` |
 | Image builds | kaniko in a builder service per stack, crane in the runner | `src/domain/builder.ts`, `src/build-queue.ts` ([image-builds.md](image-builds.md)) |
+| Docker API for jobs | Go service `docker` per stack, `mstudio-init` wrapper in every container, tokens from `POST /api/docker-api/token` | `docker/docker-api/`, `src/domain/docker-api.ts` ([docker-api.md](docker-api.md)) |
 | Changelog | GitHub releases via `@octokit/rest`, cached for ten minutes, cut at the running version | `src/domain/changelog.ts` |
 | CI providers | `@octokit/rest`, generated GitLab client | `src/domain/providers/` ([providers.md](providers.md)) |
 | Persistence | PostgreSQL, Drizzle ORM | `src/db/` |
@@ -26,8 +27,16 @@ badge of the extension and the changelog button that opens `ChangelogModal.tsx`)
 with links to the repository. Rules for every
 screen are in [styleguide.md](styleguide.md). The runners are grouped by registration target, one Flow `List` per group
 (`RunnerList.tsx`), one `ListItemView` per runner with a context menu (`RunnerActions.tsx`) that opens the logs, settings and
-confirmation modals through overlay controllers. Flow's list switches from columns to
-stacked rows by container width, so no separate mobile layout exists.
+confirmation modals through overlay controllers. A row shows labels and switched on
+job features; it expands into the remaining details. Flow's list switches from columns
+to stacked rows by container width, so no separate mobile layout exists. The create
+form and the settings modal share `ResourceFields.tsx` (size cards) and
+`JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards).
+`src/repository.ts` holds the repository and docs URLs the UI links to.
+
+Release notes come from the GitHub API as GitHub-flavored Markdown.
+`src/release-notes.ts` drops HTML comments and shortens bare pull request and compare
+URLs before `ChangelogModal.tsx` renders them.
 
 Size presets (`small`, `medium`, `large`) and their limits live in
 `src/runner-sizes.ts`, imported by the domain for the stack declaration and by the UI
@@ -73,7 +82,10 @@ Two Flow rules shape the components:
 6. `src/domain/runner.ts` adds the cache volume, environment and cronjob when
    requested ([providers.md](providers.md#package-manager-cache)), mounts the build
    queue and declares the builder service of the stack when the runner may build
-   images (`src/domain/builder.ts`, [image-builds.md](image-builds.md)), and declares the
+   images (`src/domain/builder.ts`, [image-builds.md](image-builds.md)), sets
+   `DOCKER_HOST`, mounts `<project directory>/.ci-work/<stack ID>` for the workspace
+   and declares the service `docker` when jobs may run containers
+   (`src/domain/docker-api.ts`, [docker-api.md](docker-api.md)), and declares the
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
    runners of the stack stay untouched) with `restartPolicy: always` and the resource
    limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
@@ -122,7 +134,7 @@ Tables in `src/db/schema.ts`:
   user can get. Opened from the header, the modal marks the current release; opened
   from a runner, it names the runner's image version and the update target and
   shows the releases between them.
-  `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb`, `imageBuilds` and `concurrency` hold the settings
+  `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb`, `imageBuilds`, `dockerApi` and `concurrency` hold the settings
   (`cpus` and `memoryMb` only for `size = custom`), `tokenType` records how the runner
   authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald
   cronjobs created for the runner (cache cleanup).
@@ -132,6 +144,11 @@ Tables in `src/db/schema.ts`:
   create form has no row and is never deleted by the extension. The uninstall webhook
   reads the owned stack ids before the default chain removes the instance, because the
   rows go with it through the foreign key cascade.
+- `docker_api_stacks`: one row per stack that runs the service `docker`, with the
+  SHA-256 of the secret the service trades for tokens
+  ([docker-api.md](docker-api.md#tokens)). Foreign
+  key to `extension_instance` with `ON DELETE CASCADE`. The row goes when the service
+  goes.
 
 One stack per registration target, one service per runner, unless the user picked a
 stack when creating the runner. Deleting removes the service (`updateStack` with
@@ -147,8 +164,9 @@ signature and maintains `extension_instance`. A handler in front of the chain
 (`cleanupRunnersOnRemoval`) reacts to `InstanceRemovedFromContext`: it reads the
 runners of the instance and the stack ids it owns, lets the default chain run and
 then, with a token obtained from the instance secret (`extensionAuthenticateInstance`),
-deletes the owned stacks, removes the runner service from every other stack and
-releases the registrations via `provider.release`. Both lists are read before the
+deletes the owned stacks, removes the runner service from every other stack, removes
+the service `docker` and its containers from those stacks and releases the
+registrations via `provider.release`. Both lists are read before the
 chain runs: it deletes the instance row, and runners and `runner_stacks` go with it
 through the cascade. This happens detached because mStudio expects an
 answer within 6 seconds.
@@ -167,7 +185,12 @@ answer within 6 seconds.
   [providers.md](providers.md#existing-providers).
 - The database holds one secret: the instance secret in `extension_instance`, encrypted
   with `ENCRYPTION_MASTER_PASSWORD` and `ENCRYPTION_SALT` (AES-256-GCM via
-  mitthooks-drizzle). It authenticates the cleanup after an uninstall.
+  mitthooks-drizzle). It authenticates the cleanup after an uninstall and the tokens
+  of the service `docker`.
+- `POST /api/docker-api/token` is the only endpoint outside the session middleware
+  besides the webhook. It answers only the random bearer secret of the stack, whose
+  SHA-256 the database keeps, and only while the extension keeps the service
+  `docker` of that stack ([docker-api.md](docker-api.md#tokens)).
 - Token requirements: [mstudio-setup.md](mstudio-setup.md#tokens).
 - Errors reach the client only through `PublicError` subclasses (`src/global-errors.ts`);
   they carry message keys that the middleware renders in the request language.
@@ -197,6 +220,11 @@ job:
   runner of that stack, and it can change an image tarball before its runner pushes it.
   The build itself runs as root in the builder container, which is replaced after every
   build ([image-builds.md](image-builds.md)).
+- With Docker in jobs turned on, a job controls every container the service `docker`
+  started for any runner of the stack, and those containers reach the project network
+  like the runner. It cannot reach the runner, the builder or other services: the
+  adapter lists and touches only its own containers, and it holds no token a job could
+  read ([docker-api.md](docker-api.md)).
 - `docker login` in a job writes the registry credentials to `~/.docker/config.json` in
   the runner, where the next job on the same container can read them.
 

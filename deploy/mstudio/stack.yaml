@@ -21,6 +21,7 @@ services:
       EXTENSION_SECRET: "{{ .Env.EXTENSION_SECRET }}"
       ENCRYPTION_MASTER_PASSWORD: "{{ .Env.ENCRYPTION_MASTER_PASSWORD }}"
       ENCRYPTION_SALT: "{{ .Env.ENCRYPTION_SALT }}"
+      PUBLIC_URL: "{{ .Env.PUBLIC_URL }}"
 
   postgres:
     image: "postgres:17-alpine"

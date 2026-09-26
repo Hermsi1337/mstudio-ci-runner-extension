@@ -1,0 +1,174 @@
+package handlers
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/gorilla/mux"
+	dockerspec "github.com/moby/docker-image-spec/specs-go/v1"
+	"github.com/moby/moby/api/types/image"
+	"github.com/moby/moby/api/types/jsonstream"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
+)
+
+// ImageHandler answers from the registry lookup of the mittwald API. Images
+// are never stored here: the platform pulls them when a service starts.
+type ImageHandler struct {
+	engine *engine.Engine
+}
+
+func NewImageHandler(e *engine.Engine) *ImageHandler {
+	return &ImageHandler{engine: e}
+}
+
+func imageID(img *engine.Image) string {
+	if img.Digest != "" {
+		return img.Digest
+	}
+	return "sha256:" + strings.Repeat("0", 64)
+}
+
+func (h *ImageHandler) List(w http.ResponseWriter, r *http.Request) {
+	list := []image.Summary{}
+	for _, img := range h.engine.Images().Known() {
+		list = append(list, image.Summary{
+			ID:          imageID(img),
+			RepoTags:    []string{img.Reference},
+			RepoDigests: []string{},
+			Labels:      map[string]string{},
+			Containers:  -1,
+			Created:     img.Resolved.Unix(),
+		})
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+func (h *ImageHandler) Pull(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("fromImage")
+	tag := r.URL.Query().Get("tag")
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "fromImage parameter is required")
+		return
+	}
+	if tag != "" {
+		if strings.HasPrefix(tag, "sha256:") {
+			name += "@" + tag
+		} else {
+			name += ":" + tag
+		}
+	}
+	if auth, ok := registryAuth(r.Header.Get("X-Registry-Auth")); ok {
+		h.engine.Images().Authorize(name, auth)
+	}
+	img, err := h.engine.Images().Resolve(r.Context(), name)
+	if err != nil {
+		if errors.Is(err, engine.ErrNotFound) {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("pull access denied for %s, repository does not exist or may require authorization", name))
+			return
+		}
+		writeEngineError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	for _, msg := range []jsonstream.Message{
+		{Status: "Pulling from " + name},
+		{Status: "Digest: " + img.Digest},
+		{Status: "Status: Image is resolved, mittwald pulls it when the container starts"},
+	} {
+		_ = encoder.Encode(msg)
+	}
+}
+
+func (h *ImageHandler) Inspect(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	img, err := h.engine.Images().Resolve(r.Context(), name)
+	if err != nil {
+		writeEngineError(w, err)
+		return
+	}
+	ports := map[string]struct{}{}
+	for _, p := range img.ExposedPorts {
+		ports[p] = struct{}{}
+	}
+	writeJSON(w, http.StatusOK, image.InspectResponse{
+		ID:           imageID(img),
+		RepoTags:     []string{img.Reference},
+		RepoDigests:  []string{},
+		Architecture: "amd64",
+		Os:           "linux",
+		Config: &dockerspec.DockerOCIImageConfig{ImageConfig: ocispec.ImageConfig{
+			User:         img.User,
+			ExposedPorts: ports,
+			Env:          img.Env,
+			Entrypoint:   img.Entrypoint,
+			Cmd:          img.Cmd,
+		}},
+		RootFS: image.RootFS{Type: "layers", Layers: []string{}},
+	})
+}
+
+func (h *ImageHandler) Remove(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	if !h.engine.Images().Forget(name) {
+		writeError(w, http.StatusNotFound, "No such image: "+name)
+		return
+	}
+	writeJSON(w, http.StatusOK, []image.DeleteResponse{{Untagged: name}})
+}
+
+func (h *ImageHandler) Tag(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *ImageHandler) Search(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, []any{})
+}
+
+func (h *ImageHandler) History(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, []any{})
+}
+
+func (h *ImageHandler) Build(w http.ResponseWriter, r *http.Request) {
+	writeError(w, http.StatusNotImplemented, "building images is not supported by the adapter; build and push the image in the pipeline, then run it from the registry")
+}
+
+// registryAuth decodes X-Registry-Auth, base64url encoded JSON as the docker
+// CLI and dockerode send it. Some clients use padded standard base64.
+func registryAuth(header string) (authn.AuthConfig, bool) {
+	if header == "" {
+		return authn.AuthConfig{}, false
+	}
+	var raw []byte
+	for _, enc := range []*base64.Encoding{base64.URLEncoding, base64.RawURLEncoding, base64.StdEncoding, base64.RawStdEncoding} {
+		if decoded, err := enc.DecodeString(header); err == nil {
+			raw = decoded
+			break
+		}
+	}
+	var body struct {
+		Username      string `json:"username"`
+		Password      string `json:"password"`
+		Auth          string `json:"auth"`
+		IdentityToken string `json:"identitytoken"`
+		RegistryToken string `json:"registrytoken"`
+	}
+	if raw == nil || json.Unmarshal(raw, &body) != nil {
+		return authn.AuthConfig{}, false
+	}
+	cfg := authn.AuthConfig{
+		Username:      body.Username,
+		Password:      body.Password,
+		Auth:          body.Auth,
+		IdentityToken: body.IdentityToken,
+		RegistryToken: body.RegistryToken,
+	}
+	return cfg, cfg != (authn.AuthConfig{})
+}

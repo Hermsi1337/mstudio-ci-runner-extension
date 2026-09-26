@@ -30,6 +30,12 @@ jobs:
             echo "crane_version=$(jq -r '.crane.version' docker/runner/versions.json)"
             echo "crane_sha256_amd64=$(jq -r '.crane.sha256.amd64' docker/runner/versions.json)"
             echo "crane_sha256_arm64=$(jq -r '.crane.sha256.arm64' docker/runner/versions.json)"
+            echo "docker_cli_version=$(jq -r '.dockerCli.version' docker/runner/versions.json)"
+            echo "docker_cli_sha256_amd64=$(jq -r '.dockerCli.sha256.amd64' docker/runner/versions.json)"
+            echo "docker_cli_sha256_arm64=$(jq -r '.dockerCli.sha256.arm64' docker/runner/versions.json)"
+            echo "docker_compose_version=$(jq -r '.dockerCompose.version' docker/runner/versions.json)"
+            echo "docker_compose_sha256_amd64=$(jq -r '.dockerCompose.sha256.amd64' docker/runner/versions.json)"
+            echo "docker_compose_sha256_arm64=$(jq -r '.dockerCompose.sha256.arm64' docker/runner/versions.json)"
           } >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4
@@ -60,6 +66,12 @@ jobs:
             CRANE_VERSION=${{ steps.runner.outputs.crane_version }}
             CRANE_SHA256_AMD64=${{ steps.runner.outputs.crane_sha256_amd64 }}
             CRANE_SHA256_ARM64=${{ steps.runner.outputs.crane_sha256_arm64 }}
+            DOCKER_CLI_VERSION=${{ steps.runner.outputs.docker_cli_version }}
+            DOCKER_CLI_SHA256_AMD64=${{ steps.runner.outputs.docker_cli_sha256_amd64 }}
+            DOCKER_CLI_SHA256_ARM64=${{ steps.runner.outputs.docker_cli_sha256_arm64 }}
+            DOCKER_COMPOSE_VERSION=${{ steps.runner.outputs.docker_compose_version }}
+            DOCKER_COMPOSE_SHA256_AMD64=${{ steps.runner.outputs.docker_compose_sha256_amd64 }}
+            DOCKER_COMPOSE_SHA256_ARM64=${{ steps.runner.outputs.docker_compose_sha256_arm64 }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.provider }}
@@ -110,3 +122,38 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=builder
           cache-to: type=gha,mode=max,scope=builder
+
+  docker-api:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/hermsi1337/mstudio-ci-docker-api
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+            type=sha,enable=${{ github.event_name == 'workflow_dispatch' }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: docker/docker-api
+          file: docker/docker-api/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=docker-api
+          cache-to: type=gha,mode=max,scope=docker-api

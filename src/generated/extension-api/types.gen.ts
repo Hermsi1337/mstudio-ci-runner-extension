@@ -4,6 +4,18 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type DockerApiTokenRequest = {
+    stackId: string;
+};
+
+export type DockerApiTokenResponse = {
+    /**
+     * mittwald access token of the extension instance, sent as X-Access-Token.
+     */
+    token: string;
+    expiresAt: string;
+};
+
 /**
  * CI system the runner registers with.
  */
@@ -83,6 +95,7 @@ export type RunnerBase = {
     cache?: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
     imageBuilds?: ImageBuilds;
+    dockerApi?: DockerApi;
     concurrency?: Concurrency;
     size?: RunnerSize;
     cpus?: Cpus;
@@ -111,6 +124,11 @@ export type CacheEnabled = boolean;
  * Lets jobs build container images with `docker build`. Mounts the build queue of the stack into the runner and adds the builder service to the stack if it is missing.
  */
 export type ImageBuilds = boolean;
+
+/**
+ * Lets jobs run containers with `docker run` and Testcontainers. Points DOCKER_HOST of the runner at the service `docker` of the stack, which the extension adds if it is missing (see docs/docker-api.md).
+ */
+export type DockerApi = boolean;
 
 /**
  * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
@@ -175,6 +193,7 @@ export type ConfigureRunnerRequest = {
     cache: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
     imageBuilds?: ImageBuilds;
+    dockerApi?: DockerApi;
     concurrency?: Concurrency;
     size?: RunnerSize;
     cpus?: Cpus;
@@ -219,6 +238,10 @@ export type Runner = {
      * Jobs of this runner can build container images through the builder service of its stack.
      */
     imageBuilds: boolean;
+    /**
+     * Jobs of this runner can run containers through the service `docker` of its stack.
+     */
+    dockerApi: boolean;
     concurrency: number;
     stackId: string;
     serviceId: string | null;
@@ -320,3 +343,34 @@ export type Changelog = {
      */
     releases: Array<Release>;
 };
+
+export type IssueDockerApiTokenData = {
+    body: DockerApiTokenRequest;
+    path?: never;
+    query?: never;
+    url: '/api/docker-api/token';
+};
+
+export type IssueDockerApiTokenErrors = {
+    /**
+     * Body does not match the schema
+     */
+    400: unknown;
+    /**
+     * Secret missing, unknown or not valid for this stack
+     */
+    401: unknown;
+    /**
+     * mittwald did not issue an instance token
+     */
+    502: unknown;
+};
+
+export type IssueDockerApiTokenResponses = {
+    /**
+     * Token issued
+     */
+    200: DockerApiTokenResponse;
+};
+
+export type IssueDockerApiTokenResponse = IssueDockerApiTokenResponses[keyof IssueDockerApiTokenResponses];

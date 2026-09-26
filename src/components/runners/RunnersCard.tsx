@@ -2,7 +2,9 @@ import {
     Accordion,
     Alert,
     Button,
+    ColumnLayout,
     Content,
+    Flex,
     Header,
     Heading,
     LayoutCard,
@@ -20,6 +22,13 @@ import { ProjectClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
 import { CreateRunnerModal } from "./CreateRunnerModal.tsx";
 import { RunnerList } from "./RunnerList.tsx";
+
+/**
+ * The group names match the feature names of the create form. The columns are
+ * Flex, not Section: Flow puts a top margin on every Section after the first,
+ * which would push the second and third heading below the first.
+ */
+const jobGroups = ["always", "imageBuilds", "dockerApi"] as const;
 
 /**
  * Runners are containers. A project without Container Hosting cannot host
@@ -64,9 +73,21 @@ const Runners = ({ onCreate }: { onCreate: () => void }) => {
                 </Content>
             </Alert>
             <Accordion>
-                <Heading>{t("app.dockerNotice.title")}</Heading>
+                <Heading>{t("app.jobs.title")}</Heading>
                 <Content>
-                    <Markdown>{t("app.dockerNotice.text")}</Markdown>
+                    <Text>{t("app.jobs.intro")}</Text>
+                    <ColumnLayout s={[1]} m={[1, 1, 1]}>
+                        {jobGroups.map((group) => (
+                            <Flex key={group} direction="column" gap="s">
+                                <Heading level={4}>
+                                    {t(`app.jobs.${group}.heading`)}
+                                </Heading>
+                                <Markdown>
+                                    {t(`app.jobs.${group}.text`)}
+                                </Markdown>
+                            </Flex>
+                        ))}
+                    </ColumnLayout>
                 </Content>
             </Accordion>
             <RunnerList onCreate={onCreate} />

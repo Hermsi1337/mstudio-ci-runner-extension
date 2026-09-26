@@ -25,6 +25,7 @@ interface CreatedResourcesProps {
     cache: boolean;
     cacheSizeGb: number;
     imageBuilds: boolean;
+    dockerApi: boolean;
     selectedStackName?: string;
 }
 
@@ -43,6 +44,7 @@ export const CreatedResources = ({
     cache,
     cacheSizeGb,
     imageBuilds,
+    dockerApi,
     selectedStackName,
 }: CreatedResourcesProps) => {
     const t = useTranslation();
@@ -120,6 +122,16 @@ export const CreatedResources = ({
                       icon: <IconContainer />,
                       label: t("form.summary.builder.label"),
                       text: t("form.summary.builder.text"),
+                  },
+              ]
+            : []),
+        ...(dockerApi
+            ? [
+                  {
+                      key: "docker",
+                      icon: <IconContainer />,
+                      label: t("form.summary.dockerApi.label"),
+                      text: t("form.summary.dockerApi.text"),
                   },
               ]
             : []),

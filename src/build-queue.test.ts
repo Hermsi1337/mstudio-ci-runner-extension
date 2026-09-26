@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     imageMatches,
+    imageRepository,
     isBuildQueueMount,
     isQueueMountOfStack,
     queueMountFor,
@@ -79,5 +80,18 @@ describe("image comparison", () => {
 
     it("does not confuse a suffix with the same image", () => {
         expect(imageMatches("alpine:3.20", "evil/alpine:3.20")).toBe(false);
+    });
+});
+
+describe("imageRepository", () => {
+    it("strips tag and digest but keeps a registry port", () => {
+        expect(imageRepository("ghcr.io/a/b:1.0")).toBe("ghcr.io/a/b");
+        expect(imageRepository("registry.example:5000/ci/docker-api:1.0")).toBe(
+            "registry.example:5000/ci/docker-api",
+        );
+        expect(imageRepository("registry.example:5000/ci/docker-api")).toBe(
+            "registry.example:5000/ci/docker-api",
+        );
+        expect(imageRepository("alpine@sha256:abc")).toBe("alpine");
     });
 });

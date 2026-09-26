@@ -4,6 +4,7 @@
 
 - Node 24 (runs `scripts/*.ts` directly), pnpm via `corepack enable`
 - Docker (database, tests, runner images)
+- Go 1.25 for `docker/docker-api` (`pnpm run docker-api:test`)
 - Optional: [zrok](https://zrok.io) for webhooks
 
 ## Start
@@ -44,6 +45,8 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `RUNNER_IMAGE_GITHUB` | Image for GitHub runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-github:<EXTENSION_VERSION>` |
 | `RUNNER_IMAGE_GITLAB` | Image for GitLab runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:<EXTENSION_VERSION>` |
 | `BUILDER_IMAGE` | Image of the builder service, default `ghcr.io/hermsi1337/mstudio-ci-builder:<EXTENSION_VERSION>` ([image-builds.md](image-builds.md)) |
+| `DOCKER_API_IMAGE` | Image of the service `docker`, default `ghcr.io/hermsi1337/mstudio-ci-docker-api:<EXTENSION_VERSION>` ([docker-api.md](docker-api.md)) |
+| `PUBLIC_URL` | Public address of the extension, where the service `docker` of a stack fetches its tokens. No default; without it *Docker in jobs* is refused. Locally the zrok share URL |
 | `MITTWALD_API_URL` | Default `https://api.mittwald.de/`; the Prism mock in tests |
 | `GITHUB_API_URL` | Default `https://api.github.com`; the Prism mock in tests; also passed to the runner container as `GITHUB_API` |
 | `GITLAB_API_URL` | No default; overrides the GitLab instance URL for API calls (tests only) |
@@ -80,7 +83,8 @@ edit an applied migration; a fresh database gets `0000_initial.sql`.
 | `test`, `test:integration`, `test:all` | Unit tests, Testcontainers tests, both ([testing.md](testing.md)) |
 | `db:start`, `db:stop` | Local PostgreSQL via `scripts/dev-db.sh` (`rm` also deletes the volume) |
 | `db:push`, `db:generate-migrations`, `db:migrate`, `db:studio` | Drizzle |
-| `runner:build` | Build both runner images and the builder image locally via `scripts/build-runner-images.sh` ([runner-image.md](runner-image.md), [image-builds.md](image-builds.md)) |
+| `runner:build` | Build both runner images, the builder image and the Docker API image locally via `scripts/build-runner-images.sh` ([runner-image.md](runner-image.md), [image-builds.md](image-builds.md), [docker-api.md](docker-api.md)) |
+| `docker-api:test` | `go test ./...` in `docker/docker-api` ([docker-api.md](docker-api.md#development-and-tests)) |
 | `image:build` | Build the extension image locally (`docker/extension/Dockerfile`) |
 | `init:encryption` | Generate encryption secrets into `.env` |
 

@@ -11,6 +11,11 @@
 #   RUNNER_CONCURRENT  concurrent jobs (default: 1)
 #   RUNNER_UNREGISTER_ON_EXIT  "true" => remove the runner from GitLab on SIGTERM (default: false,
 #                      the extension deletes the runner via API itself)
+#   DOCKER_HOST        set by Docker in jobs; starts mstudio-port-forward, which makes ports
+#                      published by the docker service reachable on localhost
+#   MSTUDIO_WORK_ROOT  set by Docker in jobs: a directory of the project file system, mounted
+#                      at its own path; builds move there, so containers of a job can
+#                      bind-mount the checkout
 set -euo pipefail
 
 : "${CI_SERVER_URL:?CI_SERVER_URL is required}"
@@ -24,17 +29,29 @@ if [[ -d /home/runner/builds ]]; then
     RUNNER_BUILDS_DIR="${RUNNER_BUILDS_DIR:-/home/runner/builds}"
     RUNNER_CACHE_DIR="${RUNNER_CACHE_DIR:-/home/runner/cache}"
 fi
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" ]]; then
+    RUNNER_BUILDS_DIR="${MSTUDIO_WORK_ROOT}/builds"
+fi
 RUNNER_BUILDS_DIR="${RUNNER_BUILDS_DIR:-${RUNNER_DATA_DIR}/builds}"
 RUNNER_CACHE_DIR="${RUNNER_CACHE_DIR:-${RUNNER_DATA_DIR}/cache}"
 RUNNER_CONCURRENT="${RUNNER_CONCURRENT:-1}"
 RUNNER_UNREGISTER_ON_EXIT="${RUNNER_UNREGISTER_ON_EXIT:-false}"
 CONFIG="${HOME}/.gitlab-runner/config.toml"
 
+# The platform creates the mount point of the project file system as root.
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" && ! -w "${MSTUDIO_WORK_ROOT}" ]]; then
+    sudo -n install -d -o runner -g runner "${MSTUDIO_WORK_ROOT}"
+fi
 mkdir -p "${RUNNER_BUILDS_DIR}" "${RUNNER_CACHE_DIR}"
 
 if [[ ! "${RUNNER_CONCURRENT}" =~ ^[0-9]+$ ]]; then
     echo "RUNNER_CONCURRENT must be a positive integer, got '${RUNNER_CONCURRENT}'" >&2
     exit 1
+fi
+
+register_args=()
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" ]]; then
+    register_args+=(--pre-get-sources-script "/usr/local/bin/reclaim-workspace.sh ${RUNNER_BUILDS_DIR}")
 fi
 
 echo "[entrypoint] registering ${RUNNER_NAME} at ${CI_SERVER_URL} (executor: shell)"
@@ -48,7 +65,8 @@ gitlab-runner register \
     --executor shell \
     --shell bash \
     --builds-dir "${RUNNER_BUILDS_DIR}" \
-    --cache-dir "${RUNNER_CACHE_DIR}"
+    --cache-dir "${RUNNER_CACHE_DIR}" \
+    "${register_args[@]}"
 chmod 600 "${CONFIG}"
 unset CI_SERVER_TOKEN
 
@@ -69,9 +87,18 @@ on_signal() {
     if [[ "${RUNNER_UNREGISTER_ON_EXIT}" == "true" ]]; then
         gitlab-runner unregister --config "${CONFIG}" --all-runners || true
     fi
+    if [[ -n "${port_forward_pid}" ]]; then
+        kill -TERM "${port_forward_pid}" 2>/dev/null || true
+    fi
     exit 0
 }
 trap on_signal SIGINT SIGTERM
+
+port_forward_pid=""
+if [[ -n "${DOCKER_HOST:-}" ]]; then
+    mstudio-port-forward &
+    port_forward_pid=$!
+fi
 
 setsid gitlab-runner run --config "${CONFIG}" --working-directory "${HOME}" &
 run_pid=$!

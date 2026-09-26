@@ -45,7 +45,7 @@ had slipped out of the layout.
 - One primary button per card, in the `Header`, verb first ("Create runner").
 - Secondary actions of an entity live in its `ContextMenu`, never as a row of
   buttons. Order: read (Logs), change (Settings), operate (Restart, Update), destroy
-  (Delete) last.
+  (Delete) last, set apart by a `Separator`.
 - Destructive and interrupting actions confirm through `ConfirmModal`
   (`src/components/ConfirmModal.tsx`). The confirmation names the entity and what
   happens to running work (update: the container is recreated, a running job fails
@@ -77,6 +77,10 @@ had slipped out of the layout.
   releases between them and marks both ("Runs on this runner", "Update target").
   Nothing in the runner context is called "installed", because the runner and the
   extension run different versions.
+- A settings modal with more than one topic splits them into `Tabs` (resources, job
+  features, pipeline snippet). The tab list collapses into a menu on narrow widths.
+  The warning `Alert` and the `ActionGroup` stay below the tabs, so they apply to
+  every tab.
 - A form modal is not dismissable by clicking outside (`isDismissable={false}`).
 - Submit and cancel are an `ActionGroup` at the end of the `Form`; the primary
   button first.
@@ -96,6 +100,23 @@ had slipped out of the layout.
   masked (`ParsedCommand.tsx`).
 - Presets come with an explicit "custom" option when the underlying value is a
   number the user may reasonably want to set.
+- Choices whose consequence matters are cards: `RadioGroup` with `RadioButton`s for
+  one of a few presets (size), `CheckboxGroup` with `CheckboxButton`s for options
+  saved with the form (job features). Each card has a `Text` as title and a `Content`
+  with one sentence that names the effect or the limits. Flow reserves `Switch` for
+  settings that apply at once, without a save button.
+- Cards in one group sit side by side and their descriptions have about the same
+  length in both languages. Flow's `ColumnLayout` does not stretch cards to one
+  height, and a `CheckboxButton` that is wider than its text centers the text
+  (Flow 1.1.48 lacks `grid-template-columns: auto 1fr` there, which `RadioButton`
+  has, [mittwald/flow#3299](https://github.com/mittwald/flow/issues/3299)).
+- Background that does not fit one sentence goes into the `FieldHelp` of the group
+  label, at most a few short paragraphs, with a link into the documentation. No help
+  button inside a card: the card is a label, and a button inside a label breaks the
+  click target.
+- The create form and the settings modal share their field components
+  (`ResourceFields.tsx`, `JobFeatureFields.tsx`), so both show the same groups in the
+  same order.
 
 ## Lists
 
@@ -103,9 +124,20 @@ had slipped out of the layout.
 - Entities that belong to a parent are grouped by it: one `Section` per group with a
   `Header` (link to the parent, count badge) and one list per group. Search and a
   provider filter sit above the groups and apply to all of them.
-- Row anatomy: `Avatar` (identity), `Heading` with badges (name, status), `Text` as
-  subtitle (type, target), `LabeledValue` columns wrapped in `Content`, a
-  `ContextMenu`. Column layout `s={[12]}`, `m={[6, 3, 3]}`, `l={[4, 2, 2, 2, 2]}`.
+- Row anatomy: `Avatar` (identity), `Heading` with badges (name, status), `Text`s as
+  subtitle in Flow's order "type – first fact – second fact" (provider, size,
+  version), one `Content` with the values a user scans for, a `ContextMenu`. The
+  `Content` holds its `LabeledValue`s in a wrapping `Flex`. Column layout
+  `s={[1]}`, `m={[1, 1]}`, `l={[3, 2]}`.
+- The header of a `ListItemView` is its first grid child and every `Content` adds one.
+  More children than tracks wrap into the next row, where a value lands in the wide
+  header track and looks indented. Keep header plus `Content`s equal to the number
+  of tracks at every breakpoint.
+- Details a user needs now and then sit in `Content slot="bottom"` with `accordion` on
+  the `List`. A row in a failed state opens by default (`defaultExpanded`) and shows
+  the message as an `Alert status="danger"` above the details.
+- A filter with a handful of values is a `RadioGroup` of `Radio`s in a row.
+  `SegmentedControl` is deprecated in Flow.
 - Inside `ListItemView`, a bare `Text` is moved to the subtitle. Column values sit
   inside `Content`, which starts a new props context level.
 - Search and filters appear from four entries on; below that they are noise.
@@ -118,7 +150,12 @@ had slipped out of the layout.
   for dark backgrounds and disappears on cards. Secondary information goes into a
   subtitle, a `LabeledValue` or a `FieldDescription`.
 - Badges: `green` running, `blue` in progress, `orange` degraded, `red` error,
-  `neutral` stopped, `violet` mode flags (ephemeral), `blue` update hints.
+  `neutral` stopped, `violet` mode flags (ephemeral), `blue` update hints, `neutral`
+  job features. A feature with a value is a scoped badge (`Label` plus `Text`, for
+  example "Cache | 10 GB"). Only switched on features get a badge, "None" stands in
+  for an empty set.
+- `AccentBox` colors carry meaning or stay `neutral`. Three tiles side by side are
+  all `neutral`; icon and heading tell them apart.
 - Avatars: color encodes the provider (GitHub violet, GitLab teal). Do not encode
   status in the avatar, the badge does that.
 - Icons come from Flow (`IconSettings`, `IconDelete`, ...), no emoji. The only custom

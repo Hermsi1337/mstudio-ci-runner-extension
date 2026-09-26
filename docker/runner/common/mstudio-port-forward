@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# Makes the ports that containers publish through the docker service reachable
+# on localhost of the runner.
+#
+# The docker service of the stack runs every container as a service of its own
+# and publishes its ports on itself, so `docker run -p 5432:5432 postgres`
+# listens on docker:<port>, not on localhost. Jobs and GitHub Actions
+# `services:` expect localhost. Every second, and right away on SIGUSR1 (the
+# docker shim sends it after run, create, start, restart and compose), this
+# daemon lists the published ports and keeps one socat per port that forwards
+# 127.0.0.1:<port> to <docker host>:<port>. Ports that disappear lose their
+# socat. A port already taken on localhost is skipped until it disappears.
+#
+# The entrypoints start it when DOCKER_HOST is set. Without DOCKER_HOST it
+# exits right away.
+set -euo pipefail
+
+DOCKER_CLI="/usr/local/libexec/docker-cli/docker"
+
+log() {
+    echo "[port-forward] $*" >&2
+}
+
+[[ -n "${DOCKER_HOST:-}" ]] || exit 0
+
+case "${DOCKER_HOST}" in
+    tcp://*) ;;
+    *)
+        log "DOCKER_HOST ${DOCKER_HOST} is no tcp:// address, nothing to forward"
+        exit 0
+        ;;
+esac
+
+docker_host="${DOCKER_HOST#tcp://}"
+docker_host="${docker_host%%/*}"
+if [[ "${docker_host}" == \[* ]]; then
+    docker_host="${docker_host#\[}"
+    docker_host="${docker_host%%\]*}"
+else
+    docker_host="${docker_host%:*}"
+fi
+
+declare -A forwarded=()
+declare -A taken=()
+declare -A published=()
+listing_failed=false
+sleeper=""
+
+list_published_ports() {
+    published=()
+    local output line entry ports first last port
+    if ! output="$(timeout 10 "${DOCKER_CLI}" ps --format '{{.Ports}}' 2>&1)"; then
+        if [[ "${listing_failed}" == false ]]; then
+            log "cannot list containers at ${DOCKER_HOST}: ${output}"
+            listing_failed=true
+        fi
+        return 1
+    fi
+    if [[ "${listing_failed}" == true ]]; then
+        log "listing containers at ${DOCKER_HOST} works again"
+        listing_failed=false
+    fi
+    while IFS= read -r line; do
+        local entries=()
+        IFS=',' read -ra entries <<<"${line}"
+        for entry in "${entries[@]}"; do
+            entry="${entry// /}"
+            [[ "${entry}" == *"->"*"/tcp" ]] || continue
+            ports="${entry%%->*}"
+            ports="${ports##*:}"
+            if [[ "${ports}" =~ ^([0-9]+)-([0-9]+)$ ]]; then
+                first="${BASH_REMATCH[1]}"
+                last="${BASH_REMATCH[2]}"
+            elif [[ "${ports}" =~ ^[0-9]+$ ]]; then
+                first="${ports}"
+                last="${ports}"
+            else
+                continue
+            fi
+            for ((port = first; port <= last; port++)); do
+                published[${port}]=1
+            done
+        done
+    done <<<"${output}"
+}
+
+start_forward() {
+    local port="$1" pid
+    socat "TCP-LISTEN:${port},bind=127.0.0.1,fork,reuseaddr" "TCP:${docker_host}:${port}" 2>/dev/null &
+    pid=$!
+    # socat fails on bind right after the start, so a listener that is still
+    # alive a moment later owns the port.
+    sleep 0.2
+    if kill -0 "${pid}" 2>/dev/null; then
+        forwarded[${port}]="${pid}"
+        log "localhost:${port} forwards to ${docker_host}:${port}"
+    else
+        wait "${pid}" 2>/dev/null || true
+        taken[${port}]=1
+        log "localhost:${port} is taken, ${docker_host}:${port} stays reachable only there"
+    fi
+}
+
+stop_forward() {
+    local port="$1"
+    kill "${forwarded[${port}]}" 2>/dev/null || true
+    wait "${forwarded[${port}]}" 2>/dev/null || true
+    unset "forwarded[${port}]"
+    log "localhost:${port} no longer forwarded"
+}
+
+sync_ports() {
+    list_published_ports || return 0
+    local port
+    for port in "${!forwarded[@]}"; do
+        if [[ -z "${published[${port}]:-}" ]]; then
+            stop_forward "${port}"
+        elif ! kill -0 "${forwarded[${port}]}" 2>/dev/null; then
+            wait "${forwarded[${port}]}" 2>/dev/null || true
+            unset "forwarded[${port}]"
+            log "forwarder of localhost:${port} stopped, starting it again"
+        fi
+    done
+    for port in "${!taken[@]}"; do
+        [[ -n "${published[${port}]:-}" ]] || unset "taken[${port}]"
+    done
+    for port in "${!published[@]}"; do
+        [[ -n "${forwarded[${port}]:-}" || -n "${taken[${port}]:-}" ]] || start_forward "${port}"
+    done
+}
+
+shutdown() {
+    local pid
+    for pid in "${forwarded[@]}"; do
+        kill "${pid}" 2>/dev/null || true
+    done
+    [[ -z "${sleeper}" ]] || kill "${sleeper}" 2>/dev/null || true
+    exit 0
+}
+
+trap shutdown TERM INT
+# A trapped signal ends `wait` early, so SIGUSR1 starts the next round at once.
+trap ':' USR1
+
+log "forwarding ports published by ${docker_host} to localhost"
+while true; do
+    sync_ports
+    sleep 1 &
+    sleeper=$!
+    wait "${sleeper}" 2>/dev/null || true
+    kill "${sleeper}" 2>/dev/null || true
+    sleeper=""
+done

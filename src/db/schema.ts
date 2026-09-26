@@ -70,6 +70,7 @@ export const runners = pgTable("runners", {
     cache: boolean().notNull().default(false),
     cacheSizeGb: integer().notNull().default(10),
     imageBuilds: boolean().notNull().default(false),
+    dockerApi: boolean().notNull().default(false),
     concurrency: integer().notNull().default(1),
     cronjobIds: text().notNull().default("[]"),
     createdBy: varchar({ length: 36 }).notNull(),
@@ -78,3 +79,19 @@ export const runners = pgTable("runners", {
 
 export type RunnerRow = typeof runners.$inferSelect;
 export type NewRunnerRow = typeof runners.$inferInsert;
+
+/**
+ * One row per stack that runs the service `docker` (docs/docker-api.md), with
+ * the SHA-256 of the secret the service trades for tokens.
+ */
+export const dockerApiStacks = pgTable("docker_api_stacks", {
+    stackId: varchar({ length: 36 }).primaryKey(),
+    extensionInstanceId: varchar({ length: 36 })
+        .notNull()
+        .references(() => extensionInstances.id, { onDelete: "cascade" }),
+    projectId: varchar({ length: 36 }).notNull(),
+    secretHash: varchar({ length: 64 }).notNull(),
+    createdAt: timestamp().defaultNow().notNull(),
+});
+
+export type DockerApiStackRow = typeof dockerApiStacks.$inferSelect;

@@ -45,3 +45,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Integration tests (testcontainers)
         run: pnpm run test:integration
+
+  docker-api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docker/docker-api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: docker/docker-api/go.mod
+          cache-dependency-path: docker/docker-api/go.sum
+      - name: Formatted
+        run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      # The CLI tests drive the docker CLI of the runner against a fake platform.
+      - run: go test -race ./...

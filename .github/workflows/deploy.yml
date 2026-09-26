@@ -65,6 +65,7 @@ jobs:
           ENCRYPTION_MASTER_PASSWORD: ${{ secrets.ENCRYPTION_MASTER_PASSWORD }}
           ENCRYPTION_SALT: ${{ secrets.ENCRYPTION_SALT }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
         with:
           api_token: ${{ secrets.MITTWALD_API_TOKEN }}
           stack_id: ${{ secrets.MITTWALD_STACK_ID }}

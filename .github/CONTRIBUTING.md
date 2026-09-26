@@ -41,8 +41,9 @@ write it like a commit subject.
 
 ## What is out of scope
 
-- Docker-in-Docker or any workaround for the missing Docker daemon on Container
-  Hosting. The limitation is on the platform side.
+- Docker-in-Docker or a Docker daemon in the runner. Container Hosting runs no
+  privileged containers; `docker build` goes through the builder service and
+  containers through the Docker API service (`docker/docker-api`).
 - Hand-written code where a generator exists ([docs/codegen.md](../docs/codegen.md)).
 
 ## License
