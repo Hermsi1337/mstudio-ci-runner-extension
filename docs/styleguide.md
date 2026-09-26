@@ -109,7 +109,7 @@ had slipped out of the layout.
   length in both languages. Flow's `ColumnLayout` does not stretch cards to one
   height, and a `CheckboxButton` that is wider than its text centers the text
   (Flow 1.1.48 lacks `grid-template-columns: auto 1fr` there, which `RadioButton`
-  has).
+  has, [mittwald/flow#3299](https://github.com/mittwald/flow/issues/3299)).
 - Background that does not fit one sentence goes into the `FieldHelp` of the group
   label, at most a few short paragraphs, with a link into the documentation. No help
   button inside a card: the card is a label, and a button inside a label breaks the
