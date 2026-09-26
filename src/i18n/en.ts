@@ -16,9 +16,18 @@ export const en = {
     "changelog.empty.heading": "No releases yet",
     "changelog.empty.text": "GitHub returned no releases. Try again later.",
     "app.title": "CI Runners",
-    "app.dockerNotice.title": "What runs in a job, and what does not",
-    "app.dockerNotice.text":
-        "Runners run on mittwald Container Hosting without a Docker daemon. Jobs run directly on Ubuntu 24.04.\n\n**Works**\n\n- Node via `actions/setup-node`, Python, `build-essential`, `git`, `curl`, `rsync`, SSH deploys\n- Installing packages with `sudo apt-get`\n- `docker build` and `docker push`, including `docker/build-push-action`, when image builds are turned on for the runner. The build runs in a builder container of the stack\n- `docker run`, `docker compose`, Testcontainers and GitHub `services:`, when Docker in jobs is turned on for the runner. Every container runs as a container of the stack, published ports reach the runner on `localhost`. Bind mounts of the workspace and GitHub `container:` jobs work as well\n\n**Fails**\n\n- `build:` in a compose file, running an image built in the job without pushing it\n- GitLab CI: `image:`, `services:`\n- BuildKit features in a Dockerfile: `RUN --mount`, `--secret`, `--ssh`, another architecture",
+    "app.jobs.title": "What jobs can run",
+    "app.jobs.intro":
+        "Runners have no Docker daemon. Jobs run directly on Ubuntu 24.04.",
+    "app.jobs.always.heading": "Always",
+    "app.jobs.always.text":
+        "- Node, Python, `build-essential`, `git`, `curl`, `rsync`\n- SSH deploys\n- `sudo apt-get install`\n\n**Fails:** GitLab CI `image:` and `services:`",
+    "app.jobs.imageBuilds.heading": "With image builds",
+    "app.jobs.imageBuilds.text":
+        "- `docker build`, `docker push`\n- `docker/build-push-action`\n\n**Fails:** `RUN --mount`, `--secret`, `--ssh`, other architectures",
+    "app.jobs.dockerApi.heading": "With Docker in jobs",
+    "app.jobs.dockerApi.text":
+        "- `docker run`, `docker compose`, Testcontainers\n- GitHub `services:` and `container:` jobs\n- Ports on `localhost`, bind mounts of the workspace\n\n**Fails:** `build:` in a compose file, images built in the job but not pushed",
 
     "runners.heading": "Runners",
     "runners.containerHosting.missing.heading": "Container Hosting missing",
@@ -26,7 +35,7 @@ export const en = {
         "This project does not support Container Hosting, so it cannot run CI runners. Install the extension in a project on a server that offers Container Hosting.",
     "runners.intro.heading": "How runners work",
     "runners.intro":
-        "Runners of the same repository, organization or GitLab instance share one container stack in this project; every runner is a container in it and registers itself on start. Jobs run directly in the container. Create as many runners as you need.",
+        "Each runner is a container in this project. Runners of the same repository, organization or GitLab instance share one container stack. A runner registers itself on start and runs jobs directly in its container.",
     "runners.empty.heading": "No runners yet",
     "runners.empty.text":
         'Use "Create runner" to add the first CI runner to this project.',
@@ -44,6 +53,12 @@ export const en = {
     "runners.column.imageBuilds": "Image builds",
     "runners.column.dockerApi": "Docker in jobs",
     "runners.column.version": "Version",
+    "runners.column.features": "Features",
+    "runners.column.auth": "Token",
+    "runners.feature.cache": "Cache",
+    "runners.feature.imageBuilds": "Image builds",
+    "runners.feature.dockerApi": "Docker in jobs",
+    "runners.feature.none": "None",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Restart",
     "runners.action.update": "Update",
@@ -157,8 +172,8 @@ export const en = {
     "form.summary.dockerApi.label": "Container: docker",
     "form.summary.dockerApi.text":
         "Starts the containers of jobs as services of this stack. One more container in the stack, shared, plus one per container a job starts.",
-    "form.section.cache": "Cache",
     "form.section.runner": "Runner",
+    "form.section.features": "Job features",
     "form.section.resources": "Resources",
     "form.configCommand.parsed": "Registers at {target}, token {token}",
     "form.snippet.heading": "Use in your pipeline",
@@ -200,11 +215,12 @@ export const en = {
         "Containers of a stack reach each other by service name over the stack network. A runner in the stack of your application can run migrations or integration tests against its database. Without a choice the extension uses one stack per registration target and creates it with the first runner. A stack you pick here is never deleted by the extension; deleting the runner removes only its container.",
     "form.size.label": "Size",
     "form.size.description": "All jobs of this runner share these limits.",
-    "form.size.small": "Small (0.5 CPU, 1 GB RAM)",
-    "form.size.medium": "Medium (1 CPU, 2 GB RAM)",
-    "form.size.large": "Large (2 CPU, 4 GB RAM)",
+    "form.size.small": "Small",
+    "form.size.medium": "Medium",
+    "form.size.large": "Large",
     "form.size.custom": "Custom",
-    "form.size.customValue": "Custom ({cpus} CPU, {memory} GB RAM)",
+    "form.size.limits": "{cpus} CPU, {memory} GB RAM",
+    "form.size.custom.text": "You set CPU and memory",
     "form.cpus.label": "CPU limit",
     "form.cpus.description": "0.25 to 8 CPUs in steps of 0.25.",
     "form.cpus.required": "Enter a CPU limit",
@@ -228,10 +244,10 @@ export const en = {
     "form.gitlab.configCommand.help":
         "On GitLab open the project or group, then `Settings` → `CI/CD` → `Runners` → `New project runner`. Set tags and whether untagged jobs run, click `Create runner` and copy the `gitlab-runner register` line from step 1. Only `--url` and `--token` are used. The token belongs to that runner; deleting the runner here removes it from GitLab.",
     "form.labels.help":
-        "Comma separated labels the runner registers with. Reference them in the workflow with runs-on: [self-hosted, mittwald]. Jobs whose labels do not match never reach this runner.",
-    "form.cache.label": "Persistent cache for package managers",
-    "form.cache.help":
-        "Adds a cache volume at /home/runner/.cache and points npm, pnpm, yarn, pip, Composer and Go at it (XDG_CACHE_HOME plus the tool specific variables). Downloads from earlier jobs are reused, which speeds up installs. The volume survives jobs, restarts and updates. You can turn the cache on or off later in the runner settings; turning it off deletes the volume.",
+        "Comma separated labels the runner registers with. Reference them in the workflow with `runs-on: [self-hosted, mittwald]`. Jobs whose labels do not match never reach this runner.",
+    "form.cache.label": "Package manager cache",
+    "form.cache.description":
+        "Reuses downloads of npm, pnpm, yarn, pip, Composer and Go from earlier jobs.",
     "form.cacheSize.label": "Cache limit (GB)",
     "form.cacheSize.description":
         "An hourly cronjob in the project deletes the oldest files above this limit.",
@@ -239,12 +255,15 @@ export const en = {
     "form.cacheSize.range": "Enter a value between 1 and 500 GB",
     "form.cacheSize.help":
         "mittwald volumes have no size limit of their own, so the extension creates a cronjob in the project that runs every hour inside the runner container. It deletes the least recently modified files until the cache fits the limit. The cronjob is removed with the runner.",
-    "form.imageBuilds.label": "Image builds in jobs",
-    "form.imageBuilds.help":
-        "Lets jobs run docker build although the container has no Docker daemon. The build runs in a builder container of the same stack (kaniko) and the runner pushes the image with the credentials from docker login. The builder is added to the stack once and serves every runner in it. Without a layer cache, every build starts from the base image. BuildKit features such as RUN --mount, --secret, --ssh and builds for another architecture do not work; the docker command says so instead of building something else.",
+    "form.imageBuilds.label": "Image builds",
+    "form.imageBuilds.description":
+        "Builds and pushes container images from a job.",
     "form.dockerApi.label": "Docker in jobs",
-    "form.dockerApi.help":
-        "Lets jobs run docker run and Testcontainers although the runner has no Docker daemon. A docker container in the same stack speaks the Docker API and starts every container of a job as a container of this stack. It is added once and serves every runner in the stack. Also docker compose and GitHub services:, whose ports reach the runner on localhost. Containers take a few seconds to start, have no TTY and no privileges, and bind mounts must lie in the project file system. The workspace of the runner lives there for this reason. Every container counts against the resources of the project.",
+    "form.dockerApi.description":
+        "Starts containers, Compose setups and Testcontainers from a job.",
+    "form.features.help":
+        "**Package manager cache:** a volume at `/home/runner/.cache` that survives jobs, restarts and updates. `XDG_CACHE_HOME` and the variables of each tool point at it. Turning the cache off deletes the volume.\n**Image builds:** a `builder` container in the stack builds with kaniko, the runner pushes with the credentials from `docker login`. There is no layer cache. `RUN --mount`, `--secret`, `--ssh` and builds for another architecture stop with a message.\n**Docker in jobs:** a `docker` container in the stack starts every container of a job as a container of the stack. Containers take a few seconds to start and run without TTY and privileges. Bind mounts must lie in the project file system, where the workspace of the runner lives. Every container counts against the resources of the project.",
+    "form.features.docs": "Documentation on GitHub",
     "form.concurrency.label": "Jobs at once",
     "form.concurrency.required": "Enter how many jobs run at once",
     "form.concurrency.range": "Enter a value between 1 and 8",

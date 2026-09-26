@@ -8,6 +8,9 @@ import {
     Modal,
     type OverlayController,
     Section,
+    Tab,
+    Tabs,
+    TabTitle,
     Text,
     useOverlayController,
 } from "@mittwald/flow-remote-react-components";
@@ -23,21 +26,17 @@ import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { toMemoryGb, toMemoryMb } from "@/runner-sizes.ts";
-import { CacheFields, type CacheFormValues } from "./CacheFields.tsx";
 import {
     ConcurrencyField,
     type ConcurrencyFormValues,
 } from "./ConcurrencyField.tsx";
-import { DockerApiField, type DockerApiFormValues } from "./DockerApiField.tsx";
 import {
-    ImageBuildsField,
-    type ImageBuildsFormValues,
-} from "./ImageBuildsField.tsx";
+    JobFeatureFields,
+    type JobFeatureFormValues,
+} from "./JobFeatureFields.tsx";
 import { ResourceFields, type ResourceFormValues } from "./ResourceFields.tsx";
 
-type FormValues = CacheFormValues &
-    ImageBuildsFormValues &
-    DockerApiFormValues &
+type FormValues = JobFeatureFormValues &
     ConcurrencyFormValues &
     ResourceFormValues;
 
@@ -101,31 +100,48 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
     return (
         <Form form={form} onSubmit={handleSubmit}>
             <Content>
-                <Section>
-                    <Heading>{t("form.section.resources")}</Heading>
-                    <ResourceFields
-                        form={form}
-                        description={
-                            runner.provider === "github"
-                                ? t("form.concurrency.github")
-                                : t("form.size.description")
-                        }
-                    />
-                    {runner.provider === "gitlab" && (
-                        <ConcurrencyField
-                            form={form}
-                            size={form.watch("size")}
-                        />
+                <Tabs>
+                    <Tab>
+                        <TabTitle>{t("form.section.resources")}</TabTitle>
+                        <Section>
+                            <ResourceFields
+                                form={form}
+                                description={
+                                    runner.provider === "github"
+                                        ? t("form.concurrency.github")
+                                        : t("form.size.description")
+                                }
+                            />
+                            {runner.provider === "gitlab" && (
+                                <ConcurrencyField
+                                    form={form}
+                                    size={form.watch("size")}
+                                />
+                            )}
+                        </Section>
+                    </Tab>
+                    <Tab>
+                        <TabTitle>{t("form.section.features")}</TabTitle>
+                        <Section>
+                            <JobFeatureFields form={form} />
+                        </Section>
+                    </Tab>
+                    {snippet && (
+                        <Tab>
+                            <TabTitle>{t("form.snippet.heading")}</TabTitle>
+                            <Section>
+                                <Text>
+                                    {t(`form.snippet.text.${runner.provider}`)}
+                                </Text>
+                                <CodeBlock
+                                    code={snippet}
+                                    language="yaml"
+                                    copyable
+                                />
+                            </Section>
+                        </Tab>
                     )}
-                </Section>
-                <Section>
-                    <Heading>{t("form.section.cache")}</Heading>
-                    <CacheFields form={form} />
-
-                    <ImageBuildsField form={form} />
-
-                    <DockerApiField form={form} />
-                </Section>
+                </Tabs>
                 {changed && (
                     <Alert status="warning">
                         <Heading>{t("form.configure.warning.heading")}</Heading>
@@ -133,13 +149,6 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                     </Alert>
                 )}
                 <RootError />
-                {snippet && (
-                    <Section>
-                        <Heading>{t("form.snippet.heading")}</Heading>
-                        <Text>{t(`form.snippet.text.${runner.provider}`)}</Text>
-                        <CodeBlock code={snippet} language="yaml" copyable />
-                    </Section>
-                )}
             </Content>
             <ActionGroup>
                 <SubmitButton color="primary" isDisabled={!changed}>

@@ -32,12 +32,10 @@ import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { toMemoryMb } from "@/runner-sizes.ts";
-import { CacheFields } from "./CacheFields.tsx";
 import { ConcurrencyField } from "./ConcurrencyField.tsx";
 import { CreatedResources } from "./CreatedResources.tsx";
-import { DockerApiField } from "./DockerApiField.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
-import { ImageBuildsField } from "./ImageBuildsField.tsx";
+import { JobFeatureFields } from "./JobFeatureFields.tsx";
 import { ParsedCommand } from "./ParsedCommand.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 import { providerLogos } from "./provider-logos.ts";
@@ -393,12 +391,10 @@ export const RunnerForm = ({
                         {provider === "gitlab" && (
                             <ConcurrencyField form={form} size={size} />
                         )}
+                    </Section>
 
-                        <CacheFields form={form} />
-
-                        <ImageBuildsField form={form} />
-
-                        <DockerApiField form={form} />
+                    <Section>
+                        <JobFeatureFields form={form} />
                     </Section>
 
                     <RootError />

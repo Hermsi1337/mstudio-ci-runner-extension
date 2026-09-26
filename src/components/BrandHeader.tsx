@@ -29,26 +29,29 @@ const VersionBadge = () => {
 
 /**
  * Only the badge needs the changelog, so only it sits behind the boundary
- * that hides it on a failed request. The button stays, and the modal
- * reports the failure with its own retry.
+ * that hides it on a failed request. The changelog button stays, and the
+ * modal reports the failure with its own retry.
  */
+const SafeVersionBadge = () => (
+    <ErrorBoundary fallbackRender={() => null}>
+        <Suspense fallback={null}>
+            <VersionBadge />
+        </Suspense>
+    </ErrorBoundary>
+);
+
 const ChangelogAction = () => {
     const t = useTranslation();
     const controller = useOverlayController("Modal", {
         reuseControllerFromContext: false,
     });
     return (
-        <Flex align="center" gap="xs" wrap="wrap">
-            <ErrorBoundary fallbackRender={() => null}>
-                <Suspense fallback={null}>
-                    <VersionBadge />
-                </Suspense>
-            </ErrorBoundary>
+        <>
             <Button color="secondary" variant="soft" onPress={controller.open}>
                 {t("changelog.action")}
             </Button>
             <ChangelogModal controller={controller} />
-        </Flex>
+        </>
     );
 };
 
@@ -72,7 +75,10 @@ export const BrandHeader = () => {
                     <Flex align="center" gap="l" wrap="wrap">
                         <Image src={logo} alt="" width={72} height={72} />
                         <Flex direction="column" gap="xs">
-                            <Heading level={2}>{t("brand.heading")}</Heading>
+                            <Heading level={2}>
+                                {t("brand.heading")}
+                                <SafeVersionBadge />
+                            </Heading>
                             <Text>{t("brand.tagline")}</Text>
                             <Flex gap="xs" wrap="wrap">
                                 <Badge>{t("provider.github")}</Badge>

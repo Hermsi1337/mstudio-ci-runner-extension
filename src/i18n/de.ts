@@ -19,9 +19,18 @@ export const de: Messages = {
     "changelog.empty.text":
         "GitHub hat keine Releases geliefert. Versuch es später noch mal.",
     "app.title": "CI Runner",
-    "app.dockerNotice.title": "Was im Job geht und was nicht",
-    "app.dockerNotice.text":
-        "Die Runner laufen im mittwald Container Hosting ohne Docker-Daemon. Jobs laufen direkt auf Ubuntu 24.04.\n\n**Geht**\n\n- Node über `actions/setup-node`, Python, `build-essential`, `git`, `curl`, `rsync`, SSH-Deploys\n- Pakete nachinstallieren mit `sudo apt-get`\n- `docker build` und `docker push`, auch über `docker/build-push-action`, wenn Image-Builds für den Runner an sind. Gebaut wird in einem Builder-Container des Stacks\n- `docker run`, `docker compose`, Testcontainers und GitHub `services:`, wenn Docker in Jobs für den Runner an ist. Jeder Container läuft als Container des Stacks, veröffentlichte Ports erreicht der Runner auf `localhost`. Bind-Mounts des Workspace und GitHub `container:`-Jobs gehen auch\n\n**Geht nicht**\n\n- `build:` in einer Compose-Datei, ein im Job gebautes Image starten, ohne es zu pushen\n- GitLab CI: `image:`, `services:`\n- BuildKit-Funktionen im Dockerfile: `RUN --mount`, `--secret`, `--ssh`, eine andere Architektur",
+    "app.jobs.title": "Was in Jobs läuft",
+    "app.jobs.intro":
+        "Runner haben keinen Docker-Daemon. Jobs laufen direkt auf Ubuntu 24.04.",
+    "app.jobs.always.heading": "Immer",
+    "app.jobs.always.text":
+        "- Node, Python, `build-essential`, `git`, `curl`, `rsync`\n- SSH-Deploys\n- `sudo apt-get install`\n\n**Geht nicht:** GitLab CI `image:` und `services:`",
+    "app.jobs.imageBuilds.heading": "Mit Image-Builds",
+    "app.jobs.imageBuilds.text":
+        "- `docker build`, `docker push`\n- `docker/build-push-action`\n\n**Geht nicht:** `RUN --mount`, `--secret`, `--ssh`, andere Architekturen",
+    "app.jobs.dockerApi.heading": "Mit Docker in Jobs",
+    "app.jobs.dockerApi.text":
+        "- `docker run`, `docker compose`, Testcontainers\n- GitHub `services:` und `container:`-Jobs\n- Ports auf `localhost`, Bind-Mounts des Workspace\n\n**Geht nicht:** `build:` in einer Compose-Datei, im Job gebaute Images ohne Push",
 
     "runners.heading": "Runner",
     "runners.containerHosting.missing.heading": "Container Hosting fehlt",
@@ -29,7 +38,7 @@ export const de: Messages = {
         "Dieses Projekt unterstützt kein Container Hosting und kann deshalb keine CI-Runner betreiben. Installier die Extension in einem Projekt auf einem Server mit Container Hosting.",
     "runners.intro.heading": "So arbeiten Runner",
     "runners.intro":
-        "Runner desselben Repositorys, derselben Organisation oder GitLab-Instanz teilen sich einen Container-Stack in diesem Projekt; jeder Runner ist ein Container darin und registriert sich beim Start selbst. Jobs laufen direkt im Container. Leg so viele Runner an, wie du brauchst.",
+        "Jeder Runner ist ein Container in diesem Projekt. Runner desselben Repositorys, derselben Organisation oder GitLab-Instanz teilen sich einen Container-Stack. Ein Runner registriert sich beim Start selbst und führt Jobs direkt in seinem Container aus.",
     "runners.empty.heading": "Noch keine Runner",
     "runners.empty.text":
         'Lege über "Runner anlegen" den ersten CI-Runner in diesem Projekt an.',
@@ -47,6 +56,12 @@ export const de: Messages = {
     "runners.column.imageBuilds": "Image-Builds",
     "runners.column.dockerApi": "Docker in Jobs",
     "runners.column.version": "Version",
+    "runners.column.features": "Funktionen",
+    "runners.column.auth": "Token",
+    "runners.feature.cache": "Cache",
+    "runners.feature.imageBuilds": "Image-Builds",
+    "runners.feature.dockerApi": "Docker in Jobs",
+    "runners.feature.none": "Keine",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Neustart",
     "runners.action.update": "Aktualisieren",
@@ -162,8 +177,8 @@ export const de: Messages = {
     "form.summary.dockerApi.label": "Container: docker",
     "form.summary.dockerApi.text":
         "Startet die Container der Jobs als Container dieses Stacks. Ein zusätzlicher Container im Stack, gemeinsam genutzt, dazu einer für jeden Container, den ein Job startet.",
-    "form.section.cache": "Cache",
     "form.section.runner": "Runner",
+    "form.section.features": "Funktionen für Jobs",
     "form.section.resources": "Ressourcen",
     "form.configCommand.parsed": "Registriert bei {target}, Token {token}",
     "form.snippet.heading": "In der Pipeline nutzen",
@@ -206,11 +221,12 @@ export const de: Messages = {
     "form.size.label": "Größe",
     "form.size.description":
         "Alle Jobs dieses Runners teilen sich diese Limits.",
-    "form.size.small": "Klein (0,5 CPU, 1 GB RAM)",
-    "form.size.medium": "Mittel (1 CPU, 2 GB RAM)",
-    "form.size.large": "Groß (2 CPU, 4 GB RAM)",
+    "form.size.small": "Klein",
+    "form.size.medium": "Mittel",
+    "form.size.large": "Groß",
     "form.size.custom": "Individuell",
-    "form.size.customValue": "Individuell ({cpus} CPU, {memory} GB RAM)",
+    "form.size.limits": "{cpus} CPU, {memory} GB RAM",
+    "form.size.custom.text": "CPU und RAM legst du fest",
     "form.cpus.label": "CPU-Limit",
     "form.cpus.description": "0,25 bis 8 CPUs in Schritten von 0,25.",
     "form.cpus.required": "Gib ein CPU-Limit an",
@@ -234,10 +250,10 @@ export const de: Messages = {
     "form.gitlab.configCommand.help":
         "Öffne auf GitLab das Projekt oder die Gruppe, dann `Settings` → `CI/CD` → `Runners` → `New project runner`. Lege Tags fest und ob Jobs ohne Tags laufen, klicke `Create runner` und kopiere aus Schritt 1 die Zeile `gitlab-runner register`. Nur `--url` und `--token` werden genutzt. Das Token gehört zu diesem Runner; löschst du den Runner hier, verschwindet er auch aus GitLab.",
     "form.labels.help":
-        "Kommagetrennte Labels, mit denen sich der Runner registriert. Im Workflow referenzierst du sie mit runs-on: [self-hosted, mittwald]. Jobs mit anderen Labels erreichen diesen Runner nicht.",
-    "form.cache.label": "Dauerhafter Cache für Paketmanager",
-    "form.cache.help":
-        "Legt ein Cache-Volume unter /home/runner/.cache an und richtet npm, pnpm, yarn, pip, Composer und Go darauf aus (XDG_CACHE_HOME plus die tool-eigenen Variablen). Downloads früherer Jobs werden wiederverwendet, Installationen laufen schneller. Das Volume übersteht Jobs, Neustarts und Updates. Du kannst den Cache später in den Runner-Einstellungen ein- oder ausschalten; beim Ausschalten wird das Volume gelöscht.",
+        "Kommagetrennte Labels, mit denen sich der Runner registriert. Im Workflow referenzierst du sie mit `runs-on: [self-hosted, mittwald]`. Jobs mit anderen Labels erreichen diesen Runner nicht.",
+    "form.cache.label": "Paketmanager-Cache",
+    "form.cache.description":
+        "Nutzt Downloads von npm, pnpm, yarn, pip, Composer und Go aus früheren Jobs wieder.",
     "form.cacheSize.label": "Cache-Limit (GB)",
     "form.cacheSize.description":
         "Ein stündlicher Cronjob im Projekt löscht die ältesten Dateien oberhalb dieses Limits.",
@@ -245,12 +261,15 @@ export const de: Messages = {
     "form.cacheSize.range": "Gib einen Wert zwischen 1 und 500 GB an",
     "form.cacheSize.help":
         "mittwald-Volumes haben selbst kein Größenlimit, daher legt die Extension im Projekt einen Cronjob an, der stündlich im Runner-Container läuft. Er löscht die am längsten nicht geänderten Dateien, bis der Cache ins Limit passt. Der Cronjob wird mit dem Runner entfernt.",
-    "form.imageBuilds.label": "Image-Builds in Jobs",
-    "form.imageBuilds.help":
-        "Erlaubt docker build in Jobs, obwohl der Container keinen Docker-Daemon hat. Gebaut wird in einem Builder-Container desselben Stacks (kaniko), gepusht wird vom Runner mit den Zugangsdaten aus docker login. Der Builder kommt einmal in den Stack und bedient alle Runner darin. Es gibt keinen Layer-Cache, jeder Build startet beim Base-Image. BuildKit-Funktionen wie RUN --mount, --secret, --ssh und Builds für eine andere Architektur gehen nicht; der docker-Befehl sagt das, statt etwas anderes zu bauen.",
+    "form.imageBuilds.label": "Image-Builds",
+    "form.imageBuilds.description":
+        "Baut und pusht Container-Images aus einem Job.",
     "form.dockerApi.label": "Docker in Jobs",
-    "form.dockerApi.help":
-        "Erlaubt docker run und Testcontainers in Jobs, obwohl der Runner keinen Docker-Daemon hat. Ein docker-Container im selben Stack spricht die Docker-API und startet jeden Container eines Jobs als Container dieses Stacks. Er kommt einmal in den Stack und bedient alle Runner darin. Auch docker compose und GitHub services:, deren Ports der Runner auf localhost erreicht. Container brauchen ein paar Sekunden zum Start, haben kein TTY und keine Privilegien, und Bind-Mounts müssen im Projekt-Dateisystem liegen. Der Workspace des Runners liegt deshalb dort. Jeder Container zählt zu den Ressourcen des Projekts.",
+    "form.dockerApi.description":
+        "Startet Container, Compose-Setups und Testcontainers aus einem Job.",
+    "form.features.help":
+        "**Paketmanager-Cache:** ein Volume unter `/home/runner/.cache`, das Jobs, Neustarts und Updates übersteht. `XDG_CACHE_HOME` und die Variablen der einzelnen Tools zeigen darauf. Schaltest du den Cache aus, wird das Volume gelöscht.\n**Image-Builds:** ein `builder`-Container im Stack baut mit kaniko, der Runner pusht mit den Zugangsdaten aus `docker login`. Es gibt keinen Layer-Cache. `RUN --mount`, `--secret`, `--ssh` und Builds für eine andere Architektur brechen mit einer Meldung ab.\n**Docker in Jobs:** ein `docker`-Container im Stack startet jeden Container eines Jobs als Container des Stacks. Container brauchen ein paar Sekunden zum Start und laufen ohne TTY und ohne Privilegien. Bind-Mounts müssen im Projekt-Dateisystem liegen, dort liegt auch der Workspace des Runners. Jeder Container zählt zu den Ressourcen des Projekts.",
+    "form.features.docs": "Doku auf GitHub",
     "form.concurrency.label": "Jobs gleichzeitig",
     "form.concurrency.required": "Gib an, wie viele Jobs gleichzeitig laufen",
     "form.concurrency.range": "Gib einen Wert zwischen 1 und 8 an",

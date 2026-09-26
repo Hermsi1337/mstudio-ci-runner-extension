@@ -137,8 +137,8 @@ The cache is a separate volume so its usage shows up on its own in mStudio and t
 the cache off frees the space. Runners created before this layout keep their `work`,
 `config`, `builds` and `cache` volumes until they are deleted and created again. The
 entrypoints detect those mounts (`/home/runner/_config`, `/home/runner/builds`) and keep
-using them, so an image update does not lose the GitHub registration. The cache switch
-works for them as well.
+using them, so an image update does not lose the GitHub registration. Turning the cache
+on or off works for them as well.
 
 ## Building and testing
 

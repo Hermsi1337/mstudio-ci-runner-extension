@@ -1,17 +1,26 @@
 import {
     ColumnLayout,
+    Content,
     FieldDescription,
     Label,
     NumberField,
-    Option,
-    Select,
+    RadioButton,
+    RadioGroup,
+    Text,
 } from "@mittwald/flow-remote-react-components";
 import { typedField } from "@mittwald/flow-remote-react-components/react-hook-form";
 import type { Path, UseFormReturn } from "react-hook-form";
 import type { RunnerSize } from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
-import { CPU_RANGE, MEMORY_GB_RANGE } from "@/runner-sizes.ts";
+import {
+    CPU_RANGE,
+    MEMORY_GB_RANGE,
+    runnerSizes,
+    toMemoryGb,
+} from "@/runner-sizes.ts";
 import { FieldHelp } from "./FieldHelp.tsx";
+
+const presets = ["small", "medium", "large"] as const;
 
 export interface ResourceFormValues {
     size: RunnerSize;
@@ -21,7 +30,8 @@ export interface ResourceFormValues {
 
 /**
  * Shared by the create form and the settings modal. The presets keep their
- * limits in the domain, custom exposes CPU and memory as two fields.
+ * limits in the domain and show them on their card, custom exposes CPU and
+ * memory as two fields.
  */
 export function ResourceFields<T extends ResourceFormValues>({
     form,
@@ -37,7 +47,7 @@ export function ResourceFields<T extends ResourceFormValues>({
     return (
         <>
             <Field name={"size" as Path<T>} rules={{ required: true }}>
-                <Select>
+                <RadioGroup s={[1, 1]} m={[1, 1, 1, 1]}>
                     <Label>
                         {t("form.size.label")}
                         <FieldHelp
@@ -45,12 +55,25 @@ export function ResourceFields<T extends ResourceFormValues>({
                             text={t("form.size.help")}
                         />
                     </Label>
-                    <Option value="small">{t("form.size.small")}</Option>
-                    <Option value="medium">{t("form.size.medium")}</Option>
-                    <Option value="large">{t("form.size.large")}</Option>
-                    <Option value="custom">{t("form.size.custom")}</Option>
+                    {presets.map((preset) => (
+                        <RadioButton key={preset} value={preset}>
+                            <Text>{t(`form.size.${preset}`)}</Text>
+                            <Content>
+                                {t("form.size.limits", {
+                                    cpus: runnerSizes[preset].cpus,
+                                    memory: toMemoryGb(
+                                        runnerSizes[preset].memoryMb,
+                                    ),
+                                })}
+                            </Content>
+                        </RadioButton>
+                    ))}
+                    <RadioButton value="custom">
+                        <Text>{t("form.size.custom")}</Text>
+                        <Content>{t("form.size.custom.text")}</Content>
+                    </RadioButton>
                     <FieldDescription>{description}</FieldDescription>
-                </Select>
+                </RadioGroup>
             </Field>
             {size === "custom" && (
                 <ColumnLayout s={[1]} m={[1, 1]}>

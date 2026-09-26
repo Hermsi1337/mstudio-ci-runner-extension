@@ -14,7 +14,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
     const publicError = parsePublicError(error);
 
     return (
-        <IllustratedMessage>
+        <IllustratedMessage color="danger">
             <IconDanger />
             <Heading>{t("error.fallback.heading")}</Heading>
             <Text>{t("error.fallback.text")}</Text>

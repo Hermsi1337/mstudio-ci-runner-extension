@@ -27,8 +27,16 @@ badge of the extension and the changelog button that opens `ChangelogModal.tsx`)
 with links to the repository. Rules for every
 screen are in [styleguide.md](styleguide.md). The runners are grouped by registration target, one Flow `List` per group
 (`RunnerList.tsx`), one `ListItemView` per runner with a context menu (`RunnerActions.tsx`) that opens the logs, settings and
-confirmation modals through overlay controllers. Flow's list switches from columns to
-stacked rows by container width, so no separate mobile layout exists.
+confirmation modals through overlay controllers. A row shows labels and switched on
+job features; it expands into the remaining details. Flow's list switches from columns
+to stacked rows by container width, so no separate mobile layout exists. The create
+form and the settings modal share `ResourceFields.tsx` (size cards) and
+`JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards).
+`src/repository.ts` holds the repository and docs URLs the UI links to.
+
+Release notes come from the GitHub API as GitHub-flavored Markdown.
+`src/release-notes.ts` drops HTML comments and shortens bare pull request and compare
+URLs before `ChangelogModal.tsx` renders them.
 
 Size presets (`small`, `medium`, `large`) and their limits live in
 `src/runner-sizes.ts`, imported by the domain for the stack declaration and by the UI

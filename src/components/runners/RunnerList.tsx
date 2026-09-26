@@ -1,9 +1,11 @@
 import {
+    Alert,
     Avatar,
     Badge,
     Button,
     ColumnLayout,
     Content,
+    Flex,
     Header,
     Heading,
     IconContainer,
@@ -12,10 +14,10 @@ import {
     Label,
     LabeledValue,
     Link,
+    Radio,
+    RadioGroup,
     SearchField,
     Section,
-    Segment,
-    SegmentedControl,
     Text,
     typedList,
 } from "@mittwald/flow-remote-react-components";
@@ -80,6 +82,117 @@ function matches(runner: Runner, search: string): boolean {
 
 const Runners = typedList<Runner>();
 
+const failedStatuses: RunnerStatus[] = ["error", "missing"];
+
+function useSizeSummary(runner: Runner): string {
+    const t = useTranslation();
+    const parts = [
+        t(`form.size.${runner.size}`),
+        t("form.size.limits", {
+            cpus: runner.cpus,
+            memory: toMemoryGb(runner.memoryMb),
+        }),
+    ];
+    if (runner.concurrency > 1) {
+        parts.push(t("runners.concurrency", { jobs: runner.concurrency }));
+    }
+    return parts.join(", ");
+}
+
+/**
+ * Only switched on features get a badge, so the row stays short. The off
+ * state shows in the details of the expanded row.
+ */
+const FeatureBadges = ({ runner }: { runner: Runner }) => {
+    const t = useTranslation();
+    if (!runner.cache && !runner.imageBuilds && !runner.dockerApi) {
+        return <Text>{t("runners.feature.none")}</Text>;
+    }
+    return (
+        <Flex gap="xs" wrap="wrap">
+            {runner.cache && (
+                <Badge>
+                    <Label>{t("runners.feature.cache")}</Label>
+                    <Text>
+                        {t("runners.cache.limit", { size: runner.cacheSizeGb })}
+                    </Text>
+                </Badge>
+            )}
+            {runner.imageBuilds && (
+                <Badge>{t("runners.feature.imageBuilds")}</Badge>
+            )}
+            {runner.dockerApi && (
+                <Badge>{t("runners.feature.dockerApi")}</Badge>
+            )}
+        </Flex>
+    );
+};
+
+const RunnerDetails = ({ runner }: { runner: Runner }) => {
+    const t = useTranslation();
+    const size = useSizeSummary(runner);
+    const details: { key: string; label: string; value: string }[] = [
+        { key: "size", label: t("runners.column.size"), value: size },
+        {
+            key: "cache",
+            label: t("runners.column.cache"),
+            value: runner.cache
+                ? t("runners.cache.limit", { size: runner.cacheSizeGb })
+                : t("runners.cache.off"),
+        },
+        {
+            key: "imageBuilds",
+            label: t("runners.column.imageBuilds"),
+            value: runner.imageBuilds
+                ? t("runners.imageBuilds.on")
+                : t("runners.imageBuilds.off"),
+        },
+        {
+            key: "dockerApi",
+            label: t("runners.column.dockerApi"),
+            value: runner.dockerApi
+                ? t("runners.dockerApi.on")
+                : t("runners.dockerApi.off"),
+        },
+        {
+            key: "version",
+            label: t("runners.column.version"),
+            value: `${
+                runner.imageVersion ??
+                runner.runnerVersion ??
+                t("runners.version.unknown")
+            }${
+                runner.imageVersion && runner.runnerVersion
+                    ? ` (${runner.runnerVersion})`
+                    : ""
+            }`,
+        },
+        {
+            key: "auth",
+            label: t("runners.column.auth"),
+            value:
+                runner.tokenType === "pat"
+                    ? t("runners.auth.pat")
+                    : t("runners.auth.registration"),
+        },
+    ];
+    return (
+        <ColumnLayout s={[1]} m={[1, 1, 1]}>
+            {details.map((detail) => (
+                <LabeledValue key={detail.key}>
+                    <Label>{detail.label}</Label>
+                    <Text>{detail.value}</Text>
+                </LabeledValue>
+            ))}
+        </ColumnLayout>
+    );
+};
+
+/**
+ * Header plus one content column, so no breakpoint pushes a column into a
+ * second row under the avatar. Everything the row does not show waits in the
+ * expanded part.
+ */
 const RunnerRow = ({
     runner,
     onChanged,
@@ -88,8 +201,10 @@ const RunnerRow = ({
     onChanged: () => void;
 }) => {
     const t = useTranslation();
+    const size = useSizeSummary(runner);
+    const version = runner.imageVersion ?? runner.runnerVersion;
     return (
-        <Runners.ItemView s={[12]} m={[6, 3, 3]} l={[4, 2, 2, 2, 2]}>
+        <Runners.ItemView s={[1]} m={[1, 1]} l={[1, 1]}>
             <Avatar color={runner.provider === "github" ? "violet" : "teal"}>
                 <Initials>{providerInitials[runner.provider]}</Initials>
             </Avatar>
@@ -116,95 +231,40 @@ const RunnerRow = ({
                 )}
             </Heading>
             <Text>{t(`provider.${runner.provider}`)}</Text>
-            <Text>
-                {runner.tokenType === "pat"
-                    ? t("runners.auth.pat")
-                    : t("runners.auth.registration")}
-            </Text>
+            <Text>{size}</Text>
+            {version && <Text>{version}</Text>}
 
             <Content>
-                <LabeledValue>
-                    <Label>
-                        {runner.provider === "gitlab"
-                            ? t("form.tags.label")
-                            : t("form.labels.label")}
-                    </Label>
-                    <Text>
-                        {runner.labels.length > 0
-                            ? runner.labels.join(", ")
-                            : t("runners.labels.inCiSystem")}
-                    </Text>
-                </LabeledValue>
-            </Content>
-            <Content>
-                <LabeledValue>
-                    <Label>{t("runners.column.size")}</Label>
-                    <Text>
-                        {runner.size === "custom"
-                            ? t("form.size.customValue", {
-                                  cpus: runner.cpus,
-                                  memory: toMemoryGb(runner.memoryMb),
-                              })
-                            : t(`form.size.${runner.size}`)}
-                        {runner.concurrency > 1 &&
-                            `, ${t("runners.concurrency", {
-                                jobs: runner.concurrency,
-                            })}`}
-                    </Text>
-                </LabeledValue>
-            </Content>
-            <Content>
-                <LabeledValue>
-                    <Label>{t("runners.column.cache")}</Label>
-                    <Text>
-                        {runner.cache
-                            ? t("runners.cache.limit", {
-                                  size: runner.cacheSizeGb,
-                              })
-                            : t("runners.cache.off")}
-                    </Text>
-                </LabeledValue>
-            </Content>
-            <Content>
-                <LabeledValue>
-                    <Label>{t("runners.column.imageBuilds")}</Label>
-                    <Text>
-                        {runner.imageBuilds
-                            ? t("runners.imageBuilds.on")
-                            : t("runners.imageBuilds.off")}
-                    </Text>
-                </LabeledValue>
-            </Content>
-            <Content>
-                <LabeledValue>
-                    <Label>{t("runners.column.dockerApi")}</Label>
-                    <Text>
-                        {runner.dockerApi
-                            ? t("runners.dockerApi.on")
-                            : t("runners.dockerApi.off")}
-                    </Text>
-                </LabeledValue>
-            </Content>
-            <Content>
-                <LabeledValue>
-                    <Label>{t("runners.column.version")}</Label>
-                    <Text>
-                        {runner.imageVersion ??
-                            runner.runnerVersion ??
-                            t("runners.version.unknown")}
-                        {runner.imageVersion &&
-                            runner.runnerVersion &&
-                            ` (${runner.runnerVersion})`}
-                    </Text>
-                </LabeledValue>
+                <Flex gap="xl" wrap="wrap">
+                    <LabeledValue>
+                        <Label>
+                            {runner.provider === "gitlab"
+                                ? t("form.tags.label")
+                                : t("form.labels.label")}
+                        </Label>
+                        <Text>
+                            {runner.labels.length > 0
+                                ? runner.labels.join(", ")
+                                : t("runners.labels.inCiSystem")}
+                        </Text>
+                    </LabeledValue>
+                    <LabeledValue>
+                        <Label>{t("runners.column.features")}</Label>
+                        <FeatureBadges runner={runner} />
+                    </LabeledValue>
+                </Flex>
             </Content>
 
-            {runner.statusMessage &&
-                (runner.status === "error" || runner.status === "missing") && (
-                    <Content slot="bottom">
-                        <Text>{runner.statusMessage}</Text>
-                    </Content>
-                )}
+            <Content slot="bottom">
+                {runner.statusMessage &&
+                    failedStatuses.includes(runner.status) && (
+                        <Alert status="danger">
+                            <Heading>{t(`status.${runner.status}`)}</Heading>
+                            <Text>{runner.statusMessage}</Text>
+                        </Alert>
+                    )}
+                <RunnerDetails runner={runner} />
+            </Content>
 
             <RunnerActions runner={runner} onChanged={onChanged} />
         </Runners.ItemView>
@@ -270,17 +330,18 @@ export const RunnerList = ({ onCreate }: { onCreate: () => void }) => {
                         value={search}
                         onChange={setSearch}
                     />
-                    <SegmentedControl
+                    <RadioGroup
                         aria-label={t("runners.filter.provider")}
                         value={provider}
                         onChange={(value) =>
                             setProvider(value as ProviderFilter)
                         }
+                        s={[1, 1, 1]}
                     >
-                        <Segment value="all">{t("runners.filter.all")}</Segment>
-                        <Segment value="github">{t("provider.github")}</Segment>
-                        <Segment value="gitlab">{t("provider.gitlab")}</Segment>
-                    </SegmentedControl>
+                        <Radio value="all">{t("runners.filter.all")}</Radio>
+                        <Radio value="github">{t("provider.github")}</Radio>
+                        <Radio value="gitlab">{t("provider.gitlab")}</Radio>
+                    </RadioGroup>
                 </ColumnLayout>
             )}
             {groups.length === 0 && (
@@ -308,12 +369,18 @@ export const RunnerList = ({ onCreate }: { onCreate: () => void }) => {
                     </Header>
                     <Runners.List
                         aria-label={group.target}
+                        accordion
                         batchSize={50}
                         getItemId={(runner) => runner.id}
                         hidePagination
                     >
                         <Runners.StaticData data={group.runners} />
-                        <Runners.Item textValue={(runner) => runner.name}>
+                        <Runners.Item
+                            textValue={(runner) => runner.name}
+                            defaultExpanded={(runner) =>
+                                failedStatuses.includes(runner.status)
+                            }
+                        >
                             {(runner) => (
                                 <RunnerRow
                                     runner={runner}

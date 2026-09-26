@@ -2,6 +2,7 @@ import {
     Accordion,
     Alert,
     Button,
+    ColumnLayout,
     Content,
     Header,
     Heading,
@@ -20,6 +21,9 @@ import { ProjectClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
 import { CreateRunnerModal } from "./CreateRunnerModal.tsx";
 import { RunnerList } from "./RunnerList.tsx";
+
+/** The group names match the feature names of the create form. */
+const jobGroups = ["always", "imageBuilds", "dockerApi"] as const;
 
 /**
  * Runners are containers. A project without Container Hosting cannot host
@@ -64,9 +68,21 @@ const Runners = ({ onCreate }: { onCreate: () => void }) => {
                 </Content>
             </Alert>
             <Accordion>
-                <Heading>{t("app.dockerNotice.title")}</Heading>
+                <Heading>{t("app.jobs.title")}</Heading>
                 <Content>
-                    <Markdown>{t("app.dockerNotice.text")}</Markdown>
+                    <Text>{t("app.jobs.intro")}</Text>
+                    <ColumnLayout s={[1]} m={[1, 1, 1]}>
+                        {jobGroups.map((group) => (
+                            <Section key={group}>
+                                <Heading level={4}>
+                                    {t(`app.jobs.${group}.heading`)}
+                                </Heading>
+                                <Markdown>
+                                    {t(`app.jobs.${group}.text`)}
+                                </Markdown>
+                            </Section>
+                        ))}
+                    </ColumnLayout>
                 </Content>
             </Accordion>
             <RunnerList onCreate={onCreate} />

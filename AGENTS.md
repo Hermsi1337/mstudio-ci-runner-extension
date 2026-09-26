@@ -142,6 +142,8 @@ src/build-queue.ts           mount of the build queue shared by runners and buil
 src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
 src/domain/changelog.ts      GitHub releases for the changelog modal, cached in memory
 src/version-compare.ts       semver comparison for the update hint of the changelog
+src/release-notes.ts         cleans GitHub release notes for Flow's Markdown (comments, bare URLs)
+src/repository.ts            repository and docs URLs the UI links to
 src/domain/providers/        one module per CI provider, registry in index.ts
 src/serverFunctions/         TanStack server functions: validation and delegation only
 src/ghosts.ts                server-function clients bundled for the UI (react-ghostmaker)

@@ -7,6 +7,7 @@ import {
     IconSettings,
     IconUpload,
     MenuItem,
+    Separator,
     Text,
     useOverlayController,
 } from "@mittwald/flow-remote-react-components";
@@ -104,6 +105,7 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                             </Text>
                         </MenuItem>
                     )}
+                <Separator />
                 <MenuItem id="delete">
                     <IconDelete />
                     <Text>{t("runners.action.delete")}</Text>
