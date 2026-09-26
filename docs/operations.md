@@ -89,7 +89,8 @@ resources, which is not what building and releasing this repository needs.
 
 | Job | Runner | Why |
 |---|---|---|
-| `ci.yml` `check`, `integration` | `ubuntu-latest` | Testcontainers needs a Docker daemon |
+| `ci.yml` `check` | `ubuntu-latest` | Node |
+| `ci.yml` `integration` | `ubuntu-latest`, `ubuntu-24.04-arm` | Testcontainers needs a Docker daemon. arm64 runs the platform checks on a foreign architecture and covers arm64 development machines |
 | `release.yml` `verify`, `release`, `bump-version` | `ubuntu-latest` | Integration tests, `jq`, `git`, Node |
 | `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx |
 | `deploy.yml` `deploy`, `metadata` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
