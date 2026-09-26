@@ -45,6 +45,18 @@ export function normalizeForgejoUrl(url: string): string {
 }
 
 /**
+ * The image registers every label as <label>:host. forgejo-runner reads a
+ * colon as the start of the executor and a question mark as the start of
+ * label options, so either character would change what the label means or
+ * stop the runner from starting.
+ */
+export function assertForgejoLabels(labels: string): void {
+    if (/[:?]/.test(labels)) {
+        throw new ProviderError("error.forgejo.labelsInvalid", {}, "labels");
+    }
+}
+
+/**
  * Forgejo creates the runner on its settings page and shows UUID and token
  * once. There is no registration step: the container declares itself with
  * both on every start. Verifying them means connecting as the runner, which
@@ -64,6 +76,7 @@ export const forgejoProvider: RunnerProvider<ForgejoRequest> = {
         const env = getEnvironmentVariables();
         const instanceUrl = normalizeForgejoUrl(input.instanceUrl);
         const labels = input.labels || "mittwald";
+        assertForgejoLabels(labels);
 
         return {
             target: instanceUrl.replace(/^https:\/\//, ""),

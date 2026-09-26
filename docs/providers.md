@@ -58,7 +58,7 @@ from `input.provider` and knows no provider details beyond that.
 |---|---|---|---|---|
 | `github` | `target` (owner or owner/repo), `token` (registration token), `runnerGroup` | No API call. The container registers with the token from the "New self-hosted runner" page and keeps the registration in the `config` directory of its data volume | The registration token (`RUNNER_TOKEN`), useless after one hour and unset before the runner starts | None. The runner stays offline in GitHub until GitHub removes it after 14 days |
 | `gitlab` | `instanceUrl` and `token`, both read from the `gitlab-runner register` command | The runner token `glrt-...` from the "New runner" page is checked with `POST /api/v4/runners/verify`. Scope and tags live in GitLab, `labels` is stored empty | Runner token only (`CI_SERVER_TOKEN`) | `DELETE /api/v4/runners?token=` with the token from the service environment. Without a container (deleted in mStudio) the runner stays in GitLab |
-| `forgejo` | `instanceUrl`, `uuid` and `token` as three fields, plus `labels` | None and no API call. `prepare` only checks that `instanceUrl` is an https URL without credentials, query or fragment. The container presents UUID and token on every start through `server.connections` | UUID and runner token (`FORGEJO_RUNNER_UUID`, `FORGEJO_RUNNER_TOKEN`), durable like the GitLab token | None. The runner stays offline in Forgejo until someone deletes it there |
+| `forgejo` | `instanceUrl`, `uuid` and `token` as three fields, plus `labels` | None and no API call. `prepare` only checks that `instanceUrl` is an https URL without credentials, query or fragment, and that no label contains `:` or `?`. The container presents UUID and token on every start through `server.connections` | UUID and runner token (`FORGEJO_RUNNER_UUID`, `FORGEJO_RUNNER_TOKEN`), durable like the GitLab token | None. The runner stays offline in Forgejo until someone deletes it there |
 
 ### Forgejo
 
@@ -78,6 +78,12 @@ instead of a UUID cannot be used. The form has three plain fields and
   the runner stays offline in Forgejo.
 - **Labels.** Stored and shown like GitHub labels. The image registers each one as
   `<label>:host` ([runner-image.md](runner-image.md#forgejo-dockerrunnerforgejo)).
+  `prepare` rejects labels with `:` or `?` (`error.forgejo.labelsInvalid` on the field
+  `labels`): a colon would pick another executor that the UI would still show, a question
+  mark starts label options and stops the runner from starting.
+- **Token.** `forgejo-runner` accepts letters and digits only, so the spec has
+  `pattern: '^[A-Za-z0-9]+$'` on `token` and `format: uuid` on `uuid`. A token pasted with
+  a space or a trailing period fails validation instead of crash-looping the container.
 - **Stack.** One per instance URL, like GitLab.
 
 GitLab client: generated from `openapi/upstream/gitlab.json` ([codegen.md](codegen.md)).
