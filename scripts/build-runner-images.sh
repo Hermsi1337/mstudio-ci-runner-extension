@@ -12,8 +12,11 @@ builder_versions="docker/builder/versions.json"
 crane_version="$(jq -r .crane.version "${runner_versions}")"
 crane_sha256_amd64="$(jq -r .crane.sha256.amd64 "${runner_versions}")"
 crane_sha256_arm64="$(jq -r .crane.sha256.arm64 "${runner_versions}")"
+node_version="$(jq -r .node.version "${runner_versions}")"
+node_sha256_amd64="$(jq -r .node.sha256.amd64 "${runner_versions}")"
+node_sha256_arm64="$(jq -r .node.sha256.arm64 "${runner_versions}")"
 
-for provider in github gitlab; do
+for provider in github gitlab forgejo; do
     echo "building mstudio-ci-runner-${provider}:local"
     docker build \
         -f "docker/runner/${provider}/Dockerfile" \
@@ -23,6 +26,9 @@ for provider in github gitlab; do
         --build-arg "CRANE_VERSION=${crane_version}" \
         --build-arg "CRANE_SHA256_AMD64=${crane_sha256_amd64}" \
         --build-arg "CRANE_SHA256_ARM64=${crane_sha256_arm64}" \
+        --build-arg "NODE_VERSION=${node_version}" \
+        --build-arg "NODE_SHA256_AMD64=${node_sha256_amd64}" \
+        --build-arg "NODE_SHA256_ARM64=${node_sha256_arm64}" \
         -t "mstudio-ci-runner-${provider}:local" \
         docker/runner
 done
