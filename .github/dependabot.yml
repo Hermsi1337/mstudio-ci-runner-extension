@@ -36,6 +36,7 @@ updates:
       - /docker/extension
       - /docker/runner/github
       - /docker/runner/gitlab
+      - /docker/runner/forgejo
     schedule:
       interval: weekly
     ignore:
