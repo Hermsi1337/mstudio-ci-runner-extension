@@ -75,7 +75,8 @@ Two Flow rules shape the components:
    requested ([providers.md](providers.md#package-manager-cache)), mounts the build
    queue and declares the builder service of the stack when the runner may build
    images (`src/domain/builder.ts`, [image-builds.md](image-builds.md)), sets
-   `DOCKER_HOST` and declares the service `docker` when jobs may run containers
+   `DOCKER_HOST`, mounts `<project directory>/.ci-work/<stack ID>` for the workspace
+   and declares the service `docker` when jobs may run containers
    (`src/domain/docker-api.ts`, [docker-api.md](docker-api.md)), and declares the
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
    runners of the stack stay untouched) with `restartPolicy: always` and the resource

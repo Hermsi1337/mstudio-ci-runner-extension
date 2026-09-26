@@ -56,10 +56,10 @@ registration.
 ## Limitations
 
 Container Hosting provides no Docker daemon. Plain jobs (Node, PHP, Python, Go,
-Rust, Bash, deploys via SSH/rsync) work. GitHub `container:`, `services:` and GitLab
-`image:`/`services:` do not.
+Rust, Bash, deploys via SSH/rsync) work. Without *Docker in jobs*, GitHub `container:`,
+`services:` and GitLab `image:`/`services:` do not.
 
-`docker run`, `docker compose`, Testcontainers and GitHub `services:` work with *Docker in jobs*: a
+`docker run`, `docker compose`, Testcontainers, GitHub `services:` and `container:` work with *Docker in jobs*: a
 service `docker` in the stack speaks the Docker API and starts every container as a
 container of the stack ([docs/docker-api.md](docs/docker-api.md), with
 [known issues](docs/docker-api.md#known-issues)). Containers have no TTY and no

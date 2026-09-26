@@ -64,8 +64,8 @@ detailedDescriptions:
 
     Die Runner laufen ohne Docker-Daemon: Jobs laufen direkt auf Ubuntu 24.04.
     Mit Docker in Jobs starten `docker run`, `docker compose`, Testcontainers
-    und GitHub `services:` ihre Container im Stack; `container:` und GitLab
-    `services:` funktionieren nicht. Pakete lassen
+    und GitHub `services:` und `container:` ihre Container im Stack; GitLab
+    `image:` und `services:` funktionieren nicht. Pakete lassen
     sich per `sudo apt-get` nachinstallieren. Jobs laufen mit sudo-Rechten im
     Container, nutze daher einen Runner pro Vertrauensbereich und lass keine
     fremden Pull Requests darauf laufen.
@@ -109,8 +109,8 @@ detailedDescriptions:
 
     The runners run without a Docker daemon: jobs run directly on Ubuntu 24.04.
     With Docker in jobs, `docker run`, `docker compose`, Testcontainers and
-    GitHub `services:` start their containers in the stack; `container:` and
-    GitLab `services:` do not work. Packages can be
+    GitHub `services:` and `container:` start their containers in the stack;
+    GitLab `image:` and `services:` do not work. Packages can be
     installed with `sudo apt-get`. Jobs run with sudo inside the container, so use
     one runner per trust boundary and keep untrusted pull requests off it.
 

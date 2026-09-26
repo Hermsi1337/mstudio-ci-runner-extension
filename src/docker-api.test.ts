@@ -45,11 +45,29 @@ describe("docker api secret", () => {
 });
 
 describe("docker api environment", () => {
-    it("adds and removes DOCKER_HOST", () => {
-        const on = withDockerApi({ A: "1" });
-        expect(on).toEqual({ A: "1", DOCKER_HOST });
-        expect(usesDockerApi(on)).toBe(true);
-        expect(withoutDockerApi(on)).toEqual({ A: "1" });
+    it("adds and removes DOCKER_HOST and the work directory", () => {
+        const root = `/home/p-abc/.ci-work/${stackId}`;
+        const on = withDockerApi(
+            { environment: { A: "1" }, mounts: ["data:/home/runner/data"] },
+            root,
+            "runner-web",
+        );
+        expect(on.environment).toEqual({
+            A: "1",
+            DOCKER_HOST,
+            MSTUDIO_WORK_ROOT: `${root}/runner-web`,
+            MSTUDIO_EXTERNALS_ROOT: `${root}/externals`,
+        });
+        expect(on.mounts).toEqual([
+            "data:/home/runner/data",
+            `${root}:${root}`,
+        ]);
+        expect(usesDockerApi(on.environment)).toBe(true);
+        expect(withoutDockerApi(on)).toEqual({
+            environment: { A: "1" },
+            mounts: ["data:/home/runner/data"],
+        });
+        expect(withDockerApi(on, root, "runner-web")).toEqual(on);
         expect(usesDockerApi({ DOCKER_HOST: "tcp://elsewhere:2375" })).toBe(
             false,
         );

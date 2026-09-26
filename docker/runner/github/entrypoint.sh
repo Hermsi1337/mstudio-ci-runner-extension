@@ -16,6 +16,11 @@
 #   DISABLE_AUTO_UPDATE  "true" => --disableupdate
 #   DOCKER_HOST       set by Docker in jobs; starts mstudio-port-forward, which makes ports
 #                     published by the docker service reachable on localhost
+#   MSTUDIO_WORK_ROOT set by Docker in jobs: a directory of the project file system, mounted
+#                     at its own path; the work directory moves there, so containers of a
+#                     job can bind-mount the workspace
+#   MSTUDIO_EXTERNALS_ROOT  set by Docker in jobs: where the externals of each runner version
+#                     are copied for `container:` jobs
 #
 # Flow: a persisted registration from RUNNER_CONFIG_DIR is restored and reused.
 # Without one, the runner registers with RUNNER_TOKEN or a token fetched via
@@ -41,12 +46,34 @@ if [[ -d /home/runner/_config ]]; then
     RUNNER_WORKDIR="${RUNNER_WORKDIR:-/home/runner/_work}"
     RUNNER_CONFIG_DIR="${RUNNER_CONFIG_DIR:-/home/runner/_config}"
 fi
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" ]]; then
+    RUNNER_WORKDIR="${MSTUDIO_WORK_ROOT}/work"
+fi
 RUNNER_WORKDIR="${RUNNER_WORKDIR:-${RUNNER_DATA_DIR}/work}"
 RUNNER_CONFIG_DIR="${RUNNER_CONFIG_DIR:-${RUNNER_DATA_DIR}/config}"
 DISABLE_AUTO_UPDATE="${DISABLE_AUTO_UPDATE:-false}"
 GITHUB_API="${GITHUB_API:-https://api.github.com}"
 
+# The platform creates the mount point of the project file system as root.
+for dir in "${MSTUDIO_WORK_ROOT:-}" "${MSTUDIO_EXTERNALS_ROOT:-}"; do
+    [[ -n "${dir}" && ! -w "${dir}" ]] && sudo -n install -d -o runner -g runner "${dir}"
+done
 mkdir -p "${RUNNER_WORKDIR}" "${RUNNER_CONFIG_DIR}"
+
+# Externals are copied once per runner version; a copy that another runner of
+# the stack finished first wins.
+if [[ -n "${MSTUDIO_EXTERNALS_ROOT:-}" ]]; then
+    externals="${MSTUDIO_EXTERNALS_ROOT}/$(./config.sh --version)"
+    if [[ ! -f "${externals}/.complete" ]]; then
+        echo "[entrypoint] copying externals to ${externals}"
+        partial="${externals}.partial-$$"
+        rm -rf "${partial}"
+        cp -a externals "${partial}"
+        touch "${partial}/.complete"
+        mv -T "${partial}" "${externals}" 2>/dev/null || rm -rf "${partial}"
+    fi
+    export MSTUDIO_EXTERNALS="${externals}"
+fi
 
 if [[ -z "${RUNNER_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" ]]; then
     echo "either RUNNER_TOKEN or GITHUB_TOKEN is required" >&2
@@ -100,6 +127,10 @@ restore_config() {
     for file in "${config_files[@]}"; do
         [[ -f "${RUNNER_CONFIG_DIR}/${file}" ]] && cp "${RUNNER_CONFIG_DIR}/${file}" "${file}"
     done
+    # The work directory is fixed at registration; Docker in jobs moves it, so
+    # a restored registration follows RUNNER_WORKDIR. .runner starts with a BOM.
+    sed '1s/^\xEF\xBB\xBF//' .runner | jq --arg work "${RUNNER_WORKDIR}" '.workFolder = $work' > .runner.new
+    mv .runner.new .runner
     echo "[entrypoint] reusing registration from ${RUNNER_CONFIG_DIR}"
 }
 

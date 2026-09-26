@@ -162,6 +162,8 @@ read `DOCKER_HOST` talk to it directly.
 | Variable | Meaning | Default |
 |---|---|---|
 | `DOCKER_HOST` | Docker API for container commands. Set by the extension when Docker in jobs is on. The shim forwards `docker run`, `exec`, `ps`, `compose` and the other container commands to the real CLI only when it is set, and the entrypoint starts `mstudio-port-forward` | unset |
+| `MSTUDIO_WORK_ROOT` | Directory on the project file system for this runner, mounted at its own path. Set by the extension with Docker in jobs. GitHub moves its work directory to `<root>/work` (also for a restored registration), GitLab its `builds_dir` to `<root>/builds` | unset |
+| `MSTUDIO_EXTERNALS_ROOT` | GitHub only: where the entrypoint copies the externals once per runner version. It exports `MSTUDIO_EXTERNALS` with the copy, and the shim rewrites mounts of `/home/runner/externals` to it, so `container:` jobs find node | unset |
 
 The `docker` service publishes container ports on itself: `docker run -p 5432:5432 postgres`
 listens on `docker:5432`, and `docker port` prints `0.0.0.0:<port>` meaning that port on

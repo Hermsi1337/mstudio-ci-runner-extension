@@ -69,6 +69,22 @@ forward_and_publish_ports() {
     exit "${status}"
 }
 
+# The GitHub runner mounts its externals (node for actions) into `container:`
+# jobs. They live in the image, where the docker service cannot mount them
+# from; the entrypoint copies them to the project file system and names the
+# copy in MSTUDIO_EXTERNALS.
+rewrite_externals() {
+    rewritten=()
+    local source="${RUNNER_HOME:-/home/runner}/externals"
+    local argument
+    for argument in "$@"; do
+        if [[ -n "${MSTUDIO_EXTERNALS:-}" && "${argument}" == *"${source}"* ]]; then
+            argument="${argument//"${source}"/"${MSTUDIO_EXTERNALS}"}"
+        fi
+        rewritten+=("${argument}")
+    done
+}
+
 starts_containers() {
     case "$1" in
         run | create | start | restart | compose) return 0 ;;
@@ -414,6 +430,8 @@ case "${command}" in
         ;;
     run | create | start | stop | restart | kill | rm | exec | logs | ps | wait | cp | port | top | stats | attach | rename | update | container | network | volume | events | compose)
         has_docker_service || needs_docker_service "${command}"
+        rewrite_externals "$@"
+        set -- "${rewritten[@]}"
         if starts_containers "${command}" "$@"; then
             forward_and_publish_ports "${command}" "$@"
         fi

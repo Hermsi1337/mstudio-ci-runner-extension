@@ -10,7 +10,7 @@ import {
     runnerStacks,
     runners,
 } from "@/db/schema.ts";
-import { withDockerApi, withoutDockerApi } from "@/docker-api.ts";
+import { ciWorkRoot, withDockerApi, withoutDockerApi } from "@/docker-api.ts";
 import type {
     ConfigureRunnerRequest,
     CreateRunnerRequest,
@@ -45,7 +45,7 @@ import {
     removeDockerApi,
     removeDockerApiIfUnused,
 } from "./docker-api.ts";
-import { getProjectCapabilities } from "./project.ts";
+import { getProjectCapabilities, getProjectDirectory } from "./project.ts";
 import {
     getProvider,
     getProviderById,
@@ -441,12 +441,11 @@ export async function createRunner(
     const concurrency = provider.concurrencyVariable
         ? (input.concurrency ?? 1)
         : 1;
-    const { environment: cacheEnvironment, mounts } = cache
+    const { environment: cacheEnvironment, mounts: cacheMounts } = cache
         ? withCache(prepared.environment, prepared.volumes)
         : withoutCache(prepared.environment, prepared.volumes);
-    const environment = dockerApi
-        ? withDockerApi(cacheEnvironment)
-        : cacheEnvironment;
+    let environment = cacheEnvironment;
+    let mounts = cacheMounts;
     log.debug("provider prepared runner", {
         target: prepared.target,
         image: prepared.image,
@@ -544,6 +543,13 @@ export async function createRunner(
         }
     };
 
+    if (dockerApi) {
+        ({ environment, mounts } = withDockerApi(
+            { environment, mounts },
+            ciWorkRoot(await getProjectDirectory(client, projectId), stackId),
+            serviceName,
+        ));
+    }
     let mountsWithQueue = mounts;
     let queueMount = "";
     if (imageBuilds) {
@@ -868,12 +874,19 @@ export async function configureRunner(
             row.serviceName,
             state.volumes ?? [],
         );
-        const { environment: cacheEnvironment, mounts } = cache
+        const cached = cache
             ? withCache(state.envs ?? {}, plainMounts)
             : withoutCache(state.envs ?? {}, plainMounts);
-        const environment = dockerApi
-            ? withDockerApi(cacheEnvironment)
-            : withoutDockerApi(cacheEnvironment);
+        const { environment, mounts } = dockerApi
+            ? withDockerApi(
+                  cached,
+                  ciWorkRoot(
+                      await getProjectDirectory(client, row.projectId),
+                      row.stackId,
+                  ),
+                  row.serviceName,
+              )
+            : withoutDockerApi(cached);
         let mountsWithQueue = withoutBuildQueue(mounts);
         let queueMount = "";
         if (imageBuilds) {

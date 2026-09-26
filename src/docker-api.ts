@@ -16,18 +16,60 @@ export const DOCKER_API_TOKEN_PATH = "/api/docker-api/token";
 
 const SECRET_PREFIX = "mdapi_";
 
-export function withDockerApi(
-    environment: Record<string, string>,
-): Record<string, string> {
-    return { ...environment, DOCKER_HOST };
+/**
+ * Work directories of the runners of a stack live on the project file system,
+ * mounted at the same path they have there. A container a job starts can then
+ * bind-mount the workspace: the path the runner knows is the project path the
+ * adapter needs. The externals of the GitHub runner (node for actions inside
+ * `container:` jobs) are shared per runner version below the same root.
+ */
+export const CI_WORK_DIRECTORY = ".ci-work";
+
+export function ciWorkRoot(projectDirectory: string, stackId: string): string {
+    return `${projectDirectory}/${CI_WORK_DIRECTORY}/${stackId}`;
 }
 
-export function withoutDockerApi(
-    environment: Record<string, string>,
-): Record<string, string> {
-    const { DOCKER_HOST: _removed, ...rest } = environment;
+function isCiWorkMount(mount: string): boolean {
+    return (
+        mount.startsWith("/") &&
+        mount.split(":")[0].includes(`/${CI_WORK_DIRECTORY}/`)
+    );
+}
 
-    return rest;
+export interface DockerApiRunner {
+    environment: Record<string, string>;
+    mounts: string[];
+}
+
+export function withDockerApi(
+    runner: DockerApiRunner,
+    workRoot: string,
+    serviceName: string,
+): DockerApiRunner {
+    const base = withoutDockerApi(runner);
+    return {
+        environment: {
+            ...base.environment,
+            DOCKER_HOST,
+            MSTUDIO_WORK_ROOT: `${workRoot}/${serviceName}`,
+            MSTUDIO_EXTERNALS_ROOT: `${workRoot}/externals`,
+        },
+        mounts: [...base.mounts, `${workRoot}:${workRoot}`],
+    };
+}
+
+export function withoutDockerApi(runner: DockerApiRunner): DockerApiRunner {
+    const {
+        DOCKER_HOST: _host,
+        MSTUDIO_WORK_ROOT: _work,
+        MSTUDIO_EXTERNALS_ROOT: _externals,
+        ...environment
+    } = runner.environment;
+
+    return {
+        environment,
+        mounts: runner.mounts.filter((mount) => !isCiWorkMount(mount)),
+    };
 }
 
 /** Whether a runner service uses the service `docker` of its stack. */
