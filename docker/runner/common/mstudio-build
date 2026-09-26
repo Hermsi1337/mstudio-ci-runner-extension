@@ -17,7 +17,9 @@
 #       --push               push every tag with crane after a successful build
 #       --iidfile PATH       write the image id (config digest) to PATH
 #       --metadata-file PATH write buildx style metadata JSON to PATH
-#       --platform PLATFORM  only the platform of this runner is supported
+#       --platform LIST      linux/amd64, linux/arm64 or both, comma separated.
+#                            Several platforms build one image each and push
+#                            them as one index, so they need --push
 #       --timeout SECONDS    how long to wait for the builder (default: 3600)
 #       --quiet              only print the image reference
 #
@@ -40,6 +42,8 @@ metadata_file=""
 tags=()
 build_args=()
 labels=()
+platforms=()
+jobs=()
 
 log() {
     if [[ "${quiet}" == false ]]; then
@@ -53,7 +57,7 @@ fail() {
 }
 
 usage() {
-    sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [[ $# -gt 0 ]]; do
@@ -66,7 +70,11 @@ while [[ $# -gt 0 ]]; do
         --push) push=true; shift ;;
         --iidfile) iidfile="$2"; shift 2 ;;
         --metadata-file) metadata_file="$2"; shift 2 ;;
-        --platform) mstudio-platform-check "$2"; shift 2 ;;
+        --platform)
+            checked="$(mstudio-platform-check "$2")"
+            mapfile -t platforms <<<"${checked}"
+            shift 2
+            ;;
         --timeout) timeout_seconds="$2"; shift 2 ;;
         --quiet) quiet=true; shift ;;
         -h | --help) usage; exit 0 ;;
@@ -75,6 +83,15 @@ while [[ $# -gt 0 ]]; do
         *) context="$1"; shift ;;
     esac
 done
+
+if [[ "${push}" == true && ${#tags[@]} -eq 0 ]]; then
+    fail "--push needs at least one --tag"
+fi
+# One tag cannot hold several images in the image store of this runner, only a
+# registry can take the index that ties them together.
+if [[ ${#platforms[@]} -gt 1 && "${push}" == false ]]; then
+    fail "a build for $(IFS=,; echo "${platforms[*]}") needs --push, the images of several platforms only come together as one index in a registry"
+fi
 
 if [[ ! -d "${queue_dir}/queue" ]]; then
     fail "image builds are turned off for this stack. Turn them on in the mStudio extension, then the builder creates ${queue_dir}/queue."
@@ -86,118 +103,341 @@ fi
 [[ -f "${context}/${dockerfile}" ]] || fail "${context}/${dockerfile} does not exist"
 
 mstudio-dockerfile-check "${context}/${dockerfile}"
-
-if [[ "${push}" == true && ${#tags[@]} -eq 0 ]]; then
-    fail "--push needs at least one --tag"
+if [[ ${#platforms[@]} -eq 0 ]]; then
+    platforms=("")
 fi
 
-# mktemp makes the directory, so two runners of the same stack cannot pick the
-# same name in the same second.
-job="$(mktemp -d "${queue_dir}/queue/build-$(date +%s)-XXXXXX")"
-job_id="${job##*/}"
-result="${job}/result"
-mkdir -p "${job}/context"
+# The builder claims a job by renaming its request, so the same rename takes
+# back a job that no builder claimed yet. A claimed job is only removed once
+# its result is in, because the builder reads the directory while it works. A
+# job left behind by a killed runner is collected by the builder, see
+# docs/image-builds.md.
+withdraw() {
+    local job="$1"
+    [[ -f "${job}/request" ]] && mv "${job}/request" "${job}/request.withdrawn" 2>/dev/null
+}
 
-# The builder reads the job directory while it works, so it is only removed
-# once a result is in. A job left behind by a timeout or a killed runner is
-# collected by the builder, see docs/image-builds.md.
 cleanup() {
-    if [[ -f "${result}" || ! -f "${job}/request" ]]; then
-        rm -rf "${job}" 2>/dev/null || true
-    fi
+    local job
+    for job in "${jobs[@]}"; do
+        if withdraw "${job}" || [[ -f "${job}/result" || ! -f "${job}/request.claimed" ]]; then
+            rm -rf "${job}" 2>/dev/null || true
+        fi
+    done
 }
 trap cleanup EXIT
 
-log "mstudio-build: sending ${context} to the builder (job ${job_id})"
-tar -c -C "${context}" . | tar -x -C "${job}/context"
-
-if [[ ${#build_args[@]} -gt 0 ]]; then
-    printf '%s\n' "${build_args[@]}" >"${job}/build-args"
-fi
-if [[ ${#labels[@]} -gt 0 ]]; then
-    printf '%s\n' "${labels[@]}" >"${job}/labels"
-fi
-
-{
-    echo "DOCKERFILE=${dockerfile}"
-    echo "DESTINATION=${tags[0]:-mstudio-build:${job_id}}"
-    [[ -n "${target}" ]] && echo "TARGET=${target}"
-} >"${job}/request.tmp"
-mv "${job}/request.tmp" "${job}/request"
-
-deadline=$((SECONDS + timeout_seconds))
-tail_pid=""
-while [[ ! -f "${result}" ]]; do
-    if [[ -z "${tail_pid}" && -f "${job}/log" ]]; then
-        tail -n +1 -f "${job}/log" >&2 &
-        tail_pid=$!
+builder_platforms() {
+    local line
+    if [[ -f "${queue_dir}/builder.env" ]]; then
+        while IFS= read -r line; do
+            [[ "${line}" == PLATFORMS=* ]] && echo "${line#PLATFORMS=}"
+        done <"${queue_dir}/builder.env"
     fi
-    if ((SECONDS > deadline)); then
-        [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null
-        fail "no result after ${timeout_seconds}s. The job stays in ${job} for the builder, check the log of the builder service in mStudio."
+}
+
+# The builder lists its native platform first. Before a builder ever started,
+# the runner shares the host with it and has the same architecture.
+native_platform() {
+    local platforms
+    platforms="$(builder_platforms)"
+    if [[ -n "${platforms}" ]]; then
+        echo "${platforms%%,*}"
+        return 0
     fi
-    sleep 1
-done
-sleep 1
-[[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null || true
+    case "$(uname -m)" in
+        x86_64) echo linux/amd64 ;;
+        aarch64) echo linux/arm64 ;;
+        *) echo "linux/$(uname -m)" ;;
+    esac
+}
 
-exit_code=""
-for _ in 1 2 3 4 5; do
-    line="$(cat "${result}" 2>/dev/null || true)"
-    if [[ "${line}" =~ ^exit=([0-9]+)$ ]]; then
-        exit_code="${BASH_REMATCH[1]}"
-        break
-    fi
-    sleep 1
-done
-[[ -n "${exit_code}" ]] || fail "the builder wrote an unreadable result: $(cat "${result}" 2>/dev/null)"
-
-if [[ "${exit_code}" != "0" ]]; then
-    [[ -f "${job}/log" ]] && tail -n 40 "${job}/log" >&2
-    exit "${exit_code}"
-fi
-
-image_id="$(mstudio-image-store put "${job}/image.tar" "${tags[@]}")"
-
-# The digest of the pushed manifest only exists once it is pushed: crane builds
-# the manifest from the tarball, so it differs from what kaniko would have
-# pushed itself. Without a push there is no digest to report.
-manifest_digest=""
-if [[ "${push}" == true ]]; then
-    for tag in "${tags[@]}"; do
-        log "mstudio-build: pushing ${tag}"
-        pushed="$(mstudio-crane "${tag}" push "${job}/image.tar" "${tag}")"
-        manifest_digest="$(grep -o -E 'sha256:[0-9a-f]{64}' <<<"${pushed}" | tail -n 1)"
-    done
-fi
-
-if [[ -n "${iidfile}" ]]; then
-    if [[ -n "${manifest_digest}" ]]; then
-        printf '%s' "${manifest_digest}" >"${iidfile}"
+# kaniko reports a RUN step that executes a binary of the other architecture as
+# "exec format error". Whether that is expected depends on the probe of the
+# builder, so the message tells which of the two cases this is. A build without
+# --platform is a build for the native platform, which always runs RUN steps.
+explain_failure() {
+    local platform="${1:-$(native_platform)}" log_file="$2"
+    grep -q 'exec format error' "${log_file}" 2>/dev/null || return 0
+    if [[ "${platform}" == "$(native_platform)" || ",$(builder_platforms)," == *",${platform},"* ]]; then
+        echo "mstudio-build: a RUN step started a binary that does not match ${platform}. Check the architecture of the files the Dockerfile downloads or copies." >&2
     else
-        printf '%s' "${image_id}" >"${iidfile}"
+        echo "mstudio-build: the builder cannot run RUN steps for ${platform}, it found no emulation on startup (see the log of the builder service). Build in a stage with FROM --platform=\$BUILDPLATFORM and cross-compile for \$TARGETARCH, or use only COPY in ${platform} stages." >&2
     fi
+}
+
+# Sends the context to the builder for one platform, streams the log and sets
+# job to the job directory once the build succeeded.
+build_for() {
+    local platform="$1" destination="$2"
+    job="$(mktemp -d "${queue_dir}/queue/build-$(date +%s)-XXXXXX")"
+    jobs+=("${job}")
+    local job_id="${job##*/}" result="${job}/result"
+    mkdir -p "${job}/context"
+
+    log "mstudio-build: sending ${context} to the builder (job ${job_id}${platform:+, ${platform}})"
+    tar -c -C "${context}" . | tar -x -C "${job}/context"
+
+    if [[ ${#build_args[@]} -gt 0 ]]; then
+        printf '%s\n' "${build_args[@]}" >"${job}/build-args"
+    fi
+    if [[ ${#labels[@]} -gt 0 ]]; then
+        printf '%s\n' "${labels[@]}" >"${job}/labels"
+    fi
+
+    {
+        echo "DOCKERFILE=${dockerfile}"
+        [[ -n "${destination}" ]] && echo "DESTINATION=${destination}"
+        [[ -n "${target}" ]] && echo "TARGET=${target}"
+        [[ -n "${platform}" ]] && echo "PLATFORM=${platform}"
+    } >"${job}/request.tmp"
+    mv "${job}/request.tmp" "${job}/request"
+
+    local deadline=$((SECONDS + timeout_seconds)) tail_pid=""
+    while [[ ! -f "${result}" ]]; do
+        if [[ -z "${tail_pid}" && -f "${job}/log" ]]; then
+            tail -n +1 -f "${job}/log" >&2 &
+            tail_pid=$!
+        fi
+        if ((SECONDS > deadline)); then
+            [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null
+            if withdraw "${job}"; then
+                fail "no builder took the job within ${timeout_seconds}s, so it was taken back. Check that the builder service of this stack is running in mStudio."
+            fi
+            fail "no result after ${timeout_seconds}s. The job stays in ${job} for the builder, check the log of the builder service in mStudio."
+        fi
+        sleep 1
+    done
+    sleep 1
+    [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null || true
+
+    local exit_code="" line
+    for _ in 1 2 3 4 5; do
+        line="$(cat "${result}" 2>/dev/null || true)"
+        if [[ "${line}" =~ ^exit=([0-9]+)$ ]]; then
+            exit_code="${BASH_REMATCH[1]}"
+            break
+        fi
+        sleep 1
+    done
+    [[ -n "${exit_code}" ]] || fail "the builder wrote an unreadable result: $(cat "${result}" 2>/dev/null)"
+
+    if [[ "${exit_code}" != "0" ]]; then
+        [[ -f "${job}/log" ]] && tail -n 40 "${job}/log" >&2
+        explain_failure "${platform}" "${job}/log"
+        local pushed_nothing=""
+        [[ "${push}" == true ]] && pushed_nothing=", nothing was pushed"
+        echo "mstudio-build: the build${platform:+ for ${platform}} failed with exit code ${exit_code}${pushed_nothing}" >&2
+        exit "${exit_code}"
+    fi
+}
+
+# registry/name:tag and registry:port/name@sha256:... both lose everything
+# after the name.
+repository_of() {
+    local reference="${1%%@*}" last
+    last="${reference##*/}"
+    if [[ "${last}" == *:* ]]; then
+        reference="${reference%:*}"
+    fi
+    echo "${reference}"
+}
+
+tag_of() {
+    local reference="${1%%@*}" last
+    last="${reference##*/}"
+    if [[ "${last}" == *:* ]]; then
+        echo "${last##*:}"
+    else
+        echo latest
+    fi
+}
+
+repositories() {
+    local tag repository
+    local -A seen=()
+    for tag in "${tags[@]}"; do
+        repository="$(repository_of "${tag}")"
+        if [[ ! -v seen["${repository}"] ]]; then
+            seen["${repository}"]=1
+            echo "${repository}"
+        fi
+    done
+}
+
+# The upload is what fails in practice: large layers, credentials that only
+# cover some repositories, quotas. It goes to every repository by digest first,
+# so a failure there leaves every tag where it was.
+upload() {
+    local tarball="$1" digest="$2" repository
+    for repository in "${@:3}"; do
+        log "mstudio-build: pushing ${repository}@${digest}"
+        if ! mstudio-crane "${repository}" push "${tarball}" "${repository}@${digest}" >/dev/null; then
+            fail "uploading ${digest} to ${repository} failed, no tag was changed"
+        fi
+    done
+}
+
+# crane index append only writes to a tag. The index is built here instead and
+# goes to every repository by digest with crane edit manifest, so it exists
+# everywhere before a tag moves. The children are the same in every repository,
+# and so are the index and its digest.
+build_index() {
+    local repository="$1" digest size platform
+    : >"${job}/children.jsonl"
+    for digest in "${@:2}"; do
+        mstudio-crane "${repository}" manifest "${repository}@${digest}" >"${job}/child.json"
+        size="$(wc -c <"${job}/child.json")"
+        platform="$(mstudio-crane "${repository}" config "${repository}@${digest}" | jq -c '{architecture, os, variant} | with_entries(select(.value != null and .value != ""))')"
+        jq -c --arg digest "${digest}" --argjson size "${size}" --argjson platform "${platform}" \
+            '{mediaType, size: $size, digest: $digest} + (if $platform == {} then {} else {platform: $platform} end)' \
+            "${job}/child.json" >>"${job}/children.jsonl"
+    done
+    jq -j -c -s '{schemaVersion: 2, mediaType: "application/vnd.oci.image.index.v1+json", manifests: .}' \
+        "${job}/children.jsonl" >"${job}/index.json"
+    index_digest="sha256:$(sha256sum "${job}/index.json" | cut -d ' ' -f 1)"
+}
+
+# Registries have no transaction across tags. Every manifest is already in every
+# repository, so each tag is one small manifest PUT. When one fails, the tags
+# that moved before it go back to the digest they had.
+declare -A previous=()
+ordered=()
+moved=()
+
+record_previous() {
+    local tag digest
+    for tag in "${tags[@]}"; do
+        [[ -v previous["${tag}"] ]] && continue
+        if digest="$(mstudio-crane "${tag}" digest "${tag}" 2>"${job}/crane.err")"; then
+            previous["${tag}"]="${digest}"
+        elif grep -q -E '^Error: .*(MANIFEST_UNKNOWN|NAME_UNKNOWN|NOT_FOUND|status code 404)' "${job}/crane.err"; then
+            previous["${tag}"]=""
+        else
+            cat "${job}/crane.err" >&2
+            fail "reading the current digest of ${tag} failed, no tag was changed"
+        fi
+        ordered+=("${tag}")
+    done
+}
+
+roll_back() {
+    local failed="$1" digest="$2" tag unrestored=() untouched=false
+    if [[ ${#moved[@]} -eq 0 ]]; then
+        fail "tagging ${failed} failed, no tag was changed"
+    fi
+    echo "mstudio-build: tagging ${failed} failed, moving the tags that already moved back" >&2
+    for tag in "${moved[@]}"; do
+        if [[ -z "${previous[${tag}]}" ]]; then
+            echo "mstudio-build: ${tag} did not exist before and stays at ${digest}" >&2
+        elif mstudio-crane "${tag}" tag "$(repository_of "${tag}")@${previous[${tag}]}" "$(tag_of "${tag}")" >/dev/null 2>"${job}/crane.err"; then
+            echo "mstudio-build: ${tag} points at ${previous[${tag}]} again" >&2
+        else
+            cat "${job}/crane.err" >&2
+            echo "mstudio-build: ${tag} still points at ${digest}, moving it back to ${previous[${tag}]} failed" >&2
+            unrestored+=("${tag}")
+        fi
+    done
+    for tag in "${ordered[@]}"; do
+        [[ "${tag}" == "${failed}" ]] && untouched=true
+        if [[ "${untouched}" == true ]]; then
+            echo "mstudio-build: ${tag} was not changed" >&2
+        fi
+    done
+    if [[ ${#unrestored[@]} -gt 0 ]]; then
+        fail "tagging ${failed} failed and $(IFS=,; echo "${unrestored[*]}") could not be moved back. Set them with crane tag <repository>@<previous digest> <tag>."
+    fi
+    fail "tagging ${failed} failed, every tag that existed before points at its previous image again"
+}
+
+tag_everywhere() {
+    local digest="$1" tag
+    record_previous
+    for tag in "${ordered[@]}"; do
+        log "mstudio-build: tagging ${tag}"
+        if ! mstudio-crane "${tag}" tag "$(repository_of "${tag}")@${digest}" "$(tag_of "${tag}")" >/dev/null 2>"${job}/crane.err"; then
+            cat "${job}/crane.err" >&2
+            roll_back "${tag}" "${digest}"
+        fi
+        moved+=("${tag}")
+    done
+}
+
+write_outputs() {
+    local image_id="$1" manifest_digest="$2"
+    if [[ -n "${iidfile}" ]]; then
+        if [[ -n "${manifest_digest}" ]]; then
+            printf '%s' "${manifest_digest}" >"${iidfile}"
+        else
+            printf '%s' "${image_id}" >"${iidfile}"
+        fi
+    fi
+
+    # The fields `docker/build-push-action` exposes as its imageid, digest and
+    # metadata outputs. Workflows read them to tag deployments, so an empty file
+    # would break steps that do.
+    if [[ -n "${metadata_file}" ]]; then
+        jq -n \
+            --arg config "${image_id}" \
+            --arg digest "${manifest_digest}" \
+            --arg names "$(
+                IFS=,
+                echo "${tags[*]:-}"
+            )" \
+            '(if $config == "" then {} else {"containerimage.config.digest": $config} end)
+                + (if $digest == "" then {} else {"containerimage.digest": $digest} end)
+                + (if $names == "" then {} else {"image.name": $names} end)' \
+            >"${metadata_file}"
+    fi
+}
+
+if [[ ${#platforms[@]} -eq 1 ]]; then
+    build_for "${platforms[0]}" "${tags[0]:-}"
+    image_id="$(mstudio-image-store put "${job}/image.tar" "${tags[@]}")"
+
+    # crane builds the manifest from the tarball, so its digest differs from what
+    # kaniko would have pushed itself. Without a push there is no digest to report.
+    manifest_digest=""
+    if [[ "${push}" == true ]]; then
+        manifest_digest="$(crane digest --tarball "${job}/image.tar")"
+        mapfile -t targets < <(repositories)
+        upload "${job}/image.tar" "${manifest_digest}" "${targets[@]}"
+        tag_everywhere "${manifest_digest}"
+    fi
+    write_outputs "${image_id}" "${manifest_digest}"
+
+    if [[ ${#tags[@]} -gt 0 ]]; then
+        printf '%s\n' "${tags[0]}"
+    else
+        printf '%s\n' "${image_id}"
+    fi
+    exit 0
 fi
 
-# The fields `docker/build-push-action` exposes as its imageid, digest and
-# metadata outputs. Workflows read them to tag deployments, so an empty file
-# would break steps that do.
-if [[ -n "${metadata_file}" ]]; then
-    jq -n \
-        --arg config "${image_id}" \
-        --arg digest "${manifest_digest}" \
-        --arg names "$(
-            IFS=,
-            echo "${tags[*]:-}"
-        )" \
-        '{"containerimage.config.digest": $config}
-            + (if $digest == "" then {} else {"containerimage.digest": $digest} end)
-            + (if $names == "" then {} else {"image.name": $names} end)' \
-        >"${metadata_file}"
-fi
+tarballs=()
+for platform in "${platforms[@]}"; do
+    build_for "${platform}" "${tags[0]}"
+    tarballs+=("${job}/image.tar")
+done
 
-if [[ ${#tags[@]} -gt 0 ]]; then
-    printf '%s\n' "${tags[0]}"
-else
-    printf '%s\n' "${image_id}"
-fi
+# No tag ever points at a single platform image, the index is the only thing
+# that gets tagged.
+mapfile -t targets < <(repositories)
+children=()
+for tarball in "${tarballs[@]}"; do
+    digest="$(crane digest --tarball "${tarball}")"
+    upload "${tarball}" "${digest}" "${targets[@]}"
+    children+=("${digest}")
+done
+build_index "${targets[0]}" "${children[@]}"
+for repository in "${targets[@]}"; do
+    log "mstudio-build: pushing ${repository}@${index_digest} as an index of $(IFS=,; echo "${platforms[*]}")"
+    if ! pushed="$(mstudio-crane "${repository}" edit manifest -m application/vnd.oci.image.index.v1+json "${repository}@${children[0]}" <"${job}/index.json")"; then
+        fail "pushing the index to ${repository} failed, no tag was changed"
+    fi
+    [[ "${pushed}" == *"@${index_digest}" ]] || fail "${repository} stored the index as ${pushed#*@} instead of ${index_digest}, no tag was changed"
+done
+tag_everywhere "${index_digest}"
+write_outputs "" "${index_digest}"
+
+printf '%s\n' "${tags[0]}"

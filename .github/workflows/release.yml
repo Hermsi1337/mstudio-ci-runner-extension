@@ -29,6 +29,10 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run test
       - run: pnpm run build
+      # Same reason as in ci.yml: the emulated builds of the builder need
+      # capabilities in a user namespace, which Ubuntu 24.04 takes away.
+      - name: Allow user namespaces for unconfined processes
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Integration tests (testcontainers)
         run: pnpm run test:integration
 
