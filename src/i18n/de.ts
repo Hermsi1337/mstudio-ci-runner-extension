@@ -24,7 +24,7 @@ export const de: Messages = {
         "Runner haben keinen Docker-Daemon. Jobs laufen direkt auf Ubuntu 24.04.",
     "app.jobs.always.heading": "Immer",
     "app.jobs.always.text":
-        "- Node, Python, `build-essential`, `git`, `curl`, `rsync`\n- SSH-Deploys\n- `sudo apt-get install`\n\n**Geht nicht:** GitLab CI `image:` und `services:`",
+        "- Node, Python, `build-essential`, `git`, `curl`, `rsync`\n- SSH-Deploys\n- `sudo apt-get install`\n\n**Geht nicht:** GitLab CI `image:` und `services:`, Forgejo Actions `container:`, `services:` und `actions/cache`",
     "app.jobs.imageBuilds.heading": "Mit Image-Builds",
     "app.jobs.imageBuilds.text":
         "- `docker build`, `docker push`\n- `docker/build-push-action`\n\n**Geht nicht:** `RUN --mount`, `--secret`, `--ssh`, andere Architekturen",
@@ -38,7 +38,7 @@ export const de: Messages = {
         "Dieses Projekt unterstützt kein Container Hosting und kann deshalb keine CI-Runner betreiben. Installier die Extension in einem Projekt auf einem Server mit Container Hosting.",
     "runners.intro.heading": "So arbeiten Runner",
     "runners.intro":
-        "Jeder Runner ist ein Container in diesem Projekt. Runner desselben Repositorys, derselben Organisation oder GitLab-Instanz teilen sich einen Container-Stack. Ein Runner registriert sich beim Start selbst und führt Jobs direkt in seinem Container aus.",
+        "Jeder Runner ist ein Container in diesem Projekt. Runner desselben Repositorys, derselben Organisation, GitLab- oder Forgejo-Instanz teilen sich einen Container-Stack. Ein Runner registriert sich beim Start selbst und führt Jobs direkt in seinem Container aus.",
     "runners.empty.heading": "Noch keine Runner",
     "runners.empty.text":
         'Lege über "Runner anlegen" den ersten CI-Runner in diesem Projekt an.',
@@ -105,6 +105,8 @@ export const de: Messages = {
         "Entfernt den Container und seine Volumes inklusive Cache. Einen von der Extension angelegten Stack löscht der letzte Runner mit, einen selbst gewählten Stack nicht. Ein laufender Job bricht ab. GitHub führt den Runner noch als offline, bis es ihn nach 14 Tagen entfernt; früher löschst du ihn unter `Settings` → `Actions` → `Runners`.",
     "runners.delete.text.gitlab":
         "Entfernt den Runner aus GitLab, den Container und seine Volumes inklusive Cache. Einen von der Extension angelegten Stack löscht der letzte Runner mit, einen selbst gewählten Stack nicht. Ein laufender Job bricht ab. Ist der Container schon weg, bleibt der Runner in GitLab; lösche ihn dort unter `Settings` → `CI/CD` → `Runners`.",
+    "runners.delete.text.forgejo":
+        "Entfernt den Container und seine Volumes inklusive Cache. Einen von der Extension angelegten Stack löscht der letzte Runner mit, einen selbst gewählten Stack nicht. Ein laufender Job bricht ab. Forgejo führt den Runner als offline, bis du ihn dort unter `Settings` → `Actions` → `Runners` löschst.",
     "runners.logs.heading": "Logs: {name}",
     "runners.logs.empty.heading": "Noch keine Ausgabe",
     "runners.logs.empty.text":
@@ -117,6 +119,7 @@ export const de: Messages = {
 
     "provider.github": "GitHub Actions",
     "provider.gitlab": "GitLab CI",
+    "provider.forgejo": "Forgejo Actions",
 
     "feedback.heading": "Feedback und Support",
     "feedback.text":
@@ -165,6 +168,8 @@ export const de: Messages = {
         "Runner-Registrierung und Arbeitsverzeichnis: Checkouts, geladene Actions, Tool-Cache der setup-Actions.",
     "form.summary.dataVolume.text.gitlab":
         "Builds-Verzeichnis und der Speicher hinter dem cache:-Keyword in .gitlab-ci.yml.",
+    "form.summary.dataVolume.text.forgejo":
+        "Arbeitsverzeichnis der Jobs: Checkouts und Job-Dateien.",
     "form.summary.cacheVolume.label": "Volume: {service}-cache",
     "form.summary.cacheVolume.text":
         "Paketmanager-Cache. Die Belegung ist in mStudio separat sichtbar.",
@@ -185,9 +190,12 @@ export const de: Messages = {
     "form.snippet.text.github":
         "Jobs erreichen diesen Runner über seine Labels in runs-on.",
     "form.snippet.text.gitlab": "Jobs erreichen diesen Runner über seine Tags.",
+    "form.snippet.text.forgejo":
+        "Jobs erreichen diesen Runner über seine Labels in runs-on.",
     "form.provider.question": "Welches CI-System?",
     "form.provider.github.text": "Repositorys und Organisationen",
     "form.provider.gitlab.text": "gitlab.com oder self-hosted",
+    "form.provider.forgejo.text": "Selbst betriebene Forgejo-Instanzen",
     "form.provider.change": "CI-System ändern",
     "form.name.label": "Name",
     "form.name.description": "Wird als Runner-Name im CI-System verwendet.",
@@ -207,10 +215,28 @@ export const de: Messages = {
     "form.gitlab.configCommand.required": "Register-Befehl fehlt",
     "form.gitlab.configCommand.invalid":
         "Füge den vollständigen Befehl mit --url https://... und --token glrt-... ein.",
+    "form.forgejo.instanceUrl.label": "Forgejo-URL",
+    "form.forgejo.instanceUrl.description":
+        "Basisadresse der Instanz, zum Beispiel https://forgejo.example.com.",
+    "form.forgejo.instanceUrl.required": "Forgejo-URL fehlt",
+    "form.forgejo.instanceUrl.invalid":
+        "Gib die Adresse mit https:// an, zum Beispiel https://forgejo.example.com.",
+    "form.forgejo.uuid.label": "Runner-UUID",
+    "form.forgejo.uuid.required": "Runner-UUID fehlt",
+    "form.forgejo.uuid.invalid":
+        "Füge die UUID so ein, wie Forgejo sie zeigt, zum Beispiel c9e50be9-a7c3-4aee-ba35-624c4ff8c519.",
+    "form.forgejo.token.label": "Runner-Token",
+    "form.forgejo.token.description":
+        "Forgejo zeigt UUID und Token nur einmal, direkt nach dem Anlegen des Runners.",
+    "form.forgejo.token.required": "Runner-Token fehlt",
+    "form.forgejo.token.invalid":
+        "Das Token ist zu kurz. Kopiere es vollständig aus Forgejo.",
     "form.labels.label": "Labels",
     "form.tags.label": "Tags",
-    "form.labels.description":
+    "form.labels.description.github":
         "Kommagetrennt. Referenziere sie mit runs-on: [self-hosted, mittwald].",
+    "form.labels.description.forgejo":
+        "Kommagetrennt. Referenziere eines mit runs-on: mittwald.",
     "form.stack.label": "Ziel-Stack",
     "form.stack.automatic": "Automatisch (ein Stack pro Ziel)",
     "form.stack.option": "{name} ({services} Services)",
@@ -242,15 +268,21 @@ export const de: Messages = {
 
     "help.open": "Hilfe zu {subject}",
     "form.name.help":
-        "Wird als Runner-Name in GitHub oder GitLab und in dieser Liste angezeigt. Buchstaben, Ziffern und Bindestriche bleiben erhalten, alle anderen Zeichen werden zu Bindestrichen.",
+        "Wird in dieser Liste und als Runner-Name in GitHub oder GitLab angezeigt. Forgejo behält den Namen, den du dem Runner dort gegeben hast. Buchstaben, Ziffern und Bindestriche bleiben erhalten, alle anderen Zeichen werden zu Bindestrichen.",
     "form.github.configCommand.help":
         "Öffne auf GitHub das Repository oder die Organisation, dann `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Kopiere unter `Configure` die Zeile, die mit `./config.sh` (oder `./config.cmd`) beginnt, und füge sie hier ein. Genutzt werden nur `--url` und `--token`. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Nach dem Löschen hier führt GitHub den Runner noch als offline, bis es ihn nach 14 Tagen entfernt.",
     "form.github.runnerGroup.help":
         "Nur für Organisationen. Runner-Gruppen steuern, welche Repositorys den Runner nutzen dürfen. Leer lassen für die Gruppe Default.",
     "form.gitlab.configCommand.help":
         "Öffne auf GitLab das Projekt oder die Gruppe, dann `Settings` → `CI/CD` → `Runners` → `New project runner`. Lege Tags fest und ob Jobs ohne Tags laufen, klicke `Create runner` und kopiere aus Schritt 1 die Zeile `gitlab-runner register`. Nur `--url` und `--token` werden genutzt. Das Token gehört zu diesem Runner; löschst du den Runner hier, verschwindet er auch aus GitLab.",
-    "form.labels.help":
+    "form.forgejo.instanceUrl.help":
+        "Öffne in Forgejo die Einstellungen des Repositorys, der Organisation oder deines Kontos (oder die Administration für die ganze Instanz), dann `Settings` → `Actions` → `Runners`, und leg dort einen Runner an. Wo du ihn anlegst, entscheidet, welche Repositorys ihn nutzen dürfen. Trag hier die Adresse der Instanz ein, ohne Pfad.",
+    "form.forgejo.token.help":
+        "Forgejo zeigt UUID und Token des neuen Runners einmal an. Kopiere beide hierher. Der Container meldet sich bei jedem Start damit bei Forgejo, deshalb bleibt das Token in der Umgebung des Containers, solange der Runner existiert. Dein Forgejo muss neben dem Token eine UUID anzeigen; eine ältere Version, die stattdessen ein Registrierungs-Token ausgibt, funktioniert nicht. Löschst du den Runner hier, bleibt er in Forgejo bestehen.",
+    "form.labels.help.github":
         "Kommagetrennte Labels, mit denen sich der Runner registriert. Im Workflow referenzierst du sie mit `runs-on: [self-hosted, mittwald]`. Jobs mit anderen Labels erreichen diesen Runner nicht.",
+    "form.labels.help.forgejo":
+        "Kommagetrennte Labels, die der Runner Forgejo bei jedem Start meldet. Jobs mit diesen Labels laufen direkt im Container, nicht in einem Docker-Image. Im Workflow referenzierst du sie mit `runs-on: mittwald`. Jobs mit anderen Labels erreichen diesen Runner nicht.",
     "form.cache.label": "Paketmanager-Cache",
     "form.cache.description":
         "Behält Downloads von npm, pip, Composer und Go für spätere Jobs.",
@@ -274,7 +306,7 @@ export const de: Messages = {
     "form.concurrency.required": "Gib an, wie viele Jobs gleichzeitig laufen",
     "form.concurrency.range": "Gib einen Wert zwischen 1 und 8 an",
     "form.concurrency.help":
-        "Wie viele Jobs der Runner gleichzeitig annimmt (concurrent in der GitLab-Runner-Config). Alle Jobs teilen sich CPU- und Speicherlimit der Größe. Ein zweiter Job bremst den ersten, und ein Build, der mehr Speicher braucht als seinen Anteil, schlägt fehl.",
+        "Wie viele Jobs der Runner gleichzeitig annimmt (concurrent in der GitLab-Runner-Config, capacity in der Forgejo-Runner-Config). Alle Jobs teilen sich CPU- und Speicherlimit der Größe. Ein zweiter Job bremst den ersten, und ein Build, der mehr Speicher braucht als seinen Anteil, schlägt fehl.",
     "form.concurrency.recommendation.small":
         "Klein: 1 Job. 0,5 CPU und 1 GB RAM reichen für einen Job.",
     "form.concurrency.recommendation.medium":
@@ -340,4 +372,6 @@ export const de: Messages = {
     "error.gitlab.status": "GitLab hat mit Status {status} geantwortet.",
     "error.gitlab.removeFailed":
         "Der GitLab-Runner konnte nicht entfernt werden (Status {status}).",
+    "error.forgejo.instanceUrlInvalid":
+        "Die Forgejo-URL muss eine https-Adresse ohne Benutzer, Query und Fragment sein, zum Beispiel https://forgejo.example.com.",
 };

@@ -7,13 +7,14 @@ import type { Provider } from "@/generated/extension-api";
  * GitLab ("New runner"):
  * `gitlab-runner register --url https://gitlab.com --token glrt-...`.
  * Other flags are ignored. A bare token without --url is not accepted.
+ * Providers without a command on their runner page have no pattern.
  */
 export interface ConfigCommand {
     target: string;
     token: string;
 }
 
-const patterns: Record<Provider, { url: RegExp; token: RegExp }> = {
+const patterns: Partial<Record<Provider, { url: RegExp; token: RegExp }>> = {
     github: {
         url: /--url[\s=]+["']?(https?:\/\/github\.com\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)?)/,
         token: /--token[\s=]+["']?([A-Z0-9]{20,})/,
@@ -28,8 +29,9 @@ export function parseConfigCommand(
     provider: Provider,
     input: string,
 ): ConfigCommand | null {
-    const url = patterns[provider].url.exec(input)?.[1];
-    const token = patterns[provider].token.exec(input)?.[1];
+    const pattern = patterns[provider];
+    const url = pattern?.url.exec(input)?.[1];
+    const token = pattern?.token.exec(input)?.[1];
     if (!url || !token) {
         return null;
     }

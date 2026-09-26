@@ -19,7 +19,11 @@ export type DockerApiTokenResponse = {
 /**
  * CI system the runner registers with.
  */
-export const Provider = { GITHUB: 'github', GITLAB: 'gitlab' } as const;
+export const Provider = {
+    GITHUB: 'github',
+    GITLAB: 'gitlab',
+    FORGEJO: 'forgejo'
+} as const;
 
 /**
  * CI system the runner registers with.
@@ -89,7 +93,7 @@ export type RunnerStatus = typeof RunnerStatus[keyof typeof RunnerStatus];
 export type RunnerBase = {
     name: string;
     /**
-     * Comma separated runner labels (GitHub) or tags (GitLab).
+     * Comma separated runner labels (GitHub, Forgejo). GitLab keeps its tags in GitLab and ignores the value.
      */
     labels?: string;
     cache?: CacheEnabled;
@@ -111,7 +115,7 @@ export type RunnerBase = {
 };
 
 /**
- * Jobs the runner takes at the same time. GitLab only; a GitHub runner takes one job at a time and ignores the value.
+ * Jobs the runner takes at the same time. GitLab and Forgejo only; a GitHub runner takes one job at a time and ignores the value.
  */
 export type Concurrency = number;
 
@@ -175,11 +179,35 @@ export type GitLabRunnerRequest = RunnerBase & {
     token: string;
 };
 
+export type ForgejoRunnerRequest = RunnerBase & {
+    provider: 'forgejo';
+    /**
+     * Base URL of the Forgejo instance.
+     */
+    instanceUrl: string;
+    /**
+     * UUID and token from the runner page on Forgejo. The runner already exists there; the
+     * container declares itself with both on every start.
+     *
+     */
+    tokenType?: 'registration';
+    /**
+     * UUID Forgejo shows once after creating the runner.
+     */
+    uuid: string;
+    /**
+     * Token Forgejo shows once after creating the runner.
+     */
+    token: string;
+};
+
 export type CreateRunnerRequest = ({
     provider: 'github';
 } & GitHubRunnerRequest) | ({
     provider: 'gitlab';
-} & GitLabRunnerRequest);
+} & GitLabRunnerRequest) | ({
+    provider: 'forgejo';
+} & ForgejoRunnerRequest);
 
 export type RunnerIdRequest = {
     runnerId: string;

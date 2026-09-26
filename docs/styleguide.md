@@ -156,7 +156,7 @@ had slipped out of the layout.
   for an empty set.
 - `AccentBox` colors carry meaning or stay `neutral`. Three tiles side by side are
   all `neutral`; icon and heading tell them apart.
-- Avatars: color encodes the provider (GitHub violet, GitLab teal). Do not encode
+- Avatars: color encodes the provider (GitHub violet, GitLab teal, Forgejo lilac). Do not encode
   status in the avatar, the badge does that.
 - Icons come from Flow (`IconSettings`, `IconDelete`, ...), no emoji. The only custom
   SVGs are the logo in `BrandHeader.tsx` and the provider logos in `provider-logos.ts`,

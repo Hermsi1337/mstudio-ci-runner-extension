@@ -5,17 +5,23 @@ import {
 } from "@mittwald/flow-remote-react-components";
 import { typedField } from "@mittwald/flow-remote-react-components/react-hook-form";
 import type { Path, UseFormReturn } from "react-hook-form";
-import type { RunnerSize } from "@/generated/extension-api";
+import type { Provider, RunnerSize } from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
+
+/**
+ * Mirrors concurrencyVariable of the providers in src/domain/providers/,
+ * which the client bundle must not import.
+ */
+export const concurrentProviders: readonly Provider[] = ["gitlab", "forgejo"];
 
 export interface ConcurrencyFormValues {
     concurrency: number;
 }
 
 /**
- * Shared by the create form and the settings modal, GitLab only. The
- * recommendation follows the runner size.
+ * Shared by the create form and the settings modal, for the providers in
+ * concurrentProviders. The recommendation follows the runner size.
  */
 export function ConcurrencyField<T extends ConcurrencyFormValues>({
     form,

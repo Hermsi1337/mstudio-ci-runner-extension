@@ -41,7 +41,14 @@ const transientStatuses: RunnerStatus[] = ["creating", "starting", "stopping"];
 const providerInitials: Record<Provider, string> = {
     github: "Git Hub",
     gitlab: "Git Lab",
+    forgejo: "Forge Jo",
 };
+
+const providerColors = {
+    github: "violet",
+    gitlab: "teal",
+    forgejo: "lilac",
+} as const satisfies Record<Provider, string>;
 
 type ProviderFilter = Provider | "all";
 
@@ -205,7 +212,7 @@ const RunnerRow = ({
     const version = runner.imageVersion ?? runner.runnerVersion;
     return (
         <Runners.ItemView s={[1]} m={[1, 1]} l={[3, 2]}>
-            <Avatar color={runner.provider === "github" ? "violet" : "teal"}>
+            <Avatar color={providerColors[runner.provider]}>
                 <Initials>{providerInitials[runner.provider]}</Initials>
             </Avatar>
             <Heading>
@@ -341,6 +348,7 @@ export const RunnerList = ({ onCreate }: { onCreate: () => void }) => {
                         <Radio value="all">{t("runners.filter.all")}</Radio>
                         <Radio value="github">{t("provider.github")}</Radio>
                         <Radio value="gitlab">{t("provider.gitlab")}</Radio>
+                        <Radio value="forgejo">{t("provider.forgejo")}</Radio>
                     </RadioGroup>
                 </ColumnLayout>
             )}
