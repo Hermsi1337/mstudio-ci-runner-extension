@@ -110,12 +110,8 @@ func (r *FrameReader) Close() error { return r.f.Close() }
 
 func (r *FrameReader) Offset() int64 { return r.offset }
 
-// SeekEnd skips everything written so far.
-func (r *FrameReader) SeekEnd() {
-	if info, err := r.f.Stat(); err == nil {
-		r.offset = info.Size()
-	}
-}
+// SetOffset continues reading at offset, which must start a frame.
+func (r *FrameReader) SetOffset(offset int64) { r.offset = offset }
 
 // Next returns the next complete frame, or io.EOF when none is complete yet.
 func (r *FrameReader) Next() (*Frame, error) {

@@ -82,11 +82,11 @@ into the shared directory, where every container finds it.
 
 | Concern | How |
 |---|---|
-| Output | The wrapper writes stdout and stderr as timestamped frames into a log file. `logs`, `attach` and `docker run` read it, with follow, tail, since and timestamps. |
+| Output | The wrapper writes stdout and stderr as timestamped frames into a log file. `logs`, `attach` and `docker run` read it, with follow, tail, since and timestamps. An attach picks the run it streams before it answers the client, so a run that ends right after the start keeps its output. |
 | Exit code | The wrapper records it and stays alive, so the container stays exited instead of being restarted. `wait`, `inspect` and `docker run` report it. The process runs in a process group of its own: stop and kill signal the whole group, and when the main process ends, its leftovers end with it, as in a Docker container. |
 | exec | The adapter writes a request, the wrapper runs it and streams output and exit code back. No SSH. |
 | stdin | `docker run -i` and `docker exec -i`: the adapter appends the input of the client to a file and marks its end, the wrapper feeds the file to the process. |
-| Events | `GET /events` streams create, start, die with exit code, stop, kill and destroy; Docker Compose follows containers through it. |
+| Events | `GET /events` streams create, start, die with exit code, stop, kill and destroy; Docker Compose follows containers through it. Compose stops reading output when it sees die, so die waits up to two seconds until the attach streams of the run delivered their last line, as in dockerd. |
 | Files | `docker cp` and Testcontainers copies go through the shared directory. Files copied into a created container are extracted before its process starts. |
 | Health checks | The wrapper runs the `HEALTHCHECK` of the container, `State.Health` reports it. |
 | Ports | Published ports are opened on the adapter and forwarded to the address the wrapper reports. Clients connect to the host in `DOCKER_HOST`. |

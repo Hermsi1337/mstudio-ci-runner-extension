@@ -186,13 +186,15 @@ func (h *ContainerHandler) Logs(w http.ResponseWriter, r *http.Request) {
 // the platform offers no way to write to the stdin of a process.
 func (h *ContainerHandler) Attach(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	if _, err := h.engine.Resolve(id); err != nil {
+	attachment, err := h.engine.Attach(id, isTrue(r.URL.Query().Get("logs")))
+	if err != nil {
 		writeEngineError(w, err)
 		return
 	}
 	raw := h.engine.Tty(id)
 	conn, err := hijack(w, r, raw)
 	if err != nil {
+		attachment.Close()
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -205,7 +207,7 @@ func (h *ContainerHandler) Attach(w http.ResponseWriter, r *http.Request) {
 	// A hijacked request loses its context when the client closes its write
 	// side, which a client without stdin does right away. The stream ends
 	// with the container instead.
-	if err := h.engine.Attach(context.WithoutCancel(r.Context()), id, isTrue(r.URL.Query().Get("logs")), engine.Output{W: conn, Raw: raw}); err != nil {
+	if err := attachment.Stream(context.WithoutCancel(r.Context()), engine.Output{W: conn, Raw: raw}); err != nil {
 		slog.Debug("attach ended", "container", id, "error", err)
 	}
 }

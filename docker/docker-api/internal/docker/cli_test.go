@@ -13,8 +13,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/moby/moby/api/types/events"
 
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/docker"
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
@@ -38,6 +41,7 @@ func TestMain(m *testing.M) {
 type env struct {
 	t        *testing.T
 	platform *fakeplatform.Platform
+	engine   *engine.Engine
 	host     string
 	stateDir string
 }
@@ -81,7 +85,7 @@ func setup(t *testing.T) *env {
 		Logger:          testLogger(),
 	}))
 	t.Cleanup(server.Close)
-	return &env{t: t, platform: platform, host: "tcp://" + strings.TrimPrefix(server.URL, "http://"), stateDir: stateDir}
+	return &env{t: t, platform: platform, engine: eng, host: "tcp://" + strings.TrimPrefix(server.URL, "http://"), stateDir: stateDir}
 }
 
 type result struct {
@@ -332,6 +336,60 @@ func TestComposeUpInTheForeground(t *testing.T) {
 		t.Fatalf("compose up: code %d stdout %q stderr %q", r.code, r.stdout, r.stderr)
 	}
 	e.mustDocker("compose", "-f", filepath.Join(dir, "compose.yaml"), "-p", "clitest", "down")
+}
+
+// Clients attach, start the container right away and stop reading when the
+// die event arrives, as docker compose up does. The stream begins here only
+// after the run ended, the worst case a slow adapter can produce.
+func TestAttachDeliversAShortRunBeforeDie(t *testing.T) {
+	e := setup(t)
+	e.mustDocker("create", "--name", "short", "alpine", "sh", "-c", "echo short-run; exit 3")
+	attachment, err := e.engine.Attach("short", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var mu sync.Mutex
+	var order []string
+	record := func(s string) {
+		mu.Lock()
+		defer mu.Unlock()
+		order = append(order, s)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		_ = e.engine.Events(ctx, time.Time{}, time.Time{}, engine.Filters{"event": {"die"}, "container": {"short"}}, func(events.Message) error {
+			record("die")
+			return nil
+		})
+	}()
+	e.mustDocker("start", "short")
+	if code := e.mustDocker("wait", "short"); code != "3" {
+		t.Fatalf("wait returned %q, want 3", code)
+	}
+	time.Sleep(time.Second)
+	var out bytes.Buffer
+	if err := attachment.Stream(ctx, engine.Output{W: &out, Raw: true}); err != nil {
+		t.Fatal(err)
+	}
+	record("output")
+	if out.String() != "short-run\n" {
+		t.Fatalf("attach delivered %q", out.String())
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		mu.Lock()
+		got := strings.Join(order, ",")
+		mu.Unlock()
+		if got == "output,die" {
+			break
+		}
+		if got != "output" || time.Now().After(deadline) {
+			t.Fatalf("events in order %q, want output,die", got)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	e.mustDocker("rm", "short")
 }
 
 func TestLabelFiltersMustAllMatch(t *testing.T) {

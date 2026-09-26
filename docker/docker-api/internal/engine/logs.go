@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
@@ -101,31 +102,109 @@ func (e *Engine) Logs(ctx context.Context, ref string, opts LogOptions, out Outp
 	})
 }
 
-// Attach streams the output of the next run, or of the current one if the
-// container runs, until that run ends. `docker run` attaches before it starts
-// the container, so the stream starts with the first line.
-func (e *Engine) Attach(ctx context.Context, ref string, logs bool, out Output) error {
+// attachDrainTimeout bounds how long the end of a run waits for its attach
+// streams, as dockerd does.
+const attachDrainTimeout = 2 * time.Second
+
+// Attachment is the run an attach streams: the next run, or the current one
+// if the container runs.
+type Attachment struct {
+	e         *Engine
+	container string
+	dir       state.Dir
+	target    int
+	offset    int64
+	done      chan struct{}
+	closed    sync.Once
+}
+
+// attachments holds the open attach streams. Like dockerd, the adapter
+// reports the end of a run only once its streams delivered the last output:
+// docker compose stops reading when it sees the die event.
+type attachments struct {
+	mu   sync.Mutex
+	open map[*Attachment]struct{}
+}
+
+func (as *attachments) add(a *Attachment) {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	if as.open == nil {
+		as.open = map[*Attachment]struct{}{}
+	}
+	as.open[a] = struct{}{}
+}
+
+func (as *attachments) remove(a *Attachment) {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	delete(as.open, a)
+}
+
+// drain waits until the streams of the given run of a container ended.
+func (as *attachments) drain(container string, generation int, timeout time.Duration) {
+	as.mu.Lock()
+	var pending []chan struct{}
+	for a := range as.open {
+		if a.container == container && a.target <= generation {
+			pending = append(pending, a.done)
+		}
+	}
+	as.mu.Unlock()
+	deadline := time.After(timeout)
+	for _, done := range pending {
+		select {
+		case <-done:
+		case <-deadline:
+			return
+		}
+	}
+}
+
+// Attach fixes the run to stream. The handler calls it before it answers the
+// client, because `docker run` and docker compose start the container right
+// after the attach returns: a short run could end before the stream looks at
+// the container and its output would be lost.
+func (e *Engine) Attach(ref string, logs bool) (*Attachment, error) {
 	c, err := e.Resolve(ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	dir := e.dir(c.ID)
 	st := dir.Status()
-	target := st.Generation()
+	a := &Attachment{e: e, container: c.ID, dir: dir, target: st.Generation(), done: make(chan struct{})}
 	if !st.Running() {
-		target++
+		a.target++
+	} else if !logs {
+		if info, err := os.Stat(dir.LogPath()); err == nil {
+			a.offset = info.Size()
+		}
 	}
-	r, err := waitFrames(ctx, dir, true)
+	e.attachments.add(a)
+	return a, nil
+}
+
+// Close ends the attachment. Stream closes it on return; a caller that does
+// not stream closes it itself.
+func (a *Attachment) Close() {
+	a.closed.Do(func() {
+		a.e.attachments.remove(a)
+		close(a.done)
+	})
+}
+
+// Stream writes the output of the attached run until that run ends.
+func (a *Attachment) Stream(ctx context.Context, out Output) error {
+	defer a.Close()
+	r, err := waitFrames(ctx, a.dir, true)
 	if err != nil || r == nil {
 		return err
 	}
 	defer func() { _ = r.Close() }()
-	if st.Running() && !logs {
-		r.SeekEnd()
-	}
-	return e.follow(ctx, dir, r, out, func(*state.Frame) bool { return true }, false, func() bool {
-		ex, err := dir.Exit()
-		return err == nil && ex.Generation >= target
+	r.SetOffset(a.offset)
+	return a.e.follow(ctx, a.dir, r, out, func(*state.Frame) bool { return true }, false, func() bool {
+		ex, err := a.dir.Exit()
+		return err == nil && ex.Generation >= a.target
 	})
 }
 

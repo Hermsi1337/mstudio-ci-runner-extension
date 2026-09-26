@@ -102,6 +102,8 @@ type Engine struct {
 	ryuk     *ryukServer
 	events   *eventBus
 
+	attachments attachments
+
 	stackMu    sync.Mutex
 	mu         sync.Mutex
 	tombstones map[string]*state.Exit

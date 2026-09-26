@@ -99,6 +99,7 @@ func (e *Engine) watchExits(ctx context.Context) {
 				continue
 			}
 			if _, known := seen[c.ID]; known || time.Since(ex.FinishedAt) < 5*time.Second {
+				e.attachments.drain(c.ID, ex.Generation, attachDrainTimeout)
 				e.emit(c, events.ActionDie, map[string]string{"exitCode": strconv.Itoa(ex.Code)})
 			}
 			seen[c.ID] = ex.Generation
