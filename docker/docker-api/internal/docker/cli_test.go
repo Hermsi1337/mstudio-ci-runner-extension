@@ -344,3 +344,19 @@ func TestLabelFiltersMustAllMatch(t *testing.T) {
 	}
 	e.mustDocker("rm", "-f", "one", "two")
 }
+
+func TestStartReturnsOnceSiblingsResolve(t *testing.T) {
+	e := setup(t)
+	e.mustDocker("network", "create", "hosts-net")
+	e.mustDocker("run", "-d", "--name", "db", "--network", "hosts-net", "--network-alias", "database", "alpine", "sleep", "60")
+	e.mustDocker("run", "-d", "--name", "app", "--network", "hosts-net", "alpine", "sleep", "60")
+	id := strings.TrimSpace(e.mustDocker("inspect", "app", "--format", "{{.Id}}"))
+	applied, err := os.ReadFile(state.Dir(filepath.Join(e.stateDir, "containers", id)).HostsAppliedPath())
+	if err != nil {
+		t.Fatalf("hosts of app not confirmed when run returned: %v", err)
+	}
+	if !strings.Contains(string(applied), "database") {
+		t.Fatalf("hosts of app lack the alias of db:\n%s", applied)
+	}
+	e.mustDocker("rm", "-f", "app", "db")
+}

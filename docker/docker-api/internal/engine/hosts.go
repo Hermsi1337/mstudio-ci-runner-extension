@@ -1,13 +1,18 @@
 package engine
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
 )
+
+const hostsAppliedTimeout = 10 * time.Second
 
 // containerIP is the address the wrapper reported for the current run. The
 // DNS of the stack resolves a new service only after a while and caches the
@@ -79,6 +84,31 @@ func (e *Engine) publishHosts() {
 			_ = os.Rename(tmp, path)
 		}
 	}
+}
+
+// waitHostsApplied returns once the wrapper merged the entries of the
+// siblings, published before the start, or newer ones into /etc/hosts.
+// Clients resolve a sibling right after the start returns, as docker compose
+// exec does after up --wait. The wrapper applies the entries before the
+// process starts, so a start rarely waits.
+func (e *Engine) waitHostsApplied(ctx context.Context, c *state.Container, siblings []byte) {
+	dir := e.dir(c.ID)
+	deadline := time.Now().Add(hostsAppliedTimeout)
+	for time.Now().Before(deadline) {
+		current, err := os.ReadFile(dir.HostsPath())
+		if err != nil {
+			return
+		}
+		if got, err := os.ReadFile(dir.HostsAppliedPath()); err == nil && (bytes.Equal(got, siblings) || bytes.Equal(got, current)) {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(150 * time.Millisecond):
+		}
+	}
+	e.log.Warn("hosts entries not confirmed", "container", c.ID[:12], "timeout", hostsAppliedTimeout)
 }
 
 // hostName keeps names that are valid in /etc/hosts.

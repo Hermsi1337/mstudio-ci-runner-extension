@@ -90,7 +90,7 @@ into the shared directory, where every container finds it.
 | Files | `docker cp` and Testcontainers copies go through the shared directory. Files copied into a created container are extracted before its process starts. |
 | Health checks | The wrapper runs the `HEALTHCHECK` of the container, `State.Health` reports it. |
 | Ports | Published ports are opened on the adapter and forwarded to the address the wrapper reports. Clients connect to the host in `DOCKER_HOST`. |
-| Names | The DNS of a stack resolves a new service only after some seconds and caches the miss. The adapter publishes names and network aliases as `/etc/hosts` entries, which the wrapper merges. |
+| Names | The DNS of a stack resolves a new service only after some seconds and caches the miss. The adapter publishes names and network aliases as `/etc/hosts` entries, which the wrapper merges. A start returns once the wrapper confirmed the entries of the other containers, so `docker compose exec` right after `up --wait` resolves every service. |
 | Ryuk | Testcontainers starts Ryuk to clean up after a session. Ryuk needs the Docker socket, so the adapter plays Ryuk in-process and removes the containers of a session ten seconds after it disconnected. |
 
 A container is declared as a service only when it starts: mittwald starts a
@@ -116,6 +116,7 @@ A container sees only `bin/` and its own directory below `/.mstudio`.
 | `containers/<id>/heartbeat` | wrapper | touched every two seconds |
 | `containers/<id>/health.json` | wrapper | health check state |
 | `containers/<id>/hosts` | adapter | hosts entries of the other containers |
+| `containers/<id>/hosts.applied` | wrapper | the entries last merged into `/etc/hosts` |
 | `containers/<id>/control/<n>.json` | adapter | start and signal requests |
 | `containers/<id>/archives/<n>.tar`, `<n>.json` | adapter | files to extract, answered with `<n>.done` or `<n>.error` |
 | `containers/<id>/tasks/<id>/` | both | exec, stat and archive requests, output and result |

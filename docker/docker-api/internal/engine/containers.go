@@ -404,6 +404,8 @@ func (e *Engine) Start(ctx context.Context, ref string) error {
 	if before.Running() && (c.ServiceID == "" || dir.Alive()) && before.Started() {
 		return ErrNotModified
 	}
+	e.publishHosts()
+	siblings, _ := os.ReadFile(dir.HostsPath())
 	if c.ServiceID == "" {
 		if err := e.declare(ctx, c); err != nil {
 			return err
@@ -428,6 +430,7 @@ func (e *Engine) Start(ctx context.Context, ref string) error {
 		return err
 	}
 	e.publishHosts()
+	e.waitHostsApplied(ctx, c, siblings)
 	e.emit(c, events.ActionStart, nil)
 	return nil
 }

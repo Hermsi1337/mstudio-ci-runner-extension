@@ -43,32 +43,33 @@ func (in *Init) readEtcHosts() []byte {
 }
 
 // applyHosts writes the entries the adapter published below the original
-// content of /etc/hosts. It returns the entries it wrote, or last when
-// nothing changed or /etc/hosts is read-only, as it is for containers that
-// run as an unprivileged user.
+// content of /etc/hosts and confirms them in hosts.applied. It returns the
+// entries it handled, or last when nothing changed. A read-only /etc/hosts,
+// as containers of an unprivileged user have, still confirms the entries:
+// retrying would not help.
 func (in *Init) applyHosts(original, last []byte) []byte {
-	if original == nil {
-		return last
-	}
 	entries, err := os.ReadFile(in.dir.HostsPath())
 	if err != nil || bytes.Equal(entries, last) {
 		return last
 	}
-	content := append(append(append([]byte{}, original...), hostsMarker...), entries...)
-	if os.WriteFile(etcHosts, content, 0o644) != nil {
-		return last
+	if original != nil {
+		content := append(append(append([]byte{}, original...), hostsMarker...), entries...)
+		_ = os.WriteFile(etcHosts, content, 0o644)
+	}
+	applied := in.dir.HostsAppliedPath()
+	if os.WriteFile(applied+".tmp", entries, 0o644) == nil {
+		_ = os.Rename(applied+".tmp", applied)
 	}
 	return entries
 }
 
-func (in *Init) syncHosts(ctx context.Context, original []byte) {
-	var last []byte
+func (in *Init) syncHosts(ctx context.Context, original, last []byte) {
 	for {
-		last = in.applyHosts(original, last)
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(time.Second):
 		}
+		last = in.applyHosts(original, last)
 	}
 }

@@ -156,10 +156,14 @@ func (d Dir) HealthPath() string    { return d.path("health.json") }
 // HostsPath holds the /etc/hosts entries of the other containers. The
 // adapter writes it, the wrapper merges it into /etc/hosts, because the DNS
 // of the stack knows only service names and caches a miss for a new one.
-func (d Dir) HostsPath() string  { return d.path("hosts") }
-func (d Dir) ControlDir() string { return d.path("control") }
-func (d Dir) ArchiveDir() string { return d.path("archives") }
-func (d Dir) TaskDir() string    { return d.path("tasks") }
+func (d Dir) HostsPath() string { return d.path("hosts") }
+
+// HostsAppliedPath holds the entries the wrapper last merged into /etc/hosts,
+// so a start returns only once the container resolves its siblings.
+func (d Dir) HostsAppliedPath() string { return d.path("hosts.applied") }
+func (d Dir) ControlDir() string       { return d.path("control") }
+func (d Dir) ArchiveDir() string       { return d.path("archives") }
+func (d Dir) TaskDir() string          { return d.path("tasks") }
 
 // Prepare creates the directory tree. Every directory is world writable,
 // because the wrapper runs as whatever user the image declares and the API

@@ -75,13 +75,15 @@ func (in *Init) loop(parent context.Context) error {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 	go in.heartbeat(ctx)
+	// Once before the process starts, so a container that resolves a sibling
+	// right away finds it; then in the background. Only the wrapper of the
+	// container itself owns /etc/hosts, local runs confirm the entries only.
+	var original []byte
 	if string(in.dir) == state.SelfDir {
-		// Once before the process starts, so a container that resolves a
-		// sibling right away finds it; then in the background.
-		original := in.readEtcHosts()
-		in.applyHosts(original, nil)
-		go in.syncHosts(ctx, original)
+		original = in.readEtcHosts()
 	}
+	last := in.applyHosts(original, nil)
+	go in.syncHosts(ctx, original, last)
 	// The reaper outlives ctx: shutdown still waits for the process to end.
 	reaperCtx, stopReaper := context.WithCancel(context.Background())
 	defer stopReaper()
