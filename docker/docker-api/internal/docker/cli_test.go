@@ -333,3 +333,14 @@ func TestComposeUpInTheForeground(t *testing.T) {
 	}
 	e.mustDocker("compose", "-f", filepath.Join(dir, "compose.yaml"), "-p", "clitest", "down")
 }
+
+func TestLabelFiltersMustAllMatch(t *testing.T) {
+	e := setup(t)
+	e.mustDocker("run", "-d", "--name", "one", "--label", "project=p", "--label", "service=db", "alpine", "sleep", "60")
+	e.mustDocker("run", "-d", "--name", "two", "--label", "project=p", "--label", "service=app", "alpine", "sleep", "60")
+	got := e.mustDocker("ps", "--filter", "label=project=p", "--filter", "label=service=db", "--format", "{{.Names}}")
+	if got != "one" {
+		t.Fatalf("filter returned %q, want one", got)
+	}
+	e.mustDocker("rm", "-f", "one", "two")
+}

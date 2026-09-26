@@ -250,7 +250,15 @@ func ParseFilters(raw string) (Filters, error) {
 
 func (f Filters) match(o observed) bool {
 	c := o.c
+	// Several label filters must all match, as in dockerd; Docker Compose
+	// selects a service by project label and service label together.
+	if labels, ok := f["label"]; ok && !matchLabels(c.Labels, labels) {
+		return false
+	}
 	for key, values := range f {
+		if key == "label" {
+			continue
+		}
 		ok := false
 		for _, v := range values {
 			switch key {
@@ -259,10 +267,6 @@ func (f Filters) match(o observed) bool {
 			case "name":
 				re, err := regexp.Compile(strings.TrimPrefix(v, "/"))
 				ok = err == nil && re.MatchString(c.Name)
-			case "label":
-				k, want, hasValue := strings.Cut(v, "=")
-				got, present := c.Labels[k]
-				ok = present && (!hasValue || got == want)
 			case "status":
 				ok = string(o.state) == v
 			case "ancestor":
