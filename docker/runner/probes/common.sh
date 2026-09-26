@@ -47,7 +47,11 @@ printf 'FROM --platform=linux/%s alpine\n' "$(dpkg --print-architecture)" >"${pr
 expect "dockerfile check accepts FROM with the native platform" mstudio-dockerfile-check "${probe_dir}/Dockerfile.native"
 printf 'FROM --platform=$BUILDPLATFORM alpine\n' >"${probe_dir}/Dockerfile.buildplatform"
 expect "dockerfile check accepts FROM with BUILDPLATFORM" mstudio-dockerfile-check "${probe_dir}/Dockerfile.buildplatform"
-printf 'FROM --platform=linux/s390x alpine\n' >"${probe_dir}/Dockerfile.foreign"
+case "$(dpkg --print-architecture)" in
+    amd64) foreign_platform=linux/arm64 ;;
+    *) foreign_platform=linux/amd64 ;;
+esac
+printf 'FROM --platform=%s alpine\n' "${foreign_platform}" >"${probe_dir}/Dockerfile.foreign"
 expect "dockerfile check rejects FROM with a foreign platform" bash -c "! mstudio-dockerfile-check ${probe_dir}/Dockerfile.foreign 2>/dev/null"
 expect "platform check accepts the native platform" mstudio-platform-check "linux/$(dpkg --print-architecture)"
-expect "platform check rejects a foreign platform" bash -c "! mstudio-platform-check linux/s390x 2>/dev/null"
+expect "platform check rejects a foreign platform" bash -c "! mstudio-platform-check ${foreign_platform} 2>/dev/null"
