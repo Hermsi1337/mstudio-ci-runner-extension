@@ -276,11 +276,13 @@ describe("image builds", () => {
     }, 300_000);
 
     it("refuses a foreign platform in FROM before it queues a job", async () => {
+        const foreign =
+            process.arch === "arm64" ? "linux/amd64" : "linux/arm64";
         const runner = await startRunner();
         try {
             await writeContext(
                 runner,
-                "FROM --platform=linux/s390x alpine:3.20\nRUN true",
+                `FROM --platform=${foreign} alpine:3.20\nRUN true`,
             );
             const build = await runner.exec([
                 "bash",
@@ -289,7 +291,7 @@ describe("image builds", () => {
             ]);
             expect(build.exitCode).not.toBe(0);
             expect(build.output).toContain(
-                "FROM --platform=linux/s390x: platform linux/s390x is not supported",
+                `FROM --platform=${foreign}: platform ${foreign} is not supported`,
             );
             const queue = await runner.exec(["ls", "/builds/queue"]);
             expect(queue.output.trim()).toBe("");
