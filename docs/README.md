@@ -3,7 +3,7 @@
 | File | Topic |
 |---|---|
 | [architecture.md](architecture.md) | Building blocks, data flow, data model, webhooks, security |
-| [providers.md](providers.md) | Provider interface, GitHub and GitLab, adding a provider |
+| [providers.md](providers.md) | Provider interface, GitHub, GitLab and Forgejo, adding a provider |
 | [mstudio-setup.md](mstudio-setup.md) | Contributor status, extension registration, scopes, anchors, tokens |
 | [development.md](development.md) | Local development, environment variables, migrations, scripts |
 | [codegen.md](codegen.md) | Every generator, its sources and outputs, workflow for changes |
