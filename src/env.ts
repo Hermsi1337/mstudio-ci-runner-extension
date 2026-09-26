@@ -28,6 +28,9 @@ export const getEnvironmentVariables = () => {
         RUNNER_IMAGE_GITLAB: str({
             default: `${RUNNER_IMAGE_REPOSITORY}-gitlab:${extensionVersion}`,
         }),
+        RUNNER_IMAGE_FORGEJO: str({
+            default: `${RUNNER_IMAGE_REPOSITORY}-forgejo:${extensionVersion}`,
+        }),
         BUILDER_IMAGE: str({
             default: `${BUILDER_IMAGE_REPOSITORY}:${extensionVersion}`,
         }),

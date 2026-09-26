@@ -170,11 +170,7 @@ export const RunnerActions = ({ runner, onChanged }: RunnerActionsProps) => {
                 controller={remove}
                 color="danger"
                 heading={t("runners.delete.heading", { name: runner.name })}
-                text={
-                    runner.provider === "github"
-                        ? t("runners.delete.text.github")
-                        : t("runners.delete.text.gitlab")
-                }
+                text={t(`runners.delete.text.${runner.provider}`)}
                 confirmLabel={t("runners.action.delete")}
                 onConfirm={() =>
                     run(

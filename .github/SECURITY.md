@@ -16,11 +16,11 @@ the release notes. Credit goes to the reporter unless you prefer otherwise.
 
 - The extension code in this repository and the images built from it
   (`ghcr.io/hermsi1337/mstudio-ci-runner-*`).
-- Handling of stored credentials (GitHub PATs, GitLab tokens, mittwald access
+- Handling of stored credentials (GitHub PATs, GitLab and Forgejo runner tokens, mittwald access
   tokens). See the security section in
   [docs/architecture.md](../docs/architecture.md).
 
-Problems in mittwald mStudio, Container Hosting, GitHub or GitLab themselves belong
+Problems in mittwald mStudio, Container Hosting, GitHub, GitLab or Forgejo themselves belong
 to those vendors.
 
 ## Supported versions

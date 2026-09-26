@@ -27,6 +27,7 @@ import { CacheFields, type CacheFormValues } from "./CacheFields.tsx";
 import {
     ConcurrencyField,
     type ConcurrencyFormValues,
+    concurrentProviders,
 } from "./ConcurrencyField.tsx";
 import {
     ImageBuildsField,
@@ -44,9 +45,14 @@ function pipelineSnippet(runner: Runner): string | null {
         return null;
     }
     const list = runner.labels.map((label) => `"${label}"`).join(", ");
-    return runner.provider === "github"
-        ? `jobs:\n  build:\n    runs-on: [self-hosted, ${list}]\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci && npm test`
-        : `build:\n  tags: [${list}]\n  script:\n    - npm ci && npm test`;
+    switch (runner.provider) {
+        case "github":
+            return `jobs:\n  build:\n    runs-on: [self-hosted, ${list}]\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci && npm test`;
+        case "forgejo":
+            return `jobs:\n  build:\n    runs-on: ${runner.labels.length > 1 ? `[${list}]` : list}\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci && npm test`;
+        case "gitlab":
+            return `build:\n  tags: [${list}]\n  script:\n    - npm ci && npm test`;
+    }
 }
 
 const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
@@ -107,7 +113,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                                 : t("form.size.description")
                         }
                     />
-                    {runner.provider === "gitlab" && (
+                    {concurrentProviders.includes(runner.provider) && (
                         <ConcurrencyField
                             form={form}
                             size={form.watch("size")}

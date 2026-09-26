@@ -16,6 +16,8 @@ export function setTestEnvironment(overrides: Record<string, string>): void {
         RUN_MIGRATIONS_ON_STARTUP: "false",
         RUNNER_IMAGE_GITHUB: "ghcr.io/hermsi1337/mstudio-ci-runner-github:test",
         RUNNER_IMAGE_GITLAB: "ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:test",
+        RUNNER_IMAGE_FORGEJO:
+            "ghcr.io/hermsi1337/mstudio-ci-runner-forgejo:test",
     };
     for (const [key, value] of Object.entries(defaults)) {
         process.env[key] ??= value;

@@ -67,4 +67,13 @@ describe("parseConfigCommand", () => {
             token: "glrt-8D541XbfrvFvo5FdcSPUu2M6MQpvOjEKcDpoYXY2NQp0OjMKdTo5ZGVzGg.02.3m0efevhc",
         });
     });
+
+    it("has no pattern for Forgejo, which shows no command", () => {
+        expect(
+            parseConfigCommand(
+                "forgejo",
+                "forgejo-runner register --instance https://forgejo.example.com --token abc",
+            ),
+        ).toBeNull();
+    });
 });

@@ -71,6 +71,16 @@ there. No PAT is involved.
 
 The PAT mode is disabled, see [providers.md](providers.md#existing-providers).
 
+### Forgejo
+
+UUID and token of a runner that already exists in Forgejo. Create it under *Settings →
+Actions → Runners* of a repository, organization or user, or in the site administration
+for the whole instance. Forgejo shows the UUID and the token once; paste both together
+with the instance URL into the form. Both go into the runner container only. The token
+stays valid until the runner is deleted in Forgejo, and the extension cannot delete it
+there, because that needs a user or admin token. An instance that hands out a
+registration token instead of a UUID cannot be used.
+
 ## Marketplace entry and frontend fragment
 
 Name, tags, support address, subtitle, descriptions, logo, fragment icon and fragment

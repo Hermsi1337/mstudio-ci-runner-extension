@@ -12,8 +12,9 @@
 </p>
 
 A [mittwald mStudio](https://studio.mittwald.de) extension that runs CI runners for
-GitHub Actions and GitLab CI as container stacks in your mittwald project. Paste the
-setup command from GitHub or GitLab, pick a size, done. The runner registers itself,
+GitHub Actions, GitLab CI and Forgejo Actions as container stacks in your mittwald
+project. Paste the setup command from GitHub or GitLab, or the runner UUID and token
+from Forgejo, pick a size, done. The runner registers itself,
 survives restarts and updates with one click.
 
 ## Why
@@ -26,11 +27,11 @@ and reaches your databases and apps in the same project without a tunnel.
 
 | | |
 |---|---|
-| **Two CI systems** | GitHub Actions (repository or organization) and GitLab CI (project, group or instance) |
-| **Registration from the setup command** | Paste the `config.sh` or `gitlab-runner register` line from the CI system. No personal access token is needed |
+| **Three CI systems** | GitHub Actions (repository or organization), GitLab CI (project, group or instance) and Forgejo Actions (repository, organization, user or instance) |
+| **Registration from the setup command** | Paste the `config.sh` or `gitlab-runner register` line from the CI system, or UUID and token of a Forgejo runner. No personal access token is needed |
 | **Sizes and custom limits** | Small, medium, large, or your own CPU and memory limits |
 | **Persistent package cache** | Optional volume for npm, pnpm, yarn, pip, Composer and Go with an hourly size trim |
-| **Parallel jobs** | GitLab runners take several jobs at once, sized to the container |
+| **Parallel jobs** | GitLab and Forgejo runners take several jobs at once, sized to the container |
 | **Lifecycle from mStudio** | Logs, restart, settings, update to the runner image of the running extension with the changes listed, delete, all from the extension page |
 | **English and German** | Follows the mStudio language |
 
@@ -41,12 +42,12 @@ flowchart LR
     U[You, in mStudio] -->|Create runner| E[Extension]
     E -->|one stack per repository, one service per runner| M[mittwald Container Hosting]
     M --> C[Runner container]
-    C -->|registers itself| G[GitHub or GitLab]
+    C -->|registers itself| G[GitHub, GitLab or Forgejo]
     G -->|jobs| C
     C -.->|package cache volume| V[(cache)]
 ```
 
-Runners of one repository, organization or GitLab instance share a container stack
+Runners of one repository, organization, GitLab or Forgejo instance share a container stack
 in the project. Every runner is a service in it with the CPU and memory limits of its
 size, a volume for its registration and work directory, and optionally a cache volume
 plus a cronjob that keeps it below its limit. Deleting a runner removes its service
@@ -56,8 +57,13 @@ registration.
 ## Limitations
 
 Container Hosting provides no Docker daemon. Plain jobs (Node, PHP, Python, Go,
-Rust, Bash, deploys via SSH/rsync) work. GitHub `container:`, `services:` and GitLab
-`image:`/`services:` do not, and neither does anything else that starts a container.
+Rust, Bash, deploys via SSH/rsync) work. GitHub and Forgejo `container:`, `services:`
+and GitLab `image:`/`services:` do not, and neither does anything else that starts a
+container.
+
+Forgejo runners have no cache server, so `actions/cache` does not work there. Deleting a
+Forgejo runner in the extension leaves it offline in Forgejo until you delete it there
+([docs/providers.md](docs/providers.md#forgejo)).
 
 `docker build` and `docker push` do work: turn image builds on for a runner and the
 build runs in a builder service of its stack, kaniko instead of a daemon
@@ -88,7 +94,7 @@ Continue with [docs/development.md](docs/development.md).
 | Topic | File |
 |---|---|
 | Architecture, data flow, security | [docs/architecture.md](docs/architecture.md) |
-| CI providers (GitHub, GitLab, adding new ones) | [docs/providers.md](docs/providers.md) |
+| CI providers (GitHub, GitLab, Forgejo, adding new ones) | [docs/providers.md](docs/providers.md) |
 | Becoming a contributor, registering the extension, tokens | [docs/mstudio-setup.md](docs/mstudio-setup.md) |
 | Local development, environment variables, scripts | [docs/development.md](docs/development.md) |
 | Generated code and specs | [docs/codegen.md](docs/codegen.md) |

@@ -33,7 +33,7 @@ import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
 import { toMemoryMb } from "@/runner-sizes.ts";
 import { CacheFields } from "./CacheFields.tsx";
-import { ConcurrencyField } from "./ConcurrencyField.tsx";
+import { ConcurrencyField, concurrentProviders } from "./ConcurrencyField.tsx";
 import { CreatedResources } from "./CreatedResources.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
 import { ImageBuildsField } from "./ImageBuildsField.tsx";
@@ -48,13 +48,24 @@ import {
 } from "./StackField.tsx";
 
 /**
- * Mirrors zRunnerBase.name from src/generated/extension-api/zod.gen.ts. The
- * server rejects the same values, but only in English and only after the
- * request, so the form checks them first. Keep both in sync when the spec
- * changes.
+ * Mirror zRunnerBase.name and zForgejoRunnerRequest from
+ * src/generated/extension-api/zod.gen.ts. The server rejects the same values,
+ * but only in English and only after the request, so the form checks them
+ * first. Keep both in sync when the spec changes.
  */
 const NAME_MIN_LENGTH = 2;
 const NAME_MAX_LENGTH = 64;
+const TOKEN_MIN_LENGTH = 10;
+const UUID_PATTERN =
+    /^\s*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s*$/i;
+
+function isHttpsUrl(value: string): boolean {
+    try {
+        return new URL(value.trim()).protocol === "https:";
+    } catch {
+        return false;
+    }
+}
 
 interface FormValues {
     provider: Provider;
@@ -69,6 +80,9 @@ interface FormValues {
     concurrency: number;
     configCommand: string;
     runnerGroup: string;
+    instanceUrl: string;
+    uuid: string;
+    token: string;
     stackId: string;
 }
 
@@ -87,6 +101,16 @@ function toRequest(values: FormValues): CreateRunnerRequest {
         imageBuilds: values.imageBuilds,
         concurrency: values.concurrency,
     };
+    if (values.provider === "forgejo") {
+        return {
+            ...base,
+            provider: "forgejo",
+            tokenType: "registration",
+            instanceUrl: values.instanceUrl.trim(),
+            uuid: values.uuid.trim(),
+            token: values.token.trim(),
+        };
+    }
     if (values.provider === "gitlab") {
         const parsed = parseConfigCommand("gitlab", values.configCommand);
         return {
@@ -140,6 +164,9 @@ export const RunnerForm = ({
             concurrency: 1,
             configCommand: "",
             runnerGroup: "",
+            instanceUrl: "",
+            uuid: "",
+            token: "",
             stackId: AUTOMATIC_STACK,
         },
     });
@@ -154,10 +181,13 @@ export const RunnerForm = ({
     const cacheSizeGb = form.watch("cacheSizeGb");
     const imageBuilds = form.watch("imageBuilds");
     const configCommand = form.watch("configCommand");
+    const instanceUrl = form.watch("instanceUrl");
     const stackId = form.watch("stackId");
     const selectedStack = stacks.find((stack) => stack.id === stackId);
     const summaryTarget = (
-        parseConfigCommand(provider, configCommand)?.target ?? ""
+        provider === "forgejo"
+            ? instanceUrl.trim().replace(/\/+$/, "")
+            : (parseConfigCommand(provider, configCommand)?.target ?? "")
     ).replace(/^https?:\/\/(github\.com\/)?/, "");
 
     useEffect(() => {
@@ -324,6 +354,99 @@ export const RunnerForm = ({
                                 />
                             </>
                         )}
+
+                        {provider === "forgejo" && (
+                            <>
+                                <Field
+                                    name="instanceUrl"
+                                    rules={{
+                                        required: t(
+                                            "form.forgejo.instanceUrl.required",
+                                        ),
+                                        validate: (value) =>
+                                            isHttpsUrl(String(value))
+                                                ? true
+                                                : t(
+                                                      "form.forgejo.instanceUrl.invalid",
+                                                  ),
+                                    }}
+                                >
+                                    <TextField placeholder="https://forgejo.example.com">
+                                        <Label>
+                                            {t(
+                                                "form.forgejo.instanceUrl.label",
+                                            )}
+                                            <FieldHelp
+                                                subject={t(
+                                                    "form.forgejo.instanceUrl.label",
+                                                )}
+                                                text={t(
+                                                    "form.forgejo.instanceUrl.help",
+                                                )}
+                                            />
+                                        </Label>
+                                        <FieldDescription>
+                                            {t(
+                                                "form.forgejo.instanceUrl.description",
+                                            )}
+                                        </FieldDescription>
+                                    </TextField>
+                                </Field>
+                                <Field
+                                    name="uuid"
+                                    rules={{
+                                        required: t(
+                                            "form.forgejo.uuid.required",
+                                        ),
+                                        pattern: {
+                                            value: UUID_PATTERN,
+                                            message: t(
+                                                "form.forgejo.uuid.invalid",
+                                            ),
+                                        },
+                                    }}
+                                >
+                                    <TextField placeholder="c9e50be9-a7c3-4aee-ba35-624c4ff8c519">
+                                        <Label>
+                                            {t("form.forgejo.uuid.label")}
+                                        </Label>
+                                    </TextField>
+                                </Field>
+                                <Field
+                                    name="token"
+                                    rules={{
+                                        required: t(
+                                            "form.forgejo.token.required",
+                                        ),
+                                        minLength: {
+                                            value: TOKEN_MIN_LENGTH,
+                                            message: t(
+                                                "form.forgejo.token.invalid",
+                                            ),
+                                        },
+                                    }}
+                                >
+                                    <TextField>
+                                        <Label>
+                                            {t("form.forgejo.token.label")}
+                                            <FieldHelp
+                                                subject={t(
+                                                    "form.forgejo.token.label",
+                                                )}
+                                                text={t(
+                                                    "form.forgejo.token.help",
+                                                )}
+                                            />
+                                        </Label>
+                                        <FieldDescription>
+                                            {t(
+                                                "form.forgejo.token.description",
+                                            )}
+                                        </FieldDescription>
+                                    </TextField>
+                                </Field>
+                            </>
+                        )}
                     </Section>
 
                     <Section>
@@ -362,11 +485,15 @@ export const RunnerForm = ({
                                         {t("form.labels.label")}
                                         <FieldHelp
                                             subject={t("form.labels.label")}
-                                            text={t("form.labels.help")}
+                                            text={t(
+                                                `form.labels.help.${provider}`,
+                                            )}
                                         />
                                     </Label>
                                     <FieldDescription>
-                                        {t("form.labels.description")}
+                                        {t(
+                                            `form.labels.description.${provider}`,
+                                        )}
                                     </FieldDescription>
                                 </TextField>
                             </Field>
@@ -385,7 +512,7 @@ export const RunnerForm = ({
                             }
                         />
 
-                        {provider === "gitlab" && (
+                        {concurrentProviders.includes(provider) && (
                             <ConcurrencyField form={form} size={size} />
                         )}
 

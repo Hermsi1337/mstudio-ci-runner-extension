@@ -5,7 +5,11 @@ import * as z from 'zod';
 /**
  * CI system the runner registers with.
  */
-export const zProvider = z.enum(['github', 'gitlab']);
+export const zProvider = z.enum([
+    'github',
+    'gitlab',
+    'forgejo'
+]);
 
 /**
  * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
@@ -50,7 +54,7 @@ export const zRunnerStatus = z.enum([
 ]);
 
 /**
- * Jobs the runner takes at the same time. GitLab only; a GitHub runner takes one job at a time and ignores the value.
+ * Jobs the runner takes at the same time. GitLab and Forgejo only; a GitHub runner takes one job at a time and ignores the value.
  */
 export const zConcurrency = z.int().gte(1).lte(8).default(1);
 
@@ -102,13 +106,24 @@ export const zGitLabRunnerRequest = zRunnerBase.and(z.object({
     token: z.string().min(10).max(500)
 }));
 
+export const zForgejoRunnerRequest = zRunnerBase.and(z.object({
+    provider: z.enum(['forgejo']),
+    instanceUrl: z.url().max(500),
+    tokenType: z.enum(['registration']).optional().default('registration'),
+    uuid: z.uuid(),
+    token: z.string().min(10).max(500)
+}));
+
 export const zCreateRunnerRequest = z.union([
     z.object({
         provider: z.literal('github')
     }).and(zGitHubRunnerRequest),
     z.object({
         provider: z.literal('gitlab')
-    }).and(zGitLabRunnerRequest)
+    }).and(zGitLabRunnerRequest),
+    z.object({
+        provider: z.literal('forgejo')
+    }).and(zForgejoRunnerRequest)
 ]);
 
 export const zRunnerIdRequest = z.object({
