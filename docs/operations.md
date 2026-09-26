@@ -49,8 +49,9 @@ e.g. to try a branch.
 The extension image receives the version as build arg `EXTENSION_VERSION` (baked in as
 environment variable). The extension derives its default runner images from it, so
 nothing runs on `latest`. The runner software versions come from
-`docker/runner/versions.json` ([runner-image.md](runner-image.md)), the kaniko version of
-the builder image from `docker/builder/versions.json` ([image-builds.md](image-builds.md)).
+`docker/runner/versions.json` ([runner-image.md](runner-image.md)), the kaniko and qemu
+versions of the builder image from `docker/builder/versions.json`
+([image-builds.md](image-builds.md)).
 
 ## Images
 
@@ -71,7 +72,7 @@ Package visibility is independent of the repository and can only be changed on t
 
 | Workflow | Trigger | Content |
 |---|---|---|
-| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
+| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests, the images built under qemu on native hardware |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
 | `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)), `linux/amd64` |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
@@ -89,8 +90,11 @@ resources, which is not what building and releasing this repository needs.
 
 | Job | Runner | Why |
 |---|---|---|
-| `ci.yml` `check`, `integration` | `ubuntu-latest` | Testcontainers needs a Docker daemon |
-| `release.yml` `verify`, `release`, `bump-version` | `ubuntu-latest` | Integration tests, `jq`, `git`, Node |
+| `ci.yml` `check` | `ubuntu-latest` | Node |
+| `ci.yml` `integration` | `ubuntu-latest`, `ubuntu-24.04-arm` | Testcontainers needs a Docker daemon. arm64 runs the platform checks on a foreign architecture and covers arm64 development machines. Both allow user namespaces for unconfined processes, which the emulated builds need, and upload the image they built under qemu ([testing.md](testing.md)) |
+| `ci.yml` `native-hardware` | `ubuntu-24.04-arm`, `ubuntu-latest` | Runs the image the other leg of `integration` built under qemu on a CPU of its architecture ([testing.md](testing.md#emulated-images-on-native-hardware)) |
+| `release.yml` `verify` | `ubuntu-latest` | Integration tests, with user namespaces allowed like in `ci.yml` |
+| `release.yml` `release`, `bump-version` | `ubuntu-latest` | `jq`, `git`, Node |
 | `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx |
 | `deploy.yml` `deploy`, `metadata` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
 | `pr-title.yml` | `ubuntu-latest` | Needs `gh` |
@@ -255,3 +259,16 @@ workflow, by `pnpm run runner:build` and by the integration tests; a bump needs 
 like any other change. The builder applies the patches in `docker/builder/patches/` to
 kaniko before it compiles it, so a kaniko bump fails the image build when a patch no
 longer applies.
+
+The builder image also carries a static qemu for the other architecture
+([image-builds.md](image-builds.md#builds-for-the-other-architecture)). It comes from
+Debian's `qemu-user` package. `qemu.version`, the `snapshot.debian.org` timestamp that
+serves it and the checksums of the amd64 and arm64 `.deb` live in
+`docker/builder/versions.json`. The snapshot URL stays valid after Debian moves on, the
+pool URL does not. To bump, look the package up in the snapshot API and take the
+`first_seen` timestamp and the files:
+
+```bash
+curl -fsSL "https://snapshot.debian.org/mr/binary/qemu-user/<version>/binfiles?fileinfo=1"
+curl -fsSL "https://snapshot.debian.org/archive/debian/<first_seen>/pool/main/q/qemu/qemu-user_<version>_amd64.deb" | sha256sum
+```

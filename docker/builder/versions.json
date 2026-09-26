@@ -2,6 +2,14 @@
   "kaniko": {
     "repository": "https://github.com/chainguard-forks/kaniko",
     "version": "v1.25.19",
-    "go": "1.26"
+    "go": "1.27"
+  },
+  "qemu": {
+    "version": "1:11.1.1+ds-1",
+    "snapshot": "20260831T145707Z",
+    "sha256": {
+      "amd64": "24659b853102d7f00ea28c30d266fbb28a231d0d3795112e52080c5a7b52bc49",
+      "arm64": "8e17be6db402e2a7707ff0aa6780198cae7806ec84ace1a1fac6cbead913fb3c"
+    }
   }
 }

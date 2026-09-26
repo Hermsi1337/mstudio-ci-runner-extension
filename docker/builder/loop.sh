@@ -9,6 +9,7 @@
 #   queue/<job>/build-args    one KEY=VALUE per line (optional)
 #   queue/<job>/labels        one KEY=VALUE per line (optional)
 #   queue/<job>/request       job parameters, written last, claims the job
+#                             (DOCKERFILE, DESTINATION, TARGET, PLATFORM)
 #   queue/<job>/log           kaniko output
 #   queue/<job>/image.tar     built image
 #   queue/<job>/result        "exit=<code>", written last, the job directory
@@ -24,6 +25,16 @@
 #
 # This container never receives registry credentials. It writes the image as a
 # tarball, the runner pushes it.
+#
+# When a probe on startup finds that it works, every job runs in a fresh root
+# directory inside a user namespace with qemu registered for the other
+# architecture (arm64 on amd64, amd64 on arm64), see sandbox.sh. The native
+# platform goes there as well, because a stage with a literal FROM --platform
+# of the other architecture can appear in any build. The probe writes the
+# platforms this builder runs RUN steps for into BUILD_QUEUE_DIR/builder.env,
+# where the runner reads them. Without emulation a job runs on the root
+# filesystem of this container, and a job for the other architecture still
+# builds as long as no RUN step executes a binary of it.
 #
 # Environment:
 #   BUILD_QUEUE_DIR  shared directory (default: /builds)
@@ -44,6 +55,42 @@ max_age_hours="${BUILD_MAX_AGE:-24}"
 # reach the directory at all.
 mkdir -p "${queue_dir}/queue"
 chmod 1777 "${queue_dir}/queue"
+
+case "$(uname -m)" in
+    x86_64) native=amd64 foreign=arm64 foreign_machine=aarch64 ;;
+    aarch64) native=arm64 foreign=amd64 foreign_machine=x86_64 ;;
+    *) native="$(uname -m)" foreign="" foreign_machine="" ;;
+esac
+
+# The namespace comes first, because it works the same on every host. A
+# handler the host registered itself only counts when the namespace fails.
+probe_emulation() {
+    local probe="/kaniko/emulation/busybox-${foreign_machine}" answer
+    emulation=none
+    emulation_reason="this builder has no emulator for linux/${foreign}"
+    [[ -n "${foreign}" && -x "${probe}" ]] || return 0
+    if answer="$(/kaniko/sandbox.sh run - "${probe}" uname -m 2>&1)" && [[ "${answer}" == "${foreign_machine}" ]]; then
+        emulation=namespace
+        emulation_reason="qemu in a user namespace"
+        return 0
+    fi
+    emulation_reason="user namespace with binfmt_misc unavailable: ${answer##*$'\n'}"
+    if answer="$("${probe}" uname -m 2>/dev/null)" && [[ "${answer}" == "${foreign_machine}" ]]; then
+        emulation=host
+        emulation_reason="binfmt_misc handler of the host"
+    fi
+}
+
+probe_emulation
+platforms="linux/${native}"
+[[ "${emulation}" != none ]] && platforms="${platforms},linux/${foreign}"
+{
+    echo "PLATFORMS=${platforms}"
+    echo "EMULATION=${emulation}"
+} >"${queue_dir}/builder.env.tmp"
+chmod 0644 "${queue_dir}/builder.env.tmp"
+mv "${queue_dir}/builder.env.tmp" "${queue_dir}/builder.env"
+echo "[builder] platforms ${platforms}, emulation ${emulation} (${emulation_reason})"
 
 # A runner that was killed mid job, and a builder that died while building,
 # both leave a directory behind that nobody comes back for. Contexts are whole
@@ -85,6 +132,7 @@ job_id=""
 dockerfile=Dockerfile
 destination=""
 target=""
+platform=""
 
 claim_job() {
     for request in "${queue_dir}"/queue/*/request; do
@@ -101,24 +149,59 @@ read_request() {
     dockerfile=Dockerfile
     destination="mstudio-build:${job_id}"
     target=""
+    platform="linux/${native}"
     while IFS='=' read -r key value; do
         case "${key}" in
             DOCKERFILE) dockerfile="${value}" ;;
             DESTINATION) destination="${value}" ;;
             TARGET) target="${value}" ;;
+            PLATFORM) platform="${value}" ;;
             '' | '#'*) ;;
             *) echo "[builder] ignoring unknown request key ${key}" ;;
         esac
     done <"${job}/request.claimed"
 }
 
+# A fresh root per job keeps one build from seeing what the last one unpacked.
+# It belongs to uid 1, which is root inside the namespace.
+prepare_sandbox() {
+    sandbox_root=/var/lib/mstudio-build/root
+    rm -rf "${sandbox_root}"
+    mkdir -p "${sandbox_root}"/{kaniko/.docker,context,out,proc,dev,sys,etc/ssl}
+    cp /kaniko/executor "${sandbox_root}/kaniko/executor"
+    cp -rL /etc/ssl/certs "${sandbox_root}/etc/ssl/certs"
+    : >"${sandbox_root}/etc/resolv.conf"
+    : >"${sandbox_root}/etc/hosts"
+    # kaniko warns when it cannot tell that it runs in a container, and this is
+    # the marker it looks for.
+    : >"${sandbox_root}/.dockerenv"
+    cp -a "${job}/context/." "${sandbox_root}/context/"
+    chown -R 1:1 "${sandbox_root}"
+}
+
 build() {
-    set -- --context "dir://${job}/context" \
-        --dockerfile "${dockerfile}" \
+    local sandboxed=false
+    if [[ "${emulation}" == namespace ]]; then
+        sandboxed=true
+    fi
+
+    if [[ "${sandboxed}" == true ]]; then
+        prepare_sandbox
+        set -- /kaniko/sandbox.sh run "${sandbox_root}" /kaniko/executor \
+            --context dir:///context \
+            --tarPath /out/image.tar \
+            --ignore-path /context \
+            --ignore-path /out
+    else
+        set -- /kaniko/executor \
+            --context "dir://${job}/context" \
+            --tarPath "${job}/image.tar" \
+            --ignore-path "${queue_dir}"
+    fi
+    set -- "$@" --dockerfile "${dockerfile}" \
         --destination "${destination}" \
+        --custom-platform "${platform}" \
         --no-push \
-        --tarPath "${job}/image.tar" \
-        --ignore-path "${queue_dir}" \
         --verbosity info
     if [ -n "${target}" ]; then
         set -- "$@" --target "${target}"
@@ -134,20 +217,35 @@ build() {
         done <"${job}/labels"
     fi
 
-    echo "[builder] ${job_id}: destination=${destination} dockerfile=${dockerfile}${target:+ target=${target}}"
+    echo "[builder] ${job_id}: destination=${destination} dockerfile=${dockerfile} platform=${platform}${target:+ target=${target}}"
     echo "[builder] ${job_id}: context $(du -sh "${job}/context" 2>/dev/null | cut -f1), $(find "${job}/context" -type f 2>/dev/null | wc -l) files"
-    echo "[builder] ${job_id}: running kaniko, output goes to the job log and to the runner"
+    if [[ "${sandboxed}" == true ]]; then
+        echo "[builder] ${job_id}: running kaniko in a user namespace with qemu, output goes to the job log and to the runner"
+    else
+        echo "[builder] ${job_id}: running kaniko, output goes to the job log and to the runner"
+    fi
     started=${SECONDS}
-    {
-        timeout -s KILL "${build_timeout}" /kaniko/executor "$@"
-        echo "$?" >"${job}/exit-code"
-    } 2>&1 | tee "${job}/log"
-
-    code=1
-    read -r code <"${job}/exit-code"
+    timeout -s KILL "${build_timeout}" "$@" > >(tee "${job}/log") 2>&1
+    code=$?
+    # busybox timeout kills only the process it started. The processes of the
+    # sandbox, and a RUN step that kaniko started in a process group of its own,
+    # outlive it and keep the output open. This container ends after one job
+    # anyway, so everything but PID 1 goes, once tee had a second for the last
+    # lines. Only builtins work here, kaniko may have removed every binary.
+    read -rt 1 <> <(:) || true
+    kill -KILL -1 2>/dev/null || true
+    if ((code == 137 && SECONDS - started >= build_timeout)); then
+        stopped="[builder] the build took longer than BUILD_TIMEOUT=${build_timeout}s and was stopped"
+        echo "${stopped}"
+        echo "${stopped}" >>"${job}/log"
+    fi
+    echo "${code}" >"${job}/exit-code"
+    if [[ "${sandboxed}" == true && "${code}" == 0 ]]; then
+        cp "${sandbox_root}/out/image.tar" "${job}/image.tar" || code=1
+    fi
     echo "exit=${code}" >"${job}/result"
-    # kaniko has taken the filesystem apart by now, so this line and the exit
-    # are the last things this container can still do.
+    # Outside the sandbox kaniko has taken the filesystem apart by now, so this
+    # line and the exit are the last things this container can still do.
     echo "[builder] ${job_id}: exit=${code} after $((SECONDS - started))s, replacing this container"
 }
 
