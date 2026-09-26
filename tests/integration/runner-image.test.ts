@@ -1,4 +1,9 @@
-import { GenericContainer, Wait } from "testcontainers";
+import {
+    GenericContainer,
+    getContainerRuntimeClient,
+    ImageName,
+    Wait,
+} from "testcontainers";
 import { describe, expect, it } from "vitest";
 import runnerVersions from "../../docker/runner/versions.json";
 
@@ -21,6 +26,7 @@ interface ImageCase {
     dataDirectories: string[];
     missingEnv: MissingEnvCase[];
     probeEnvironment?: Record<string, string>;
+    entrypoint: string[];
 }
 
 const images: ImageCase[] = [
@@ -38,6 +44,7 @@ const images: ImageCase[] = [
             "registering integration-test at https://github.com/acme/app (labels: mittwald,test, ephemeral: false)",
         versionCommand: ["cat", "/home/runner/bin/Runner.Listener.deps.json"],
         dataDirectories: ["config", "work"],
+        entrypoint: ["/entrypoint.sh"],
         missingEnv: [
             {
                 name: "GITHUB_URL",
@@ -64,6 +71,7 @@ const images: ImageCase[] = [
             "registering integration-test at https://gitlab.invalid (executor: shell)",
         versionCommand: ["gitlab-runner", "--version"],
         dataDirectories: ["builds", "cache"],
+        entrypoint: ["/entrypoint.sh"],
         missingEnv: [
             {
                 name: "CI_SERVER_URL",
@@ -92,6 +100,7 @@ const images: ImageCase[] = [
             "starting integration-test for https://forgejo.invalid (labels: mittwald:host,node:host, capacity: 2, executor: host)",
         versionCommand: ["forgejo-runner", "--version"],
         dataDirectories: ["work"],
+        entrypoint: ["/usr/bin/tini", "--", "/entrypoint.sh"],
         missingEnv: [
             {
                 name: "FORGEJO_INSTANCE_URL",
@@ -169,6 +178,12 @@ describe.each(images)("runner image: $provider", (image) => {
         } finally {
             await container.stop({ timeout: 5_000 });
         }
+    });
+
+    it("starts the entrypoint through the expected init", async () => {
+        const client = await getContainerRuntimeClient();
+        const inspected = await client.image.inspect(ImageName.fromString(tag));
+        expect(inspected.Config.Entrypoint).toEqual(image.entrypoint);
     });
 
     it("runs as the unprivileged runner user", async () => {

@@ -178,7 +178,7 @@ export type ForgejoRunnerRequest = RunnerBase & {
      */
     uuid: string;
     /**
-     * Token Forgejo shows once after creating the runner.
+     * Token Forgejo shows once after creating the runner. forgejo-runner accepts letters and digits only.
      */
     token: string;
 };

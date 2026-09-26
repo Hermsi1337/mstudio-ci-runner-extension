@@ -122,12 +122,17 @@ both on every start.
    `server.connections` (url, uuid, token), `runner.capacity`, `runner.labels`, the work
    directory and `cache.enabled: false`
 3. Unsets `FORGEJO_RUNNER_TOKEN` and replaces itself with `forgejo-runner daemon`. The
-   token is never on a command line, where every job could read it from `/proc`
+   token is never on a command line, where every job could read it from `/proc`.
+   `tini` is PID 1 (`ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]`), because
+   `forgejo-runner` does not reap orphaned job processes and they would pile up as
+   zombies
 4. On `SIGTERM`/`SIGINT` the runner cancels running jobs and exits. It never deregisters;
    the runner stays in Forgejo until someone deletes it there
 
-Every label in `RUNNER_LABELS` becomes `<label>:host`, whatever follows a colon is
-dropped. Container Hosting offers no container runtime, so the `docker` and `lxc`
+Every label in `RUNNER_LABELS` becomes `<label>:host`. `forgejo-runner` reads a colon as
+the start of the executor and a question mark as the start of label options, so the
+extension rejects labels with `:` or `?` when the runner is created. The entrypoint
+still drops whatever follows a colon as a second guard. Container Hosting offers no container runtime, so the `docker` and `lxc`
 executors cannot work; `host` runs the job directly in the runner container, the same
 model as the other two images.
 
@@ -135,9 +140,9 @@ model as the other two images.
 |---|---|---|
 | `FORGEJO_INSTANCE_URL` | Forgejo base URL | required |
 | `FORGEJO_RUNNER_UUID` | Runner UUID from the runner page in Forgejo | required |
-| `FORGEJO_RUNNER_TOKEN` | Runner token from the runner page in Forgejo, stays valid as long as the runner exists | required |
+| `FORGEJO_RUNNER_TOKEN` | Runner token from the runner page in Forgejo, letters and digits only, stays valid as long as the runner exists | required |
 | `RUNNER_NAME` | Name in the log output. Forgejo keeps the name given on its runner page | hostname |
-| `RUNNER_LABELS` | Comma separated labels, each registered as `<label>:host` | `mittwald` |
+| `RUNNER_LABELS` | Comma separated plain label names, each registered as `<label>:host` | `mittwald` |
 | `RUNNER_CAPACITY` | Jobs at once (`runner.capacity`) | `1` |
 | `RUNNER_DATA_DIR` | Persistent state, mount point of the data volume | `/home/runner/data` |
 

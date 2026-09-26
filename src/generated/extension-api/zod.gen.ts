@@ -111,7 +111,7 @@ export const zForgejoRunnerRequest = zRunnerBase.and(z.object({
     instanceUrl: z.url().max(500),
     tokenType: z.enum(['registration']).optional().default('registration'),
     uuid: z.uuid(),
-    token: z.string().min(10).max(500)
+    token: z.string().min(10).max(500).regex(/^[A-Za-z0-9]+$/)
 }));
 
 export const zCreateRunnerRequest = z.union([

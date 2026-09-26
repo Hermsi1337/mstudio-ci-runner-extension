@@ -7,6 +7,8 @@ source "$(dirname "$0")/probe.sh"
 source "$(dirname "$0")/common.sh"
 
 expect "tool git-lfs" command -v git-lfs
+expect "tini reaps orphaned processes" \
+    tini -s -- bash -c 'bash -c "sleep 0.2 &"; sleep 1; test "$(ps -eo stat= | grep -c "^Z")" -eq 0'
 expect_output "forgejo-runner version" "v${EXPECTED_RUNNER_VERSION}" forgejo-runner --version
 expect_output "node version" "v${EXPECTED_NODE_VERSION}" node --version
 expect "tool npm" npm --version

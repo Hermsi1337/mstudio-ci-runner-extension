@@ -31,7 +31,9 @@ docker shim), `<provider>.sh` adds the runner binary and
 asserts its version against `docker/runner/versions.json`
 (`EXPECTED_RUNNER_VERSION`). `forgejo.sh` also checks Node against `node.version`
 (`EXPECTED_NODE_VERSION`) and installs a local package with `npm install -g` as the
-runner user, so a Node bump cannot break global installs silently. All of it runs without credentials, so it works on
+runner user, so a Node bump cannot break global installs silently, and checks that
+`tini` reaps orphaned processes. `runner-image.test.ts` compares the image entrypoint
+per provider (Forgejo starts through `tini`). All of it runs without credentials, so it works on
 every pull request, forks included.
 
 `stoplight/prism:5` (latest) crashes on start (`isPrimary`), hence the pinned version.

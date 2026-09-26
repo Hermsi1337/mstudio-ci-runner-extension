@@ -201,7 +201,8 @@ components:
               type: string
               minLength: 10
               maxLength: 500
-              description: Token Forgejo shows once after creating the runner.
+              pattern: '^[A-Za-z0-9]+$'
+              description: Token Forgejo shows once after creating the runner. forgejo-runner accepts letters and digits only.
               example: 6634bb58be0db23cc013a2e72dd1828ae0257cf
     CreateRunnerRequest:
       oneOf:

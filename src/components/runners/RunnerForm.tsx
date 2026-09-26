@@ -56,6 +56,8 @@ import {
 const NAME_MIN_LENGTH = 2;
 const NAME_MAX_LENGTH = 64;
 const TOKEN_MIN_LENGTH = 10;
+const TOKEN_PATTERN = /^\s*[A-Za-z0-9]+\s*$/;
+const FORGEJO_LABEL_FORBIDDEN = /[:?]/;
 const UUID_PATTERN =
     /^\s*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s*$/i;
 
@@ -424,6 +426,12 @@ export const RunnerForm = ({
                                                 "form.forgejo.token.invalid",
                                             ),
                                         },
+                                        pattern: {
+                                            value: TOKEN_PATTERN,
+                                            message: t(
+                                                "form.forgejo.token.characters",
+                                            ),
+                                        },
                                     }}
                                 >
                                     <TextField>
@@ -479,7 +487,18 @@ export const RunnerForm = ({
                             </TextField>
                         </Field>
                         {provider !== "gitlab" && (
-                            <Field name="labels">
+                            <Field
+                                name="labels"
+                                rules={{
+                                    validate: (value) =>
+                                        provider === "forgejo" &&
+                                        FORGEJO_LABEL_FORBIDDEN.test(
+                                            String(value),
+                                        )
+                                            ? t("form.forgejo.labels.invalid")
+                                            : true,
+                                }}
+                            >
                                 <TextField>
                                     <Label>
                                         {t("form.labels.label")}

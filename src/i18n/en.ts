@@ -205,6 +205,10 @@ export const en = {
     "form.forgejo.token.required": "Runner token is required",
     "form.forgejo.token.invalid":
         "The token is too short. Copy it in full from Forgejo.",
+    "form.forgejo.labels.invalid":
+        "Remove : and ? from the labels. The extension appends :host itself.",
+    "form.forgejo.token.characters":
+        "The token contains letters and digits only. Copy it again from Forgejo, without spaces.",
     "form.labels.label": "Labels",
     "form.tags.label": "Tags",
     "form.labels.description.github":
@@ -254,7 +258,7 @@ export const en = {
     "form.labels.help.github":
         "Comma separated labels the runner registers with. Reference them in the workflow with runs-on: [self-hosted, mittwald]. Jobs whose labels do not match never reach this runner.",
     "form.labels.help.forgejo":
-        "Comma separated labels the runner announces to Forgejo on every start. Each one runs jobs directly in the container, not in a Docker image. Reference them in the workflow with runs-on: mittwald. Jobs whose labels do not match never reach this runner.",
+        "Comma separated labels the runner announces to Forgejo on every start. Use plain names without : or ?; the extension appends :host, so each one runs jobs directly in the container, not in a Docker image. Reference them in the workflow with runs-on: mittwald. Jobs whose labels do not match never reach this runner.",
     "form.cache.label": "Persistent cache for package managers",
     "form.cache.help":
         "Adds a cache volume at /home/runner/.cache and points npm, pnpm, yarn, pip, Composer and Go at it (XDG_CACHE_HOME plus the tool specific variables). Downloads from earlier jobs are reused, which speeds up installs. The volume survives jobs, restarts and updates. You can turn the cache on or off later in the runner settings; turning it off deletes the volume.",
@@ -334,4 +338,6 @@ export const en = {
         "The GitLab runner could not be removed (status {status}).",
     "error.forgejo.instanceUrlInvalid":
         "The Forgejo URL must be an https address without user, query or fragment, for example https://forgejo.example.com.",
+    "error.forgejo.labelsInvalid":
+        "Forgejo labels must not contain : or ?. Enter plain names such as mittwald; the extension appends :host itself.",
 } as const;
