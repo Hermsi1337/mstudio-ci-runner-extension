@@ -72,7 +72,7 @@ Package visibility is independent of the repository and can only be changed on t
 
 | Workflow | Trigger | Content |
 |---|---|---|
-| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
+| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests, the images built under qemu on native hardware |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
 | `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)), `linux/amd64` |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
@@ -91,8 +91,10 @@ resources, which is not what building and releasing this repository needs.
 | Job | Runner | Why |
 |---|---|---|
 | `ci.yml` `check` | `ubuntu-latest` | Node |
-| `ci.yml` `integration` | `ubuntu-latest`, `ubuntu-24.04-arm` | Testcontainers needs a Docker daemon. arm64 runs the platform checks on a foreign architecture and covers arm64 development machines. Both allow user namespaces for unconfined processes, which the emulated builds need ([testing.md](testing.md)) |
-| `release.yml` `verify`, `release`, `bump-version` | `ubuntu-latest` | Integration tests, `jq`, `git`, Node |
+| `ci.yml` `integration` | `ubuntu-latest`, `ubuntu-24.04-arm` | Testcontainers needs a Docker daemon. arm64 runs the platform checks on a foreign architecture and covers arm64 development machines. Both allow user namespaces for unconfined processes, which the emulated builds need, and upload the image they built under qemu ([testing.md](testing.md)) |
+| `ci.yml` `native-hardware` | `ubuntu-24.04-arm`, `ubuntu-latest` | Runs the image the other leg of `integration` built under qemu on a CPU of its architecture ([testing.md](testing.md#emulated-images-on-native-hardware)) |
+| `release.yml` `verify` | `ubuntu-latest` | Integration tests, with user namespaces allowed like in `ci.yml` |
+| `release.yml` `release`, `bump-version` | `ubuntu-latest` | `jq`, `git`, Node |
 | `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx |
 | `deploy.yml` `deploy`, `metadata` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
 | `pr-title.yml` | `ubuntu-latest` | Needs `gh` |

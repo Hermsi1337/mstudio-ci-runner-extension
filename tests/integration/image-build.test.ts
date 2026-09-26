@@ -1,5 +1,6 @@
 import {
     chmod,
+    copyFile,
     mkdir,
     mkdtemp,
     readFile,
@@ -58,7 +59,18 @@ let queueDirectory: string;
 type BuilderOptions = {
     /** Docker's default seccomp profile, which blocks unshare and so emulation. */
     seccomp?: boolean;
+    environment?: Record<string, string>;
 };
+
+/**
+ * With emulation every job runs in the sandbox, without it on the root
+ * filesystem of the builder. Tests of behavior that differs between the two
+ * run once per path.
+ */
+const buildPaths = [
+    { name: "in the sandbox", options: {} },
+    { name: "without emulation", options: { seccomp: true } },
+] satisfies { name: string; options: BuilderOptions }[];
 
 /**
  * Containers on Container Hosting run as root with CHOWN, DAC_OVERRIDE, FOWNER,
@@ -80,6 +92,7 @@ async function startBuilder(
             "AUDIT_WRITE",
         )
         .withBindMounts([{ source: queueDirectory, target: "/builds" }])
+        .withEnvironment(options.environment ?? {})
         .withWaitStrategy(Wait.forLogMessage(/watching/));
     if (!options.seccomp) {
         container.withSecurityOpt("seccomp=unconfined", "apparmor=unconfined");
@@ -92,9 +105,15 @@ async function startBuilder(
  * one job per platform. Container Hosting restarts the service with a clean
  * root filesystem, here a new container takes over once the last one exited.
  */
+type Builders = {
+    stop: () => Promise<void>;
+    /** Kills the running builder, the way the platform replaces a container. */
+    kill: () => Promise<void>;
+};
+
 async function superviseBuilders(
     options: BuilderOptions = {},
-): Promise<() => Promise<void>> {
+): Promise<Builders> {
     const client = await getContainerRuntimeClient();
     let running = true;
     let current = await startBuilder(options);
@@ -113,10 +132,15 @@ async function superviseBuilders(
             await new Promise((resolve) => setTimeout(resolve, 500));
         }
     })();
-    return async () => {
-        running = false;
-        await loop;
-        await current.stop();
+    return {
+        stop: async () => {
+            running = false;
+            await loop;
+            await current.stop();
+        },
+        kill: async () => {
+            await client.container.getById(current.getId()).kill();
+        },
     };
 }
 
@@ -185,6 +209,35 @@ async function readFromImage(
     ]);
     expect(content.exitCode).toBe(0);
     return content.output.trim();
+}
+
+/**
+ * CI runs the image whose RUN steps ran under qemu on hardware of its own
+ * architecture (docs/testing.md). This directory takes it as a tarball that
+ * `docker load` reads.
+ */
+const imageExportDirectory = process.env.IMAGE_EXPORT_DIR;
+
+async function exportForeignImage(
+    runner: StartedTestContainer,
+    reference: string,
+): Promise<void> {
+    const pulled = await runner.exec([
+        "crane",
+        "pull",
+        "--insecure",
+        "--platform",
+        `linux/${foreign}`,
+        reference,
+        "/builds/export.tar",
+    ]);
+    expect(pulled.exitCode).toBe(0);
+    await mkdir(imageExportDirectory as string, { recursive: true });
+    await copyFile(
+        join(queueDirectory, "export.tar"),
+        join(imageExportDirectory as string, `linux-${foreign}.tar`),
+    );
+    await rm(join(queueDirectory, "export.tar"));
 }
 
 const goProgram = [
@@ -352,8 +405,10 @@ describe("image builds", () => {
         }
     }, 600_000);
 
-    it("builds on a base image with file capabilities and warns", async () => {
-        const builder = await startBuilder();
+    // In the sandbox root owns the user namespace, so the unpack keeps the
+    // capability. The patched warning only shows on the path without emulation.
+    it("builds on a base image with file capabilities and warns without emulation", async () => {
+        const builder = await startBuilder({ seccomp: true });
         const runner = await startRunner();
         try {
             await writeContext(
@@ -375,29 +430,33 @@ describe("image builds", () => {
         }
     }, 600_000);
 
-    it("installs a package with an Alpine conffile on a Debian base image", async () => {
-        const builder = await startBuilder();
-        const runner = await startRunner();
-        try {
-            await writeContext(
-                runner,
-                [
-                    "FROM python:3.12-slim-bookworm",
-                    "RUN apt-get update && apt-get install -y --no-install-recommends procps",
-                ].join("\n"),
-            );
-            const build = await runner.exec([
-                "bash",
-                "-c",
-                "cd /home/runner/app && docker build -t conffile:local . 2>&1",
-            ]);
-            expect(build.output).not.toContain("conffile prompt");
-            expect(build.exitCode).toBe(0);
-        } finally {
-            await runner.stop();
-            await builder.stop();
-        }
-    }, 600_000);
+    it.each(buildPaths)(
+        "installs a package with an Alpine conffile on a Debian base image $name",
+        async ({ options }) => {
+            const builder = await startBuilder(options);
+            const runner = await startRunner();
+            try {
+                await writeContext(
+                    runner,
+                    [
+                        "FROM python:3.12-slim-bookworm",
+                        "RUN apt-get update && apt-get install -y --no-install-recommends procps",
+                    ].join("\n"),
+                );
+                const build = await runner.exec([
+                    "bash",
+                    "-c",
+                    "cd /home/runner/app && docker build -t conffile:local . 2>&1",
+                ]);
+                expect(build.output).not.toContain("conffile prompt");
+                expect(build.exitCode).toBe(0);
+            } finally {
+                await runner.stop();
+                await builder.stop();
+            }
+        },
+        600_000,
+    );
 
     it("reports a failing build with its exit code", async () => {
         const builder = await startBuilder();
@@ -481,7 +540,7 @@ describe("image builds", () => {
     }, 300_000);
 
     it("builds for the other architecture without emulation", async () => {
-        const stopBuilders = await superviseBuilders({ seccomp: true });
+        const builders = await superviseBuilders({ seccomp: true });
         const runner = await startRunner();
         try {
             const builder = await builderEnvironment();
@@ -554,12 +613,12 @@ describe("image builds", () => {
             );
         } finally {
             await runner.stop();
-            await stopBuilders();
+            await builders.stop();
         }
     }, 900_000);
 
     it("runs RUN steps for the other architecture under qemu", async () => {
-        const stopBuilders = await superviseBuilders();
+        const builders = await superviseBuilders();
         const runner = await startRunner();
         try {
             expect(await builderEnvironment()).toMatchObject({
@@ -598,12 +657,12 @@ describe("image builds", () => {
             );
         } finally {
             await runner.stop();
-            await stopBuilders();
+            await builders.stop();
         }
     }, 900_000);
 
     it("builds a base image with file capabilities for the other architecture", async () => {
-        const stopBuilders = await superviseBuilders();
+        const builders = await superviseBuilders();
         const runner = await startRunner();
         try {
             await writeContext(
@@ -618,12 +677,12 @@ describe("image builds", () => {
             expect(build.exitCode).toBe(0);
         } finally {
             await runner.stop();
-            await stopBuilders();
+            await builders.stop();
         }
     }, 900_000);
 
     it("pushes one index for two platforms to a registry that needs a login", async () => {
-        const stopBuilders = await superviseBuilders();
+        const builders = await superviseBuilders();
         const runner = await startRunner();
         try {
             await writeContextFile(runner, "main.go", goProgram);
@@ -636,7 +695,7 @@ describe("image builds", () => {
                     "COPY main.go .",
                     "RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /hello main.go",
                     "FROM alpine:3.20",
-                    "RUN uname -m > /machine",
+                    "RUN uname -m > /machine && apk add --no-cache file",
                     "COPY --from=build /hello /hello",
                 ].join("\n"),
             );
@@ -715,9 +774,338 @@ describe("image builds", () => {
             ]);
             expect(unauthenticated.exitCode).not.toBe(0);
             expect(unauthenticated.output).toContain("UNAUTHORIZED");
+
+            if (imageExportDirectory) {
+                await exportForeignImage(runner, image);
+            }
         } finally {
             await runner.stop();
-            await stopBuilders();
+            await builders.stop();
         }
     }, 1_200_000);
+
+    it("refuses a failed platform of a multi platform build without touching the tag", async () => {
+        const builders = await superviseBuilders();
+        const runner = await startRunner();
+        try {
+            const image = `${registryHost}/partial:1`;
+            const previous = await runner.exec([
+                "bash",
+                "-c",
+                `tar -cf /tmp/empty.tar -T /dev/null && crane append --insecure -f /tmp/empty.tar -t ${image} >/dev/null 2>&1 && crane digest --insecure ${image}`,
+            ]);
+            expect(previous.exitCode).toBe(0);
+
+            await writeContext(
+                runner,
+                [
+                    "FROM alpine:3.20",
+                    "ARG TARGETARCH",
+                    `RUN test "$TARGETARCH" = ${native}`,
+                ].join("\n"),
+            );
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                `cd /home/runner/app && docker build --platform linux/${native},linux/${foreign} --push -t ${image} . 2>&1`,
+            ]);
+            expect(build.exitCode).not.toBe(0);
+            expect(build.output).toContain(
+                `the build for linux/${foreign} failed with exit code`,
+            );
+            expect(build.output).toContain("nothing was pushed");
+            expect(build.output).not.toContain("pushing");
+
+            const digest = await runner.exec([
+                "crane",
+                "digest",
+                "--insecure",
+                image,
+            ]);
+            expect(digest.output.trim()).toBe(previous.output.trim());
+            const tags = await runner.exec([
+                "crane",
+                "ls",
+                "--insecure",
+                `${registryHost}/partial`,
+            ]);
+            expect(tags.output.trim()).toBe("1");
+            const queue = await runner.exec(["ls", "/builds/queue"]);
+            expect(queue.output.trim()).toBe("");
+        } finally {
+            await runner.stop();
+            await builders.stop();
+        }
+    }, 900_000);
+
+    it("keeps two builds of two runners apart that share one queue", async () => {
+        const builders = await superviseBuilders();
+        const runners = [await startRunner(), await startRunner()];
+        try {
+            const names = ["first", "second"];
+            await Promise.all(
+                runners.map((runner, index) =>
+                    writeContext(
+                        runner,
+                        `FROM alpine:3.20\nRUN echo ${names[index]} > /who`,
+                    ),
+                ),
+            );
+            const builds = await Promise.all(
+                runners.map((runner, index) =>
+                    runner.exec([
+                        "bash",
+                        "-c",
+                        `cd /home/runner/app && docker build --push -t ${registryHost}/shared-${names[index]}:1 . 2>&1`,
+                    ]),
+                ),
+            );
+            for (const [index, build] of builds.entries()) {
+                expect(build.exitCode).toBe(0);
+                const runner = runners[index] as StartedTestContainer;
+                expect(
+                    await readFromImage(
+                        runner,
+                        `${registryHost}/shared-${names[index]}:1`,
+                        "who",
+                    ),
+                ).toBe(names[index]);
+            }
+            const queue = await (runners[0] as StartedTestContainer).exec([
+                "ls",
+                "/builds/queue",
+            ]);
+            expect(queue.output.trim()).toBe("");
+        } finally {
+            await Promise.all(runners.map((runner) => runner.stop()));
+            await builders.stop();
+        }
+    }, 900_000);
+
+    it("fails a build in seconds when its builder is replaced mid build", async () => {
+        const builders = await superviseBuilders();
+        const runner = await startRunner();
+        try {
+            await writeContext(runner, "FROM alpine:3.20\nRUN sleep 300");
+            const build = runner.exec([
+                "bash",
+                "-c",
+                "cd /home/runner/app && docker build -t replaced:local . 2>&1",
+            ]);
+            const running = await runner.exec([
+                "bash",
+                "-c",
+                "for _ in $(seq 120); do grep -qs 'sleep 300' /builds/queue/*/log && exit 0; sleep 1; done; exit 1",
+            ]);
+            expect(running.exitCode).toBe(0);
+
+            await builders.kill();
+            const killed = Date.now();
+            const result = await build;
+            expect(Date.now() - killed).toBeLessThan(60_000);
+            expect(result.exitCode).not.toBe(0);
+            expect(result.output).toContain(
+                "replaced before the build finished",
+            );
+        } finally {
+            await runner.stop();
+            await builders.stop();
+        }
+    }, 600_000);
+
+    it.each(buildPaths)(
+        "stops a build after BUILD_TIMEOUT $name",
+        async ({ options }) => {
+            const builder = await startBuilder({
+                ...options,
+                environment: { BUILD_TIMEOUT: "10" },
+            });
+            const runner = await startRunner();
+            try {
+                await writeContext(runner, "FROM alpine:3.20\nRUN sleep 300");
+                const started = Date.now();
+                const build = await runner.exec([
+                    "bash",
+                    "-c",
+                    "cd /home/runner/app && docker build -t slow:local . 2>&1",
+                ]);
+                expect(Date.now() - started).toBeLessThan(90_000);
+                expect(build.exitCode).not.toBe(0);
+                expect(build.output).toContain(
+                    "the build took longer than BUILD_TIMEOUT=10s",
+                );
+
+                // A builder that still ran would block every later build of the stack.
+                const client = await getContainerRuntimeClient();
+                let running = true;
+                for (let attempt = 0; running && attempt < 20; attempt++) {
+                    const info = await client.container.inspect(
+                        client.container.getById(builder.getId()),
+                    );
+                    running = info.State.Running ?? false;
+                    if (running) {
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, 500),
+                        );
+                    }
+                }
+                expect(running).toBe(false);
+            } finally {
+                await runner.stop();
+                await builder.stop();
+            }
+        },
+        600_000,
+    );
+
+    it("takes back a job no builder claimed within the timeout of the runner", async () => {
+        const runner = await startRunner();
+        try {
+            await writeContext(runner, "FROM alpine:3.20");
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                "cd /home/runner/app && mstudio-build --timeout 3 -t unclaimed:local . 2>&1",
+            ]);
+            expect(build.exitCode).not.toBe(0);
+            expect(build.output).toContain(
+                "no builder took the job within 3s, so it was taken back",
+            );
+            const queue = await runner.exec(["ls", "/builds/queue"]);
+            expect(queue.output.trim()).toBe("");
+        } finally {
+            await runner.stop();
+        }
+    }, 300_000);
+
+    it("keeps a build for one other platform without --push in the image store", async () => {
+        const builders = await superviseBuilders();
+        const runner = await startRunner();
+        try {
+            await writeContext(
+                runner,
+                "FROM alpine:3.20\nRUN uname -m > /machine",
+            );
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                `cd /home/runner/app && docker build --platform ${foreign} --load -t other:local . 2>&1`,
+            ]);
+            expect(build.exitCode).toBe(0);
+            expect(build.output).toContain("--load has no daemon to load into");
+
+            const architecture = await runner.exec([
+                "bash",
+                "-c",
+                "docker save -o /tmp/other.tar other:local && tar -xOf /tmp/other.tar \"$(tar -xOf /tmp/other.tar manifest.json | jq -r '.[0].Config')\" | jq -r .architecture",
+            ]);
+            expect(architecture.output.trim()).toBe(foreign);
+
+            const both = await runner.exec([
+                "bash",
+                "-c",
+                "cd /home/runner/app && docker build --platform linux/amd64,linux/arm64 -t both:local . 2>&1",
+            ]);
+            expect(both.exitCode).not.toBe(0);
+            expect(both.output).toContain("needs --push");
+            const queue = await runner.exec(["ls", "/builds/queue"]);
+            expect(queue.output.trim()).toBe("");
+        } finally {
+            await runner.stop();
+            await builders.stop();
+        }
+    }, 900_000);
+
+    it("runs a stage with a literal FROM --platform of the other architecture in a native build", async () => {
+        const builders = await superviseBuilders();
+        const runner = await startRunner();
+        try {
+            await writeContext(
+                runner,
+                [
+                    `FROM --platform=linux/${foreign} alpine:3.20 AS other`,
+                    "RUN uname -m > /machine",
+                    "FROM alpine:3.20",
+                    "COPY --from=other /machine /machine",
+                ].join("\n"),
+            );
+            const image = `${registryHost}/literal-platform:1`;
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                `cd /home/runner/app && docker build --push -t ${image} . 2>&1`,
+            ]);
+            expect(build.exitCode).toBe(0);
+            expect(await readFromImage(runner, image, "machine")).toBe(
+                unameMachine[foreign],
+            );
+            expect(await configArchitecture(runner, image)).toBe(native);
+        } finally {
+            await runner.stop();
+            await builders.stop();
+        }
+    }, 900_000);
+
+    it("explains exec format error in a build without --platform", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            await writeContext(
+                runner,
+                [
+                    "FROM alpine:3.20",
+                    "RUN printf 'echo no interpreter line\\n' > /no-shebang && chmod +x /no-shebang",
+                    'RUN ["/no-shebang"]',
+                ].join("\n"),
+            );
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                "cd /home/runner/app && docker build -t format:local . 2>&1",
+            ]);
+            expect(build.exitCode).not.toBe(0);
+            expect(build.output).toContain(
+                `a RUN step started a binary that does not match linux/${native}`,
+            );
+            expect(build.output).not.toContain("cannot run RUN steps");
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
+
+    it("normalizes the platform list and refuses other architectures", async () => {
+        const runner = await startRunner();
+        try {
+            const normalized = await runner.exec([
+                "mstudio-platform-check",
+                " linux/arm64/v8, arm64 ,  linux/amd64,x86_64",
+            ]);
+            expect(normalized.exitCode).toBe(0);
+            expect(normalized.output.trim().split("\n")).toEqual([
+                "linux/arm64",
+                "linux/amd64",
+            ]);
+
+            await writeContext(runner, "FROM alpine:3.20");
+            for (const platforms of [
+                "linux/s390x",
+                "linux/amd64, linux/s390x",
+            ]) {
+                const build = await runner.exec([
+                    "bash",
+                    "-c",
+                    `cd /home/runner/app && docker build --platform "${platforms}" --push -t ${registryHost}/refused:1 . 2>&1`,
+                ]);
+                expect(build.exitCode).not.toBe(0);
+                expect(build.output).toContain(
+                    "platform linux/s390x is not supported",
+                );
+            }
+            const queue = await runner.exec(["ls", "/builds/queue"]);
+            expect(queue.output.trim()).toBe("");
+        } finally {
+            await runner.stop();
+        }
+    }, 300_000);
 });

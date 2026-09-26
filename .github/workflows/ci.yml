@@ -62,3 +62,50 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Integration tests (testcontainers)
         run: pnpm run test:integration
+        env:
+          IMAGE_EXPORT_DIR: ${{ runner.temp }}/images
+      - name: Keep the image built under qemu for the hardware check
+        uses: actions/upload-artifact@v7
+        with:
+          name: emulated-image-${{ runner.arch }}
+          path: ${{ runner.temp }}/images/
+          if-no-files-found: error
+          retention-days: 1
+
+  # The integration tests only read an emulated image back from the registry.
+  # This job runs it on hardware of its own architecture, which catches a
+  # binary that qemu ran but the real CPU does not.
+  native-hardware:
+    needs: integration
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04-arm
+            built-on: X64
+            architecture: arm64
+            machine: aarch64
+          - runner: ubuntu-latest
+            built-on: ARM64
+            architecture: amd64
+            machine: x86_64
+    name: native hardware (${{ matrix.architecture }})
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: emulated-image-${{ matrix.built-on }}
+          path: images
+      - name: Run the image on ${{ matrix.architecture }}
+        env:
+          ARCHITECTURE: ${{ matrix.architecture }}
+          MACHINE: ${{ matrix.machine }}
+        run: |
+          set -euo pipefail
+          image="$(docker load -i "images/linux-${ARCHITECTURE}.tar" | sed -n 's/^Loaded image: //p')"
+          test "$(docker image inspect -f '{{.Architecture}}' "${image}")" = "${ARCHITECTURE}"
+          test "$(docker run --rm "${image}" uname -m)" = "${MACHINE}"
+          test "$(docker run --rm "${image}" cat /machine)" = "${MACHINE}"
+          docker run --rm "${image}" file --version
+          docker run --rm "${image}" file /hello | grep -F "ELF 64-bit"
+          test "$(docker run --rm "${image}" /hello)" = "hello from ${ARCHITECTURE}"
