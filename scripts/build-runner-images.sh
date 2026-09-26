@@ -33,5 +33,9 @@ docker build \
     --build-arg "GO_VERSION=$(jq -r .kaniko.go "${builder_versions}")" \
     --build-arg "KANIKO_VERSION=$(jq -r .kaniko.version "${builder_versions}")" \
     --build-arg "KANIKO_REPOSITORY=$(jq -r .kaniko.repository "${builder_versions}")" \
+    --build-arg "QEMU_VERSION=$(jq -r .qemu.version "${builder_versions}")" \
+    --build-arg "QEMU_SNAPSHOT=$(jq -r .qemu.snapshot "${builder_versions}")" \
+    --build-arg "QEMU_SHA256_AMD64=$(jq -r .qemu.sha256.amd64 "${builder_versions}")" \
+    --build-arg "QEMU_SHA256_ARM64=$(jq -r .qemu.sha256.arm64 "${builder_versions}")" \
     -t mstudio-ci-builder:local \
     docker/builder

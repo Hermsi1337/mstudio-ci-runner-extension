@@ -149,7 +149,8 @@ the Ubuntu userland.
 
 `docker build` works: the `docker` in the image is a shim that hands the build to the
 builder service of the stack and pushes with crane. What it supports, fills in, warns
-about and refuses is in [image-builds.md](image-builds.md).
+about and refuses is in [image-builds.md](image-builds.md), including images for
+`linux/arm64` and multi-platform images.
 
 ## Workflow examples
 

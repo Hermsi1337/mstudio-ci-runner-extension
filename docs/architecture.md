@@ -196,7 +196,8 @@ job:
   image). A job can read the build context of a job running at the same time in another
   runner of that stack, and it can change an image tarball before its runner pushes it.
   The build itself runs as root in the builder container, which is replaced after every
-  build ([image-builds.md](image-builds.md)).
+  build. A build for the other architecture runs as root of a user namespace in that
+  container, which is uid 1 outside ([image-builds.md](image-builds.md)).
 - `docker login` in a job writes the registry credentials to `~/.docker/config.json` in
   the runner, where the next job on the same container can read them.
 

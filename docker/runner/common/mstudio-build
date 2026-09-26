@@ -17,7 +17,9 @@
 #       --push               push every tag with crane after a successful build
 #       --iidfile PATH       write the image id (config digest) to PATH
 #       --metadata-file PATH write buildx style metadata JSON to PATH
-#       --platform PLATFORM  only the platform of this runner is supported
+#       --platform LIST      linux/amd64, linux/arm64 or both, comma separated.
+#                            Several platforms build one image each and push
+#                            them as one index, so they need --push
 #       --timeout SECONDS    how long to wait for the builder (default: 3600)
 #       --quiet              only print the image reference
 #
@@ -40,6 +42,8 @@ metadata_file=""
 tags=()
 build_args=()
 labels=()
+platforms=()
+jobs=()
 
 log() {
     if [[ "${quiet}" == false ]]; then
@@ -53,7 +57,7 @@ fail() {
 }
 
 usage() {
-    sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [[ $# -gt 0 ]]; do
@@ -66,7 +70,11 @@ while [[ $# -gt 0 ]]; do
         --push) push=true; shift ;;
         --iidfile) iidfile="$2"; shift 2 ;;
         --metadata-file) metadata_file="$2"; shift 2 ;;
-        --platform) mstudio-platform-check "$2"; shift 2 ;;
+        --platform)
+            checked="$(mstudio-platform-check "$2")"
+            mapfile -t platforms <<<"${checked}"
+            shift 2
+            ;;
         --timeout) timeout_seconds="$2"; shift 2 ;;
         --quiet) quiet=true; shift ;;
         -h | --help) usage; exit 0 ;;
@@ -75,6 +83,15 @@ while [[ $# -gt 0 ]]; do
         *) context="$1"; shift ;;
     esac
 done
+
+if [[ "${push}" == true && ${#tags[@]} -eq 0 ]]; then
+    fail "--push needs at least one --tag"
+fi
+# One tag cannot hold several images in the image store of this runner, only a
+# registry can take the index that ties them together.
+if [[ ${#platforms[@]} -gt 1 && "${push}" == false ]]; then
+    fail "a build for $(IFS=,; echo "${platforms[*]}") needs --push, the images of several platforms only come together as one index in a registry"
+fi
 
 if [[ ! -d "${queue_dir}/queue" ]]; then
     fail "image builds are turned off for this stack. Turn them on in the mStudio extension, then the builder creates ${queue_dir}/queue."
@@ -86,118 +103,191 @@ fi
 [[ -f "${context}/${dockerfile}" ]] || fail "${context}/${dockerfile} does not exist"
 
 mstudio-dockerfile-check "${context}/${dockerfile}"
-
-if [[ "${push}" == true && ${#tags[@]} -eq 0 ]]; then
-    fail "--push needs at least one --tag"
+if [[ ${#platforms[@]} -eq 0 ]]; then
+    platforms=("")
 fi
 
-# mktemp makes the directory, so two runners of the same stack cannot pick the
-# same name in the same second.
-job="$(mktemp -d "${queue_dir}/queue/build-$(date +%s)-XXXXXX")"
-job_id="${job##*/}"
-result="${job}/result"
-mkdir -p "${job}/context"
-
-# The builder reads the job directory while it works, so it is only removed
-# once a result is in. A job left behind by a timeout or a killed runner is
-# collected by the builder, see docs/image-builds.md.
+# The builder reads a job directory while it works, so it is only removed once
+# a result is in. A job left behind by a timeout or a killed runner is collected
+# by the builder, see docs/image-builds.md.
 cleanup() {
-    if [[ -f "${result}" || ! -f "${job}/request" ]]; then
-        rm -rf "${job}" 2>/dev/null || true
-    fi
+    local job
+    for job in "${jobs[@]}"; do
+        if [[ -f "${job}/result" || ! -f "${job}/request" ]]; then
+            rm -rf "${job}" 2>/dev/null || true
+        fi
+    done
 }
 trap cleanup EXIT
 
-log "mstudio-build: sending ${context} to the builder (job ${job_id})"
-tar -c -C "${context}" . | tar -x -C "${job}/context"
-
-if [[ ${#build_args[@]} -gt 0 ]]; then
-    printf '%s\n' "${build_args[@]}" >"${job}/build-args"
-fi
-if [[ ${#labels[@]} -gt 0 ]]; then
-    printf '%s\n' "${labels[@]}" >"${job}/labels"
-fi
-
-{
-    echo "DOCKERFILE=${dockerfile}"
-    echo "DESTINATION=${tags[0]:-mstudio-build:${job_id}}"
-    [[ -n "${target}" ]] && echo "TARGET=${target}"
-} >"${job}/request.tmp"
-mv "${job}/request.tmp" "${job}/request"
-
-deadline=$((SECONDS + timeout_seconds))
-tail_pid=""
-while [[ ! -f "${result}" ]]; do
-    if [[ -z "${tail_pid}" && -f "${job}/log" ]]; then
-        tail -n +1 -f "${job}/log" >&2 &
-        tail_pid=$!
+builder_platforms() {
+    local line
+    if [[ -f "${queue_dir}/builder.env" ]]; then
+        while IFS= read -r line; do
+            [[ "${line}" == PLATFORMS=* ]] && echo "${line#PLATFORMS=}"
+        done <"${queue_dir}/builder.env"
     fi
-    if ((SECONDS > deadline)); then
-        [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null
-        fail "no result after ${timeout_seconds}s. The job stays in ${job} for the builder, check the log of the builder service in mStudio."
-    fi
-    sleep 1
-done
-sleep 1
-[[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null || true
+}
 
-exit_code=""
-for _ in 1 2 3 4 5; do
-    line="$(cat "${result}" 2>/dev/null || true)"
-    if [[ "${line}" =~ ^exit=([0-9]+)$ ]]; then
-        exit_code="${BASH_REMATCH[1]}"
-        break
-    fi
-    sleep 1
-done
-[[ -n "${exit_code}" ]] || fail "the builder wrote an unreadable result: $(cat "${result}" 2>/dev/null)"
-
-if [[ "${exit_code}" != "0" ]]; then
-    [[ -f "${job}/log" ]] && tail -n 40 "${job}/log" >&2
-    exit "${exit_code}"
-fi
-
-image_id="$(mstudio-image-store put "${job}/image.tar" "${tags[@]}")"
-
-# The digest of the pushed manifest only exists once it is pushed: crane builds
-# the manifest from the tarball, so it differs from what kaniko would have
-# pushed itself. Without a push there is no digest to report.
-manifest_digest=""
-if [[ "${push}" == true ]]; then
-    for tag in "${tags[@]}"; do
-        log "mstudio-build: pushing ${tag}"
-        pushed="$(mstudio-crane "${tag}" push "${job}/image.tar" "${tag}")"
-        manifest_digest="$(grep -o -E 'sha256:[0-9a-f]{64}' <<<"${pushed}" | tail -n 1)"
-    done
-fi
-
-if [[ -n "${iidfile}" ]]; then
-    if [[ -n "${manifest_digest}" ]]; then
-        printf '%s' "${manifest_digest}" >"${iidfile}"
+# kaniko reports a RUN step that executes a binary of the other architecture as
+# "exec format error". Whether that is expected depends on the probe of the
+# builder, so the message tells which of the two cases this is.
+explain_failure() {
+    local platform="$1" log_file="$2"
+    grep -q 'exec format error' "${log_file}" 2>/dev/null || return 0
+    if [[ ",$(builder_platforms)," == *",${platform},"* ]]; then
+        echo "mstudio-build: a RUN step started a binary that does not match ${platform}. Check the architecture of the files the Dockerfile downloads or copies." >&2
     else
-        printf '%s' "${image_id}" >"${iidfile}"
+        echo "mstudio-build: the builder cannot run RUN steps for ${platform}, it found no emulation on startup (see the log of the builder service). Build in a stage with FROM --platform=\$BUILDPLATFORM and cross-compile for \$TARGETARCH, or use only COPY in ${platform} stages." >&2
     fi
+}
+
+# Sends the context to the builder for one platform, streams the log and sets
+# job to the job directory once the build succeeded.
+build_for() {
+    local platform="$1" destination="$2"
+    job="$(mktemp -d "${queue_dir}/queue/build-$(date +%s)-XXXXXX")"
+    jobs+=("${job}")
+    local job_id="${job##*/}" result="${job}/result"
+    mkdir -p "${job}/context"
+
+    log "mstudio-build: sending ${context} to the builder (job ${job_id}${platform:+, ${platform}})"
+    tar -c -C "${context}" . | tar -x -C "${job}/context"
+
+    if [[ ${#build_args[@]} -gt 0 ]]; then
+        printf '%s\n' "${build_args[@]}" >"${job}/build-args"
+    fi
+    if [[ ${#labels[@]} -gt 0 ]]; then
+        printf '%s\n' "${labels[@]}" >"${job}/labels"
+    fi
+
+    {
+        echo "DOCKERFILE=${dockerfile}"
+        [[ -n "${destination}" ]] && echo "DESTINATION=${destination}"
+        [[ -n "${target}" ]] && echo "TARGET=${target}"
+        [[ -n "${platform}" ]] && echo "PLATFORM=${platform}"
+    } >"${job}/request.tmp"
+    mv "${job}/request.tmp" "${job}/request"
+
+    local deadline=$((SECONDS + timeout_seconds)) tail_pid=""
+    while [[ ! -f "${result}" ]]; do
+        if [[ -z "${tail_pid}" && -f "${job}/log" ]]; then
+            tail -n +1 -f "${job}/log" >&2 &
+            tail_pid=$!
+        fi
+        if ((SECONDS > deadline)); then
+            [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null
+            fail "no result after ${timeout_seconds}s. The job stays in ${job} for the builder, check the log of the builder service in mStudio."
+        fi
+        sleep 1
+    done
+    sleep 1
+    [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null || true
+
+    local exit_code="" line
+    for _ in 1 2 3 4 5; do
+        line="$(cat "${result}" 2>/dev/null || true)"
+        if [[ "${line}" =~ ^exit=([0-9]+)$ ]]; then
+            exit_code="${BASH_REMATCH[1]}"
+            break
+        fi
+        sleep 1
+    done
+    [[ -n "${exit_code}" ]] || fail "the builder wrote an unreadable result: $(cat "${result}" 2>/dev/null)"
+
+    if [[ "${exit_code}" != "0" ]]; then
+        [[ -f "${job}/log" ]] && tail -n 40 "${job}/log" >&2
+        explain_failure "${platform}" "${job}/log"
+        exit "${exit_code}"
+    fi
+}
+
+# registry/name:tag and registry:port/name@sha256:... both lose everything
+# after the name.
+repository_of() {
+    local reference="${1%%@*}" last
+    last="${reference##*/}"
+    if [[ "${last}" == *:* ]]; then
+        reference="${reference%:*}"
+    fi
+    echo "${reference}"
+}
+
+write_outputs() {
+    local image_id="$1" manifest_digest="$2"
+    if [[ -n "${iidfile}" ]]; then
+        if [[ -n "${manifest_digest}" ]]; then
+            printf '%s' "${manifest_digest}" >"${iidfile}"
+        else
+            printf '%s' "${image_id}" >"${iidfile}"
+        fi
+    fi
+
+    # The fields `docker/build-push-action` exposes as its imageid, digest and
+    # metadata outputs. Workflows read them to tag deployments, so an empty file
+    # would break steps that do.
+    if [[ -n "${metadata_file}" ]]; then
+        jq -n \
+            --arg config "${image_id}" \
+            --arg digest "${manifest_digest}" \
+            --arg names "$(
+                IFS=,
+                echo "${tags[*]:-}"
+            )" \
+            '(if $config == "" then {} else {"containerimage.config.digest": $config} end)
+                + (if $digest == "" then {} else {"containerimage.digest": $digest} end)
+                + (if $names == "" then {} else {"image.name": $names} end)' \
+            >"${metadata_file}"
+    fi
+}
+
+if [[ ${#platforms[@]} -eq 1 ]]; then
+    build_for "${platforms[0]}" "${tags[0]:-}"
+    image_id="$(mstudio-image-store put "${job}/image.tar" "${tags[@]}")"
+
+    # The digest of the pushed manifest only exists once it is pushed: crane
+    # builds the manifest from the tarball, so it differs from what kaniko would
+    # have pushed itself. Without a push there is no digest to report.
+    manifest_digest=""
+    if [[ "${push}" == true ]]; then
+        for tag in "${tags[@]}"; do
+            log "mstudio-build: pushing ${tag}"
+            pushed="$(mstudio-crane "${tag}" push "${job}/image.tar" "${tag}")"
+            manifest_digest="$(grep -o -E 'sha256:[0-9a-f]{64}' <<<"${pushed}" | tail -n 1)"
+        done
+    fi
+    write_outputs "${image_id}" "${manifest_digest}"
+
+    if [[ ${#tags[@]} -gt 0 ]]; then
+        printf '%s\n' "${tags[0]}"
+    else
+        printf '%s\n' "${image_id}"
+    fi
+    exit 0
 fi
 
-# The fields `docker/build-push-action` exposes as its imageid, digest and
-# metadata outputs. Workflows read them to tag deployments, so an empty file
-# would break steps that do.
-if [[ -n "${metadata_file}" ]]; then
-    jq -n \
-        --arg config "${image_id}" \
-        --arg digest "${manifest_digest}" \
-        --arg names "$(
-            IFS=,
-            echo "${tags[*]:-}"
-        )" \
-        '{"containerimage.config.digest": $config}
-            + (if $digest == "" then {} else {"containerimage.digest": $digest} end)
-            + (if $names == "" then {} else {"image.name": $names} end)' \
-        >"${metadata_file}"
-fi
+tarballs=()
+for platform in "${platforms[@]}"; do
+    build_for "${platform}" "${tags[0]}"
+    tarballs+=("${job}/image.tar")
+done
 
-if [[ ${#tags[@]} -gt 0 ]]; then
-    printf '%s\n' "${tags[0]}"
-else
-    printf '%s\n' "${image_id}"
-fi
+# Each image goes to the registry by digest, so the tag never points at a
+# single platform image. The index is the only thing that gets the tag.
+index_digest=""
+for tag in "${tags[@]}"; do
+    repository="$(repository_of "${tag}")"
+    children=()
+    for tarball in "${tarballs[@]}"; do
+        digest="$(crane digest --tarball "${tarball}")"
+        log "mstudio-build: pushing ${repository}@${digest}"
+        mstudio-crane "${tag}" push "${tarball}" "${repository}@${digest}" >/dev/null
+        children+=(-m "${repository}@${digest}")
+    done
+    log "mstudio-build: pushing ${tag} as an index of $(IFS=,; echo "${platforms[*]}")"
+    pushed="$(mstudio-crane "${tag}" index append "${children[@]}" -t "${tag}")"
+    index_digest="$(grep -o -E 'sha256:[0-9a-f]{64}' <<<"${pushed}" | tail -n 1)"
+done
+write_outputs "" "${index_digest}"
+
+printf '%s\n' "${tags[0]}"

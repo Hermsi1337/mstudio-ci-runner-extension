@@ -52,6 +52,15 @@ case "$(dpkg --print-architecture)" in
     *) foreign_platform=linux/amd64 ;;
 esac
 printf 'FROM --platform=%s alpine\n' "${foreign_platform}" >"${probe_dir}/Dockerfile.foreign"
-expect "dockerfile check rejects FROM with a foreign platform" bash -c "! mstudio-dockerfile-check ${probe_dir}/Dockerfile.foreign 2>/dev/null"
+expect "dockerfile check accepts FROM with the other architecture" mstudio-dockerfile-check "${probe_dir}/Dockerfile.foreign"
+printf 'FROM --platform=linux/s390x alpine\n' >"${probe_dir}/Dockerfile.s390x"
+expect "dockerfile check rejects FROM with an architecture the builder lacks" bash -c "! mstudio-dockerfile-check ${probe_dir}/Dockerfile.s390x 2>/dev/null"
 expect "platform check accepts the native platform" mstudio-platform-check "linux/$(dpkg --print-architecture)"
-expect "platform check rejects a foreign platform" bash -c "! mstudio-platform-check ${foreign_platform} 2>/dev/null"
+expect_output "platform check accepts and normalizes both architectures" "linux/amd64 linux/arm64" \
+    bash -c "mstudio-platform-check linux/amd64,aarch64,linux/arm64/v8 | tr '\n' ' '"
+expect "platform check rejects an architecture the builder lacks" bash -c "! mstudio-platform-check linux/s390x 2>/dev/null"
+expect_output "a multi platform build without --push is refused" "needs --push" \
+    bash -c "mstudio-build --platform linux/amd64,linux/arm64 -t probe:1 . 2>&1"
+expect_output "setup-qemu-action gets the platforms of the builder" '"supported":["linux/' \
+    docker run --rm --privileged tonistiigi/binfmt
+expect_output "buildx ls reports the platforms of the builder" "linux/$(dpkg --print-architecture)" docker buildx ls

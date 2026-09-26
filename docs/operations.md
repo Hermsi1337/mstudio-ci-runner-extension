@@ -49,8 +49,9 @@ e.g. to try a branch.
 The extension image receives the version as build arg `EXTENSION_VERSION` (baked in as
 environment variable). The extension derives its default runner images from it, so
 nothing runs on `latest`. The runner software versions come from
-`docker/runner/versions.json` ([runner-image.md](runner-image.md)), the kaniko version of
-the builder image from `docker/builder/versions.json` ([image-builds.md](image-builds.md)).
+`docker/runner/versions.json` ([runner-image.md](runner-image.md)), the kaniko and qemu
+versions of the builder image from `docker/builder/versions.json`
+([image-builds.md](image-builds.md)).
 
 ## Images
 
@@ -90,7 +91,7 @@ resources, which is not what building and releasing this repository needs.
 | Job | Runner | Why |
 |---|---|---|
 | `ci.yml` `check` | `ubuntu-latest` | Node |
-| `ci.yml` `integration` | `ubuntu-latest`, `ubuntu-24.04-arm` | Testcontainers needs a Docker daemon. arm64 runs the platform checks on a foreign architecture and covers arm64 development machines |
+| `ci.yml` `integration` | `ubuntu-latest`, `ubuntu-24.04-arm` | Testcontainers needs a Docker daemon. arm64 runs the platform checks on a foreign architecture and covers arm64 development machines. Both allow user namespaces for unconfined processes, which the emulated builds need ([testing.md](testing.md)) |
 | `release.yml` `verify`, `release`, `bump-version` | `ubuntu-latest` | Integration tests, `jq`, `git`, Node |
 | `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx |
 | `deploy.yml` `deploy`, `metadata` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
@@ -256,3 +257,16 @@ workflow, by `pnpm run runner:build` and by the integration tests; a bump needs 
 like any other change. The builder applies the patches in `docker/builder/patches/` to
 kaniko before it compiles it, so a kaniko bump fails the image build when a patch no
 longer applies.
+
+The builder image also carries a static qemu for the other architecture
+([image-builds.md](image-builds.md#builds-for-the-other-architecture)). It comes from
+Debian's `qemu-user` package. `qemu.version`, the `snapshot.debian.org` timestamp that
+serves it and the checksums of the amd64 and arm64 `.deb` live in
+`docker/builder/versions.json`. The snapshot URL stays valid after Debian moves on, the
+pool URL does not. To bump, look the package up in the snapshot API and take the
+`first_seen` timestamp and the files:
+
+```bash
+curl -fsSL "https://snapshot.debian.org/mr/binary/qemu-user/<version>/binfiles?fileinfo=1"
+curl -fsSL "https://snapshot.debian.org/archive/debian/<first_seen>/pool/main/q/qemu/qemu-user_<version>_amd64.deb" | sha256sum
+```
