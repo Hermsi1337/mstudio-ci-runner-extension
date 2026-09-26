@@ -265,17 +265,25 @@ command_emulator() {
     esac
 }
 
-command_run() {
-    local argument
-    for argument in "$@"; do
-        case "${argument}" in
-            *binfmt* | *qemu-user-static*)
-                command_emulator "$@"
-
-                return 0
-                ;;
+# Only the image decides, an argument like /proc/sys/fs/binfmt_misc does not.
+# The image is the first argument that is neither an option nor its value.
+run_image() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --*=* | --rm | --privileged | --init | --read-only | -d | --detach | -i | --interactive | -t | --tty | -it | -ti) shift ;;
+            -*) shift $(($# > 1 ? 2 : 1)) ;;
+            *) echo "$1"; return 0 ;;
         esac
     done
+}
+
+command_run() {
+    case "$(run_image "$@")" in
+        binfmt | binfmt:* | */binfmt | */binfmt:* | *qemu-user-static | *qemu-user-static:*)
+            command_emulator "$@"
+            return 0
+            ;;
+    esac
     fail "run needs a Docker daemon, which mittwald Container Hosting does not provide. Only image builds and registry access work here, see docs/image-builds.md"
 }
 

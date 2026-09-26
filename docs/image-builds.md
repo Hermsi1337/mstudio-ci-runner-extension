@@ -23,17 +23,19 @@ except kaniko needs. Measured inside a container of a project:
 
 That rules out buildah, podman and rootless BuildKit: all of them re-exec into a user
 namespace whose map includes container uid 0, and since Linux 5.12 such a map needs
-`CAP_SETFCAP`. kaniko needs no namespace, because it unpacks the base image into the root
-filesystem of its own container and runs every `RUN` there. A namespace that leaves
-container uid 0 unmapped works, which is what builds for the other architecture use
-([below](#builds-for-the-other-architecture)).
+`CAP_SETFCAP`. kaniko needs no namespace, because it can unpack the base image into the root
+filesystem of its own container and run every `RUN` there. A namespace that leaves
+container uid 0 unmapped works, and that is where the builder runs every build when the
+kernel allows it ([below](#builds-for-the-other-architecture)). The root filesystem of
+the container is the fallback.
 
-The price is that the container is destroyed by its own build. Its `/usr/bin` belongs to
+On that fallback the container is destroyed by its own build. Its `/usr/bin` belongs to
 the built image afterwards, `cat` and `sleep` are gone. So a builder container serves
 exactly one build and then exits. The service runs with `restartPolicy: always`, and the
 platform replaces it within about a second, with a clean root filesystem.
 
-Files that the builder image has and the base image does not have survive the unpack.
+Files that the builder image has and the base image does not have survive the unpack on
+the fallback path.
 The builder image is Alpine, and Alpine ships `/etc/sysctl.conf`. Debian's `procps`
 installs the same path as a conffile, so dpkg finds an unknown file there, asks what to
 do, reads EOF from stdin and fails the `apt-get install`. `DEBIAN_FRONTEND` does not
@@ -70,14 +72,17 @@ Protocol, one directory per job:
 | `queue/<job>/build-args`, `labels` | runner | one `KEY=VALUE` per line |
 | `queue/<job>/request` | runner | job parameters (`DOCKERFILE`, `DESTINATION`, `TARGET`, `PLATFORM`), written last, offers the job |
 | `queue/<job>/request.claimed` | builder | the same file renamed, which is how one builder takes a job |
+| `queue/<job>/request.withdrawn` | runner | the same file renamed when the runner gives up before a builder claimed the job, so no builder picks it up later |
 | `queue/<job>/log` | builder | kaniko output, streamed into the job log |
 | `queue/<job>/image.tar` | builder | the built image |
 | `queue/<job>/exit-code`, `queue/<job>/result` | builder | exit code of kaniko, `result` written last and polled by the runner |
 | `builder.env` | builder | `PLATFORMS` and `EMULATION` from the startup probe, read by the shim and by `mstudio-build` |
 
-The job directory belongs to the runner, which deletes it once a result is in. A job that
-was abandoned, because the runner was killed or the builder died while building, stays
-behind; the builder deletes such directories when they are older than `BUILD_MAX_AGE`.
+The job directory belongs to the runner, which deletes it once a result is in. When the
+runner gives up (`MSTUDIO_BUILD_TIMEOUT`) on a job that no builder claimed, it takes the
+job back and deletes it. A job that was abandoned, because the runner was killed or the
+builder died while building, stays behind; the builder deletes such directories when they
+are older than `BUILD_MAX_AGE`.
 Nothing offers a claimed job a second time. When a builder is replaced while it builds, it
 leaves its job claimed without a result; the next builder writes a failing result for such
 jobs on startup, so the runner fails the build in seconds instead of waiting for its whole
@@ -123,7 +128,7 @@ Environment of the builder:
 | Variable | Meaning | Default |
 |---|---|---|
 | `BUILD_QUEUE_DIR` | shared directory | `/builds` |
-| `BUILD_TIMEOUT` | seconds a single build may take | `3600` |
+| `BUILD_TIMEOUT` | seconds a single build may take. The builder then ends kaniko and everything it started, writes a failing result and exits | `3600` |
 | `BUILD_HEARTBEAT` | seconds between "idle" lines in the log | `300` |
 | `BUILD_MAX_AGE` | hours after which a leftover job directory is deleted | `24` |
 
@@ -195,7 +200,8 @@ How the parts fit:
 - `mstudio-build` queues one job per platform with `PLATFORM=linux/<arch>`. The builder
   passes it to kaniko as `--custom-platform`, so base images come for that platform and
   the image config says so. The jobs run one after the other, each in a fresh builder
-  container.
+  container. When one of them fails, `mstudio-build` stops with its exit code before it
+  pushes anything, so the tags keep what they pointed at.
 - With several platforms, `mstudio-build` pushes each image by digest
   (`crane push image.tar <repository>@sha256:...`), then ties them together with
   `crane index append` under every tag. No tag ever points at a single platform image. The
@@ -217,7 +223,9 @@ How the parts fit:
 
 `RUN` in a stage of the other architecture needs emulation. The builder brings a static
 qemu for the other architecture (Debian `qemu-user`, version in
-`docker/builder/versions.json`) and runs such a job in `docker/builder/sandbox.sh`:
+`docker/builder/versions.json`) and runs every job in `docker/builder/sandbox.sh`, the
+native ones included. A stage with a literal `FROM --platform=linux/arm64` can appear in
+any build, and only the sandbox has qemu registered:
 
 1. `loop.sh` copies the kaniko binary, CA certificates and the build context into a fresh
    root directory and gives it to uid 1. Every job gets a new one, so nothing one build
@@ -231,17 +239,17 @@ qemu for the other architecture (Debian `qemu-user`, version in
    root and runs kaniko chrooted there.
 4. `loop.sh` copies the tarball out of the root into the job directory.
 
-A job for the native platform takes the old path: kaniko on the root filesystem of the
-container, which the Alpine conffile cleanup above still protects. Only the sandbox root
-starts empty.
+Without a working sandbox every job takes the fallback path: kaniko on the root
+filesystem of the container, which the Alpine conffile cleanup above protects. The
+sandbox root starts empty.
 
 On startup the builder probes which path works and writes the result into
 `/builds/builder.env`:
 
 | `EMULATION` | Meaning |
 |---|---|
-| `namespace` | the sandbox works, `RUN` runs for both platforms |
-| `host` | the sandbox fails, but the kernel runs binaries of the other architecture through a handler the host registered |
+| `namespace` | the sandbox works, every job runs in it and `RUN` runs for both platforms |
+| `host` | the sandbox fails, but the kernel runs binaries of the other architecture through a handler the host registered. Jobs run on the fallback path |
 | `none` | no emulation. Builds for the other platform still work as long as no `RUN` step of that platform executes a binary: `COPY`-only stages and the cross-compiling pattern above |
 
 The sandbox needs Linux 6.7 or newer, unprivileged user namespaces and no seccomp filter
@@ -333,16 +341,17 @@ the flag and pulls every base image for the platform of the build.
 - **Two architectures.** amd64 and arm64. `RUN` for the one the builder does not run on
   needs emulation, see [above](#builds-for-the-other-architecture). In the sandbox, ids
   above 65534 do not exist, so a base image with files owned by such a uid fails to unpack.
+  With `EMULATION=namespace` that holds for native builds as well.
 - **No attestations, no SBOM.**
 - **File capabilities stay in the base image only.** Some base images give binaries a
-  capability, `caddy` for example carries `cap_net_bind_service` on `/usr/bin/caddy`. The
-  builder cannot set it while unpacking, because the container lacks `CAP_SETFCAP` and the
-  API cannot add it. Upstream kaniko aborts there. The builder patches kaniko
-  (`docker/builder/patches/`) to print a warning and go on. The file keeps its capability
-  in the base image layer, so the built image works. A file that a later step changes or
-  copies (`COPY --from=` a stage with such a base image) loses it. In the sandbox of a build
-  for the other architecture root owns the namespace, so the unpack keeps the capability
-  without a warning. A copy made in a `RUN` step lost it there as well (`caddy`, measured).
+  capability, `caddy` for example carries `cap_net_bind_service` on `/usr/bin/caddy`. In
+  the sandbox root owns the namespace, so the unpack keeps the capability. A copy made in
+  a `RUN` step lost it there (`caddy`, measured). On the fallback path the builder cannot
+  set it while unpacking, because the container lacks `CAP_SETFCAP` and the API cannot add
+  it. Upstream kaniko aborts there. The builder patches kaniko (`docker/builder/patches/`)
+  to print a warning and go on. The file keeps its capability in the base image layer, so
+  the built image works. A file that a later step changes or copies (`COPY --from=` a
+  stage with such a base image) loses it.
 - **Base images come from public registries.** The builder has no credentials and no
   `--insecure-pull`, so `FROM` a private registry or a registry inside the project fails
   while pushing to the same registry works.
@@ -377,11 +386,20 @@ the container log.
 `image builds are turned off for this stack` means `/builds/queue` does not exist: the
 builder service is missing from the stack or does not run.
 
-`the builder did not finish within 3600s` means no result arrived and no builder claimed
-the job at all: the builder service is missing or not running. A build whose builder died
-mid build no longer waits for this timeout, the next builder fails it on startup with
-`the build container was replaced before the build finished`. The log of the builder
-service in mStudio shows what happened.
+`no builder took the job within 3900s, so it was taken back` means no builder claimed the
+job within `MSTUDIO_BUILD_TIMEOUT`: the builder service is missing or not running. A build
+whose builder died mid build does not wait for this timeout, the next builder fails it on
+startup with `the build container was replaced before the build finished`. The log of the
+builder service in mStudio shows what happened.
+
+`the build took longer than BUILD_TIMEOUT=3600s and was stopped` means the builder ended
+the build, including every process a `RUN` step left running, and exited. The build ends
+with exit code 137. Raise `BUILD_TIMEOUT` on the builder service and
+`MSTUDIO_BUILD_TIMEOUT` on the runner a little above it, or make the build faster.
+
+`the build for linux/arm64 failed with exit code 1, nothing was pushed` comes from a build
+for several platforms. None of the images went to the registry, and the tags point where
+they pointed before.
 
 `/builds/queue is not writable by runner` means the builder never started: it is the
 service that creates the directory and makes it writable.

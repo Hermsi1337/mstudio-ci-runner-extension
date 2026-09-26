@@ -58,9 +58,17 @@ expect "dockerfile check rejects FROM with an architecture the builder lacks" ba
 expect "platform check accepts the native platform" mstudio-platform-check "linux/$(dpkg --print-architecture)"
 expect_output "platform check accepts and normalizes both architectures" "linux/amd64 linux/arm64" \
     bash -c "mstudio-platform-check linux/amd64,aarch64,linux/arm64/v8 | tr '\n' ' '"
+expect_output "platform check ignores spaces in the list" "linux/arm64 linux/amd64" \
+    bash -c "mstudio-platform-check ' arm64 , linux/amd64,  linux/arm64/v8' | tr '\n' ' '"
 expect "platform check rejects an architecture the builder lacks" bash -c "! mstudio-platform-check linux/s390x 2>/dev/null"
 expect_output "a multi platform build without --push is refused" "needs --push" \
     bash -c "mstudio-build --platform linux/amd64,linux/arm64 -t probe:1 . 2>&1"
 expect_output "setup-qemu-action gets the platforms of the builder" '"supported":["linux/' \
     docker run --rm --privileged tonistiigi/binfmt
+expect_output "a pinned binfmt image gets the platforms of the builder" '"supported":["linux/' \
+    docker run --rm --privileged docker.io/tonistiigi/binfmt:latest --install all
+expect_output "qemu-user-static gets the platforms of the builder" '"supported":["linux/' \
+    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+expect_output "docker run of another image fails although an argument names binfmt" "needs a Docker daemon" \
+    bash -c "! docker run --rm -e MODE=binfmt alpine ls /proc/sys/fs/binfmt_misc 2>&1"
 expect_output "buildx ls reports the platforms of the builder" "linux/$(dpkg --print-architecture)" docker buildx ls

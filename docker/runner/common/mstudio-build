@@ -107,13 +107,20 @@ if [[ ${#platforms[@]} -eq 0 ]]; then
     platforms=("")
 fi
 
-# The builder reads a job directory while it works, so it is only removed once
-# a result is in. A job left behind by a timeout or a killed runner is collected
-# by the builder, see docs/image-builds.md.
+# The builder claims a job by renaming its request, so the same rename takes
+# back a job that no builder claimed yet. A claimed job is only removed once
+# its result is in, because the builder reads the directory while it works. A
+# job left behind by a killed runner is collected by the builder, see
+# docs/image-builds.md.
+withdraw() {
+    local job="$1"
+    [[ -f "${job}/request" ]] && mv "${job}/request" "${job}/request.withdrawn" 2>/dev/null
+}
+
 cleanup() {
     local job
     for job in "${jobs[@]}"; do
-        if [[ -f "${job}/result" || ! -f "${job}/request" ]]; then
+        if withdraw "${job}" || [[ -f "${job}/result" || ! -f "${job}/request.claimed" ]]; then
             rm -rf "${job}" 2>/dev/null || true
         fi
     done
@@ -129,13 +136,30 @@ builder_platforms() {
     fi
 }
 
+# The builder lists its native platform first. Before a builder ever started,
+# the runner shares the host with it and has the same architecture.
+native_platform() {
+    local platforms
+    platforms="$(builder_platforms)"
+    if [[ -n "${platforms}" ]]; then
+        echo "${platforms%%,*}"
+        return 0
+    fi
+    case "$(uname -m)" in
+        x86_64) echo linux/amd64 ;;
+        aarch64) echo linux/arm64 ;;
+        *) echo "linux/$(uname -m)" ;;
+    esac
+}
+
 # kaniko reports a RUN step that executes a binary of the other architecture as
 # "exec format error". Whether that is expected depends on the probe of the
-# builder, so the message tells which of the two cases this is.
+# builder, so the message tells which of the two cases this is. A build without
+# --platform is a build for the native platform, which always runs RUN steps.
 explain_failure() {
-    local platform="$1" log_file="$2"
+    local platform="${1:-$(native_platform)}" log_file="$2"
     grep -q 'exec format error' "${log_file}" 2>/dev/null || return 0
-    if [[ ",$(builder_platforms)," == *",${platform},"* ]]; then
+    if [[ "${platform}" == "$(native_platform)" || ",$(builder_platforms)," == *",${platform},"* ]]; then
         echo "mstudio-build: a RUN step started a binary that does not match ${platform}. Check the architecture of the files the Dockerfile downloads or copies." >&2
     else
         echo "mstudio-build: the builder cannot run RUN steps for ${platform}, it found no emulation on startup (see the log of the builder service). Build in a stage with FROM --platform=\$BUILDPLATFORM and cross-compile for \$TARGETARCH, or use only COPY in ${platform} stages." >&2
@@ -177,6 +201,9 @@ build_for() {
         fi
         if ((SECONDS > deadline)); then
             [[ -n "${tail_pid}" ]] && kill "${tail_pid}" 2>/dev/null
+            if withdraw "${job}"; then
+                fail "no builder took the job within ${timeout_seconds}s, so it was taken back. Check that the builder service of this stack is running in mStudio."
+            fi
             fail "no result after ${timeout_seconds}s. The job stays in ${job} for the builder, check the log of the builder service in mStudio."
         fi
         sleep 1
@@ -198,6 +225,9 @@ build_for() {
     if [[ "${exit_code}" != "0" ]]; then
         [[ -f "${job}/log" ]] && tail -n 40 "${job}/log" >&2
         explain_failure "${platform}" "${job}/log"
+        local pushed_nothing=""
+        [[ "${push}" == true ]] && pushed_nothing=", nothing was pushed"
+        echo "mstudio-build: the build${platform:+ for ${platform}} failed with exit code ${exit_code}${pushed_nothing}" >&2
         exit "${exit_code}"
     fi
 }
