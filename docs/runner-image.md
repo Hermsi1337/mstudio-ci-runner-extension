@@ -7,10 +7,13 @@ Hosting runs on amd64, called by
 image also gets `docker/runner/common/`: `trim-cache.sh`, the cache cleanup called by the
 cronjob (see [providers.md](providers.md)), and the tools for image builds, `docker-shim`
 plus `mstudio-build`, `mstudio-image-store`, `mstudio-crane`, `mstudio-dockerfile-check`
-and `mstudio-platform-check` ([image-builds.md](image-builds.md)). Both images also ship
-the static docker CLI from download.docker.com at `/usr/local/libexec/docker-cli/docker`.
-It is not on `PATH`: `docker` is always the shim, which calls the real CLI for container
-commands when `DOCKER_HOST` is set ([Docker in jobs](#docker-in-jobs)). All images: Ubuntu
+and `mstudio-platform-check` ([image-builds.md](image-builds.md)), and `mstudio-port-forward`
+([Docker in jobs](#docker-in-jobs)). Both images also ship
+the static docker CLI from download.docker.com at `/usr/local/libexec/docker-cli/docker`,
+the docker compose plugin from the [docker/compose](https://github.com/docker/compose)
+releases at `/usr/local/lib/docker/cli-plugins/docker-compose` and `socat`.
+The CLI is not on `PATH`: `docker` is always the shim, which calls the real CLI for container
+commands and `compose` when `DOCKER_HOST` is set ([Docker in jobs](#docker-in-jobs)). All images: Ubuntu
 24.04, user `runner`, no Docker daemon.
 
 | Provider | Image | Base |
@@ -20,8 +23,10 @@ commands when `DOCKER_HOST` is set ([Docker in jobs](#docker-in-jobs)). All imag
 
 The runner software version per provider lives in `docker/runner/versions.json`
 together with the SHA-256 checksums of the upstream binaries for amd64 and arm64, next to
-the `crane` version the images ship for pushing built images and the docker CLI version
-under `dockerCli` (checksums of the `.tgz` archives). CI builds amd64 only, the
+the `crane` version the images ship for pushing built images, the docker CLI version
+under `dockerCli` (checksums of the `.tgz` archives) and the docker compose plugin version
+under `dockerCompose` (checksums of the `docker-compose-linux-x86_64` and
+`docker-compose-linux-aarch64` binaries). CI builds amd64 only, the
 arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine:
 
 ```json
@@ -32,7 +37,8 @@ It is the only place to bump them: the workflow, `pnpm run runner:build`, the im
 and the extension (shown as runner version in the UI, `runnerVersion` on the provider)
 read it. The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64`,
 `RUNNER_SHA256_ARM64`, `CRANE_VERSION`, `CRANE_SHA256_AMD64`, `CRANE_SHA256_ARM64`,
-`DOCKER_CLI_VERSION`, `DOCKER_CLI_SHA256_AMD64` and `DOCKER_CLI_SHA256_ARM64` as build args
+`DOCKER_CLI_VERSION`, `DOCKER_CLI_SHA256_AMD64`, `DOCKER_CLI_SHA256_ARM64`,
+`DOCKER_COMPOSE_VERSION`, `DOCKER_COMPOSE_SHA256_AMD64` and `DOCKER_COMPOSE_SHA256_ARM64` as build args
 without defaults and stop the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
 
 The extension creates runners from `ghcr.io/hermsi1337/mstudio-ci-runner-<provider>:<EXTENSION_VERSION>`,
@@ -155,7 +161,27 @@ read `DOCKER_HOST` talk to it directly.
 
 | Variable | Meaning | Default |
 |---|---|---|
-| `DOCKER_HOST` | Docker API for container commands. Set by the extension when Docker in jobs is on. The shim forwards `docker run`, `exec`, `ps` and the other container commands to the real CLI only when it is set | unset |
+| `DOCKER_HOST` | Docker API for container commands. Set by the extension when Docker in jobs is on. The shim forwards `docker run`, `exec`, `ps`, `compose` and the other container commands to the real CLI only when it is set, and the entrypoint starts `mstudio-port-forward` | unset |
+
+The `docker` service publishes container ports on itself: `docker run -p 5432:5432 postgres`
+listens on `docker:5432`, and `docker port` prints `0.0.0.0:<port>` meaning that port on
+the host `docker`. Jobs and GitHub `services:` expect it on localhost, so the entrypoint
+starts `mstudio-port-forward` in the background when `DOCKER_HOST` is set. Every second it
+lists the published ports with `docker ps` and keeps one `socat` per port that forwards
+`127.0.0.1:<port>` to `docker:<port>` (the host part of `DOCKER_HOST`). After `run`,
+`create`, `start`, `restart` and `compose` the shim wakes it with `SIGUSR1`, so a
+detached container is reachable on localhost as soon as the command returns. A port that
+disappears loses its forwarder. A port already taken on localhost is skipped with one line
+in the container log, the container stays reachable at `docker:<port>`. The forwarder
+logs to the container log with the prefix `[port-forward]`, only on changes. UDP ports are
+not forwarded.
+
+The forwarder sees every port the `docker` service published, also those of containers
+started by another runner in the same stack. A stack is the trust boundary: runners that
+must not reach each other's containers belong in separate stacks.
+
+`docker compose` goes to the compose plugin of the real CLI, which talks to the same
+Docker API. Published ports of compose services reach localhost the same way.
 
 `docker build` stays with the builder service, the Docker API builds no images. The
 commands the shim forwards and the ones it still refuses are in
@@ -165,8 +191,8 @@ commands the shim forwards and the ones it still refuses are in
 
 No Docker daemon in the runner. Without Docker in jobs nothing that starts a container
 works: `docker run` and the other container commands fail with a message. With it,
-`docker run`, Testcontainers and GitHub `services:` work, while `container:` jobs,
-Docker container actions and `docker compose` do not; the list with workarounds is in
+`docker run`, `docker compose`, Testcontainers and GitHub `services:` work, while `container:` jobs
+and Docker container actions do not; the list with workarounds is in
 [docker-api.md](docker-api.md#known-issues). In GitLab `image:` and `services:` are
 ignored by the shell executor; jobs run directly in the Ubuntu userland.
 
@@ -203,5 +229,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker run --rm alpine:3.20 echo ok
+      - run: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=test postgres:17
+      - run: pg_isready -h localhost -p 5432   # forwarded by mstudio-port-forward
       - run: npm ci && npm test   # Testcontainers reads DOCKER_HOST
 ```

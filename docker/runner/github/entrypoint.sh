@@ -14,6 +14,8 @@
 #   RUNNER_WORKDIR    working directory: checkouts, tool cache, actions (default: RUNNER_DATA_DIR/work)
 #   RUNNER_CONFIG_DIR directory that keeps the runner credentials across restarts (default: RUNNER_DATA_DIR/config)
 #   DISABLE_AUTO_UPDATE  "true" => --disableupdate
+#   DOCKER_HOST       set by Docker in jobs; starts mstudio-port-forward, which makes ports
+#                     published by the docker service reachable on localhost
 #
 # Flow: a persisted registration from RUNNER_CONFIG_DIR is restored and reused.
 # Without one, the runner registers with RUNNER_TOKEN or a token fetched via
@@ -142,9 +144,18 @@ on_signal() {
         fi
         wait "${run_pid}" 2>/dev/null || true
     fi
+    if [[ -n "${port_forward_pid}" ]]; then
+        kill -TERM "${port_forward_pid}" 2>/dev/null || true
+    fi
     exit 0
 }
 trap on_signal SIGINT SIGTERM
+
+port_forward_pid=""
+if [[ -n "${DOCKER_HOST:-}" ]]; then
+    mstudio-port-forward &
+    port_forward_pid=$!
+fi
 
 while true; do
     if ! restore_config; then

@@ -26,8 +26,8 @@ order.
 The probe suite in `docker/runner/probes/` runs inside the built images.
 `probe.sh` provides `expect` and `expect_output`, `common.sh` holds the checks every
 image passes (user `runner`, sudo, `apt-get install`, toolchain, writable paths,
-symlinks, exec bit, `trim-cache.sh`, the image build tools and the rejections of the
-docker shim), `<provider>.sh` adds the runner binary and
+symlinks, exec bit, `trim-cache.sh`, the image build tools, `socat`, the compose plugin,
+`mstudio-port-forward` and the rejections of the docker shim), `<provider>.sh` adds the runner binary and
 asserts its version against `docker/runner/versions.json`
 (`EXPECTED_RUNNER_VERSION`). All of it runs without credentials, so it works on
 every pull request, forks included.

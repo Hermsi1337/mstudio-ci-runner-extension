@@ -17,14 +17,18 @@
 #
 # Container commands need a daemon: run, create, start, stop, restart, kill,
 # rm, exec, logs, ps, wait, cp, port, top, stats, attach, rename, update,
-# container, network, volume, events. With Docker in jobs turned on, the
-# extension sets DOCKER_HOST to the docker service of the stack, and the shim
-# hands these commands unchanged to the real docker CLI, which lives off PATH
-# in /usr/local/libexec/docker-cli. `docker inspect` answers from the image
-# store for a stored image and forwards everything else. Without DOCKER_HOST
-# these commands fail with a message.
+# container, network, volume, events, compose. With Docker in jobs turned on,
+# the extension sets DOCKER_HOST to the docker service of the stack, and the
+# shim hands these commands unchanged to the real docker CLI, which lives off
+# PATH in /usr/local/libexec/docker-cli. `docker inspect` answers from the
+# image store for a stored image and forwards everything else. Without
+# DOCKER_HOST these commands fail with a message.
 #
-# Not supported: compose, system, commit, buildx bake.
+# The docker service publishes container ports on itself. After a command that
+# can start containers, the shim wakes mstudio-port-forward, which makes those
+# ports reachable on localhost.
+#
+# Not supported: system, commit, buildx bake.
 set -euo pipefail
 
 warn() {
@@ -55,6 +59,26 @@ has_docker_service() {
 forward() {
     [[ -x "${DOCKER_CLI}" ]] || fail "the docker CLI is missing from this image"
     exec "${DOCKER_CLI}" "$@"
+}
+
+forward_and_publish_ports() {
+    [[ -x "${DOCKER_CLI}" ]] || fail "the docker CLI is missing from this image"
+    local status=0
+    "${DOCKER_CLI}" "$@" || status=$?
+    pkill -USR1 -f '^bash /usr/local/bin/mstudio-port-forward$' 2>/dev/null || true
+    exit "${status}"
+}
+
+starts_containers() {
+    case "$1" in
+        run | create | start | restart | compose) return 0 ;;
+        container)
+            case "${2:-}" in
+                run | create | start | restart) return 0 ;;
+            esac
+            ;;
+    esac
+    return 1
 }
 
 needs_docker_service() {
@@ -388,12 +412,12 @@ case "${command}" in
     builder)
         command_buildx "$@"
         ;;
-    run | create | start | stop | restart | kill | rm | exec | logs | ps | wait | cp | port | top | stats | attach | rename | update | container | network | volume | events)
+    run | create | start | stop | restart | kill | rm | exec | logs | ps | wait | cp | port | top | stats | attach | rename | update | container | network | volume | events | compose)
         has_docker_service || needs_docker_service "${command}"
+        if starts_containers "${command}" "$@"; then
+            forward_and_publish_ports "${command}" "$@"
+        fi
         forward "${command}" "$@"
-        ;;
-    compose)
-        fail "compose is not part of this image, start the containers with docker run, see docs/image-builds.md"
         ;;
     system | commit)
         fail "${command} is not supported by the docker shim, see docs/image-builds.md"

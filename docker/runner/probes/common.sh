@@ -5,7 +5,7 @@ expect "runs unprivileged" test "$(id -u)" -ne 0
 expect_output "sudo gives root" "0" sudo -n id -u
 expect "apt-get install works" sudo bash -c "apt-get update -qq && apt-get install -y -qq hello"
 
-for tool in git curl jq unzip zip tar gzip xz rsync ssh python3 pip3 gcc make; do
+for tool in git curl jq unzip zip tar gzip xz rsync socat ssh python3 pip3 gcc make; do
     expect "tool ${tool}" command -v "${tool}"
 done
 
@@ -41,6 +41,15 @@ expect "real docker CLI stays off PATH" test "$(command -v docker)" = /usr/local
 expect_output "docker run without DOCKER_HOST names the runner option" \
     "turn on Docker in jobs in the runner settings" \
     bash -c "unset DOCKER_HOST; ! docker run alpine 2>&1"
+expect_output "docker compose without DOCKER_HOST names the runner option" \
+    "compose needs a Docker daemon, turn on Docker in jobs in the runner settings" \
+    bash -c "unset DOCKER_HOST; ! docker compose up -d 2>&1"
+expect_output "compose plugin is installed" "Docker Compose version" \
+    bash -c "unset DOCKER_HOST; /usr/local/libexec/docker-cli/docker compose version"
+expect_output "docker compose with DOCKER_HOST reaches the real CLI" "127.0.0.1:1" \
+    bash -c "cd \$(mktemp -d) && printf 'services:\n  probe:\n    image: alpine\n' > compose.yaml && ! DOCKER_HOST=tcp://127.0.0.1:1 docker compose ps 2>&1"
+expect "mstudio-port-forward executable" test -x /usr/local/bin/mstudio-port-forward
+expect "mstudio-port-forward exits without DOCKER_HOST" bash -c "unset DOCKER_HOST; timeout 5 mstudio-port-forward"
 expect_output "docker ps with DOCKER_HOST reaches the real CLI" "127.0.0.1:1" \
     bash -c "! DOCKER_HOST=tcp://127.0.0.1:1 docker ps 2>&1"
 expect_output "docker inspect with DOCKER_HOST forwards unknown references" "127.0.0.1:1" \

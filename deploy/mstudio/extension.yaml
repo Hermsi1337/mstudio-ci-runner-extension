@@ -51,7 +51,7 @@ detailedDescriptions:
     - **Cache:** Persistenter Cache für Paketmanager (npm, pnpm, Yarn, pip,
       Composer, Go) mit automatischem Aufräum-Cronjob
     - **Image-Builds und Docker in Jobs:** `docker build` über einen
-      Builder-Container, `docker run`, Testcontainers und GitHub `services:` über
+      Builder-Container, `docker run`, `docker compose`, Testcontainers und GitHub `services:` über
       einen Docker-Container im Stack, ohne Docker-Daemon im Runner
     - **Ziel-Stack:** Runner in einen bestehenden Stack deines Projekts legen,
       damit Jobs dessen Services erreichen, zum Beispiel für Migrations
@@ -63,9 +63,9 @@ detailedDescriptions:
     ## Gut zu wissen
 
     Die Runner laufen ohne Docker-Daemon: Jobs laufen direkt auf Ubuntu 24.04.
-    Mit Docker in Jobs starten `docker run`, Testcontainers und GitHub
-    `services:` ihre Container im Stack; `container:`, `docker compose` und
-    GitLab `services:` funktionieren nicht. Pakete lassen
+    Mit Docker in Jobs starten `docker run`, `docker compose`, Testcontainers
+    und GitHub `services:` ihre Container im Stack; `container:` und GitLab
+    `services:` funktionieren nicht. Pakete lassen
     sich per `sudo apt-get` nachinstallieren. Jobs laufen mit sudo-Rechten im
     Container, nutze daher einen Runner pro Vertrauensbereich und lass keine
     fremden Pull Requests darauf laufen.
@@ -96,7 +96,7 @@ detailedDescriptions:
     - **Cache:** persistent cache for package managers (npm, pnpm, Yarn, pip,
       Composer, Go) with an automatic cleanup cronjob
     - **Image builds and Docker in jobs:** `docker build` through a builder
-      container, `docker run`, Testcontainers and GitHub `services:` through a
+      container, `docker run`, `docker compose`, Testcontainers and GitHub `services:` through a
       Docker container in the stack, without a Docker daemon in the runner
     - **Target stack:** put a runner into an existing stack of your project so
       jobs reach its services, for example for migrations
@@ -108,8 +108,8 @@ detailedDescriptions:
     ## Good to know
 
     The runners run without a Docker daemon: jobs run directly on Ubuntu 24.04.
-    With Docker in jobs, `docker run`, Testcontainers and GitHub `services:`
-    start their containers in the stack; `container:`, `docker compose` and
+    With Docker in jobs, `docker run`, `docker compose`, Testcontainers and
+    GitHub `services:` start their containers in the stack; `container:` and
     GitLab `services:` do not work. Packages can be
     installed with `sudo apt-get`. Jobs run with sudo inside the container, so use
     one runner per trust boundary and keep untrusted pull requests off it.

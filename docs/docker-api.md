@@ -27,8 +27,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker run --rm alpine:3.20 echo hello
       - run: sudo apt-get install -y -q postgresql-client
-      # Services listen on the host of DOCKER_HOST, not on localhost
-      - run: psql -h docker -p ${{ job.services.postgres.ports[5432] }} -U postgres -c 'select 1'
+      # The runner forwards published ports to localhost
+      - run: psql -h localhost -p ${{ job.services.postgres.ports[5432] }} -U postgres -c 'select 1'
         env:
           PGPASSWORD: secret
       - run: npm ci && npm test   # Testcontainers reads DOCKER_HOST on its own
@@ -44,13 +44,13 @@ test:
     - until docker exec db pg_isready -U postgres; do sleep 2; done
     - export DB_PORT=$(docker port db 5432 | cut -d: -f2)
     - sudo apt-get install -y -q postgresql-client
-    - PGPASSWORD=secret psql -h docker -p "$DB_PORT" -U postgres -c 'select 1'
+    - PGPASSWORD=secret psql -h localhost -p "$DB_PORT" -U postgres -c 'select 1'
     - npm ci && npm test
   after_script:
     - docker rm -f db
 ```
 
-Tested with the `docker` CLI and with Testcontainers for Node (`testcontainers`,
+Tested with the `docker` CLI, Docker Compose and Testcontainers for Node (`testcontainers`,
 `@testcontainers/postgresql`), Python (`testcontainers`) and Go
 (`testcontainers-go`): PostgreSQL, MariaDB, Redis, nginx, health check, log, HTTP and
 port wait strategies, networks with aliases, copies before and after start, exec,
@@ -85,6 +85,8 @@ into the shared directory, where every container finds it.
 | Output | The wrapper writes stdout and stderr as timestamped frames into a log file. `logs`, `attach` and `docker run` read it, with follow, tail, since and timestamps. |
 | Exit code | The wrapper records it and stays alive, so the container stays exited instead of being restarted. `wait`, `inspect` and `docker run` report it. The process runs in a process group of its own: stop and kill signal the whole group, and when the main process ends, its leftovers end with it, as in a Docker container. |
 | exec | The adapter writes a request, the wrapper runs it and streams output and exit code back. No SSH. |
+| stdin | `docker run -i` and `docker exec -i`: the adapter appends the input of the client to a file and marks its end, the wrapper feeds the file to the process. |
+| Events | `GET /events` streams create, start, die with exit code, stop, kill and destroy; Docker Compose follows containers through it. |
 | Files | `docker cp` and Testcontainers copies go through the shared directory. Files copied into a created container are extracted before its process starts. |
 | Health checks | The wrapper runs the `HEALTHCHECK` of the container, `State.Health` reports it. |
 | Ports | Published ports are opened on the adapter and forwarded to the address the wrapper reports. Clients connect to the host in `DOCKER_HOST`. |
@@ -229,7 +231,6 @@ boundary.
   Private images need two things, see [Private images](#private-images).
 - No image builds. `POST /build` answers 501. Build and push in the pipeline,
   then run the image from the registry.
-- No stdin. `docker run -i` and `docker exec -i` get an empty input.
 - No TTY. `-t` is accepted, the output is not a terminal.
 - No read-only mounts, no tmpfs, no `--privileged`, no capabilities. The API
   rejects `:ro` and has no field for the others.
@@ -244,14 +245,14 @@ boundary.
 
 | What | Behaviour | Instead |
 |---|---|---|
-| GitHub `services:` | Work: the runner starts them through the Docker API. Their ports listen on the host of `DOCKER_HOST` (`docker`), not on `localhost`, and the service names do not resolve in the runner | `docker:${{ job.services.<name>.ports[<port>] }}` |
+| GitHub `services:` | Work: the runner starts them through the Docker API, and the runner forwards their ports to `localhost` ([runner-image.md](runner-image.md)). The service names do not resolve in the runner | `localhost:${{ job.services.<name>.ports[<port>] }}` |
 | GitHub `container:`, `uses: docker://...`, Docker container actions | Fail: the runner bind-mounts its work directory, which is no project path | Run the steps on the runner, start tools with `docker run` |
 | GitLab `image:`, `services:` | Ignored by the shell executor | `docker run` or Testcontainers in `script:` |
 | `-v "$PWD:/src"`, bind mounts of the workspace | Refused: the source must lie on the project file system | `docker cp`, or the copy functions of Testcontainers (`withCopyFilesToContainer`, `withCopyDirectoriesToContainer`) |
 | `docker build` then `docker run` of that image | The image exists only in the image store of the runner | Push it and run it from the registry |
-| `docker compose` | Not part of the runner image | One `docker run` per service |
-| `docker run -i`, piped stdin | The container gets no input | Pass data as file (`docker cp`) or argument |
+| `docker compose` | Works for services from images: `up` with and without `-d`, `depends_on` with health checks, `ps`, `logs`, `exec`, `run`, `down`. Not: `build:` and bind mounts of relative paths | Build and push first; `docker cp` instead of `./dir:/path` |
 | `docker run -t` | Accepted, the output is no terminal | |
+| Ports | Published ports reach the runner on `localhost` and every container of the stack on `docker:<port>`. The runner forwards the ports of all containers the service `docker` started, also those of other runners in the stack | |
 | Docker Hub | Anonymous manifest reads count against the rate limit of the project's address. The adapter caches image configs by digest and asks with HEAD first, which does not count | `docker login` raises the limit |
 | Start time | About 4 seconds per container with a cached image, the first start of an image includes the pull by the platform | |
 | Resources | Every container is a service with 1 CPU and 2 GB unless `--cpus` and `--memory` say otherwise, and counts against the project | |

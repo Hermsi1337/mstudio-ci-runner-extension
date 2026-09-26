@@ -11,6 +11,8 @@
 #   RUNNER_CONCURRENT  concurrent jobs (default: 1)
 #   RUNNER_UNREGISTER_ON_EXIT  "true" => remove the runner from GitLab on SIGTERM (default: false,
 #                      the extension deletes the runner via API itself)
+#   DOCKER_HOST        set by Docker in jobs; starts mstudio-port-forward, which makes ports
+#                      published by the docker service reachable on localhost
 set -euo pipefail
 
 : "${CI_SERVER_URL:?CI_SERVER_URL is required}"
@@ -69,9 +71,18 @@ on_signal() {
     if [[ "${RUNNER_UNREGISTER_ON_EXIT}" == "true" ]]; then
         gitlab-runner unregister --config "${CONFIG}" --all-runners || true
     fi
+    if [[ -n "${port_forward_pid}" ]]; then
+        kill -TERM "${port_forward_pid}" 2>/dev/null || true
+    fi
     exit 0
 }
 trap on_signal SIGINT SIGTERM
+
+port_forward_pid=""
+if [[ -n "${DOCKER_HOST:-}" ]]; then
+    mstudio-port-forward &
+    port_forward_pid=$!
+fi
 
 setsid gitlab-runner run --config "${CONFIG}" --working-directory "${HOME}" &
 run_pid=$!

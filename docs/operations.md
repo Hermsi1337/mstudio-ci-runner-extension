@@ -247,13 +247,15 @@ under the container `extension`.
    is deployed; *Update* moves them to the new image. Running GitHub runners also update
    themselves unless `DISABLE_AUTO_UPDATE` is set.
 
-`crane` and the docker CLI in the runner images and `kaniko` in the builder image
+`crane`, the docker CLI and the docker compose plugin in the runner images and `kaniko` in the builder image
 follow the same path. `crane.version` and its two checksums live in
 `docker/runner/versions.json`
 ([releases](https://github.com/google/go-containerregistry/releases), file
 `checksums.txt`), so do `dockerCli.version` and the checksums of the two static
 archives (`download.docker.com/linux/static/stable/<x86_64|aarch64>/docker-<version>.tgz`,
-computed with `sha256sum` after downloading), `kaniko.version` and the Go version that
+computed with `sha256sum` after downloading), `dockerCompose.version` and the checksums of
+the two binaries from the [compose releases](https://github.com/docker/compose/releases)
+(`docker-compose-linux-<x86_64|aarch64>`, each with a `.sha256` file next to it), `kaniko.version` and the Go version that
 compiles it in
 `docker/builder/versions.json`
 ([releases](https://github.com/chainguard-forks/kaniko/releases)). Both are read by the
