@@ -28,9 +28,15 @@ type Frame struct {
 const frameHeader = 13
 
 type FrameWriter struct {
-	mu sync.Mutex
-	w  io.Writer
+	mu       sync.Mutex
+	w        io.Writer
+	lastSync time.Time
 }
+
+// syncEvery bounds how often a log file is synced. A sync per line made a
+// process that prints 100000 lines outlive its own exit by minutes on the
+// project file system.
+const syncEvery = 250 * time.Millisecond
 
 func NewFrameWriter(w io.Writer) *FrameWriter {
 	return &FrameWriter{w: w}
@@ -46,6 +52,21 @@ func (fw *FrameWriter) Write(stream byte, payload []byte) error {
 	if _, err := fw.w.Write(append(header[:], payload...)); err != nil {
 		return err
 	}
+	if time.Since(fw.lastSync) < syncEvery {
+		return nil
+	}
+	return fw.syncLocked()
+}
+
+// Sync makes everything written so far visible to other containers.
+func (fw *FrameWriter) Sync() error {
+	fw.mu.Lock()
+	defer fw.mu.Unlock()
+	return fw.syncLocked()
+}
+
+func (fw *FrameWriter) syncLocked() error {
+	fw.lastSync = time.Now()
 	if f, ok := fw.w.(*os.File); ok {
 		return f.Sync()
 	}
@@ -65,6 +86,7 @@ func (fw *FrameWriter) Pump(stream byte, r io.Reader, mirror io.Writer) {
 			}
 		}
 		if err != nil && !errors.Is(err, bufio.ErrBufferFull) {
+			_ = fw.Sync()
 			return
 		}
 	}

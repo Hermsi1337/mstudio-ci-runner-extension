@@ -29,7 +29,7 @@ import (
 const (
 	pollInterval      = 100 * time.Millisecond
 	heartbeatInterval = 2 * time.Second
-	outputDrain       = 2 * time.Second
+	outputDrain       = 15 * time.Second
 	shutdownGrace     = 10 * time.Second
 )
 
@@ -76,7 +76,11 @@ func (in *Init) loop(parent context.Context) error {
 	defer cancel()
 	go in.heartbeat(ctx)
 	if string(in.dir) == state.SelfDir {
-		go in.syncHosts(ctx)
+		// Once before the process starts, so a container that resolves a
+		// sibling right away finds it; then in the background.
+		original := in.readEtcHosts()
+		in.applyHosts(original, nil)
+		go in.syncHosts(ctx, original)
 	}
 	// The reaper outlives ctx: shutdown still waits for the process to end.
 	reaperCtx, stopReaper := context.WithCancel(context.Background())
@@ -394,6 +398,9 @@ func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWrit
 	cmd.Stderr = stderrW
 
 	p := &process{done: make(chan struct{})}
+	// Before the start: the reaper may wait for the pumps as soon as the
+	// process is watched, and a process can end right away.
+	p.pumps.Add(2)
 	in.reaper.mu.Lock()
 	err = cmd.Start()
 	if err == nil {
@@ -406,6 +413,7 @@ func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWrit
 	if err != nil {
 		_ = stdoutR.Close()
 		_ = stderrR.Close()
+		p.pumps.Add(-2)
 		return nil, err
 	}
 
@@ -413,7 +421,6 @@ func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWrit
 	if mirror {
 		stdoutMirror, stderrMirror = os.Stdout, os.Stderr
 	}
-	p.pumps.Add(2)
 	go func() { defer p.pumps.Done(); out.Pump(state.Stdout, stdoutR, stdoutMirror); _ = stdoutR.Close() }()
 	go func() { defer p.pumps.Done(); out.Pump(state.Stderr, stderrR, stderrMirror); _ = stderrR.Close() }()
 	return p, nil

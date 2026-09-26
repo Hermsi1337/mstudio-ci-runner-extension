@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -49,7 +50,7 @@ func TestRegistryImageReadsTheConfig(t *testing.T) {
 	defer server.Close()
 	ref := pushImage(t, strings.TrimPrefix(server.URL, "http://"))
 
-	img, err := registryImage(context.Background(), ref, authn.Anonymous)
+	img, err := registryImage(context.Background(), ref, authn.Anonymous, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +68,7 @@ func TestRegistryImageReadsTheConfig(t *testing.T) {
 func TestRegistryImageReportsAMissingImage(t *testing.T) {
 	server := httptest.NewServer(registry.New())
 	defer server.Close()
-	_, err := registryImage(context.Background(), strings.TrimPrefix(server.URL, "http://")+"/nope:1", authn.Anonymous)
+	_, err := registryImage(context.Background(), strings.TrimPrefix(server.URL, "http://")+"/nope:1", authn.Anonymous, "")
 	if !errors.Is(err, ErrImageNotFound) {
 		t.Fatalf("expected ErrImageNotFound, got %v", err)
 	}
@@ -105,7 +106,7 @@ func privateRegistry(t *testing.T) (*httptest.Server, string) {
 func TestPrivateImageIsMissingWithoutCredentials(t *testing.T) {
 	server, ref := privateRegistry(t)
 	defer server.Close()
-	_, err := registryImage(context.Background(), ref, authn.Anonymous)
+	_, err := registryImage(context.Background(), ref, authn.Anonymous, "")
 	if !errors.Is(err, ErrImageNotFound) {
 		t.Fatalf("expected ErrImageNotFound, got %v", err)
 	}
@@ -114,7 +115,7 @@ func TestPrivateImageIsMissingWithoutCredentials(t *testing.T) {
 func TestResolverUsesCredentialsFromAPull(t *testing.T) {
 	server, ref := privateRegistry(t)
 	defer server.Close()
-	resolver := NewImageResolver(nil, "p", true)
+	resolver := NewImageResolver(nil, "p", true, t.TempDir())
 	if _, err := resolver.Resolve(context.Background(), ref); !errors.Is(err, ErrImageNotFound) {
 		t.Fatalf("expected ErrImageNotFound before login, got %v", err)
 	}
@@ -125,5 +126,27 @@ func TestResolverUsesCredentialsFromAPull(t *testing.T) {
 	}
 	if !strings.HasPrefix(img.Digest, "sha256:") {
 		t.Errorf("digest %q", img.Digest)
+	}
+}
+
+func TestRegistryImageServesTheCacheAfterAHead(t *testing.T) {
+	server := httptest.NewServer(registry.New())
+	defer server.Close()
+	ref := pushImage(t, strings.TrimPrefix(server.URL, "http://"))
+	dir := t.TempDir()
+	first, err := registryImage(context.Background(), ref, authn.Anonymous, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, _ := os.ReadDir(dir)
+	if len(entries) != 1 {
+		t.Fatalf("cache holds %d entries, want 1", len(entries))
+	}
+	second, err := registryImage(context.Background(), ref, authn.Anonymous, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.Digest != first.Digest || strings.Join(second.Cmd, " ") != "postgres" {
+		t.Errorf("cached image %+v differs from %+v", second, first)
 	}
 }

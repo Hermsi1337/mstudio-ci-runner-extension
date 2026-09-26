@@ -92,8 +92,14 @@ func (e *Engine) CreateExec(ref string, req container.ExecCreateRequest) (string
 }
 
 func (e *Engine) requireRunning(c *state.Container) error {
+	if c.Virtual != "" {
+		if e.ryuk.running(c.ID) {
+			return nil
+		}
+		return fmt.Errorf("%w: container %s is not running", ErrConflict, c.ID)
+	}
 	dir := e.dir(c.ID)
-	if c.Virtual != "" || !dir.Status().Running() || !dir.Alive() {
+	if !dir.Status().Running() || !dir.Alive() {
 		return fmt.Errorf("%w: container %s is not running", ErrConflict, c.ID)
 	}
 	return nil
@@ -120,6 +126,13 @@ func (e *Engine) StartExec(ctx context.Context, id string, detach bool, out Outp
 	}
 	if err := e.requireRunning(c); err != nil {
 		return err
+	}
+	// The emulated Ryuk has no process to run commands in. Testcontainers for
+	// Go checks its port from inside with an exec; success is the answer.
+	if c.Virtual != "" {
+		code := 0
+		e.execs.update(id, func(i *execInstance) { i.ExitCode = &code })
+		return nil
 	}
 	e.execs.update(id, func(i *execInstance) { i.Running = true; i.Detached = detach })
 	task, err := e.submitTask(c, id, state.TaskRequest{Type: state.TaskExec, Process: &inst.Process})

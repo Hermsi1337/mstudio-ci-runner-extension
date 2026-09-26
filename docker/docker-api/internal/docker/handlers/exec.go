@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -62,8 +63,9 @@ func (h *ExecHandler) StartExec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = conn.Close() }()
+	go discardInput(conn)
 	out := engine.Output{W: conn, Raw: raw}
-	if err := h.engine.StartExec(r.Context(), id, false, out); err != nil {
+	if err := h.engine.StartExec(context.WithoutCancel(r.Context()), id, false, out); err != nil {
 		slog.Debug("exec ended with error", "exec", id, "error", err)
 		payload := []byte(err.Error() + "\n")
 		if raw {

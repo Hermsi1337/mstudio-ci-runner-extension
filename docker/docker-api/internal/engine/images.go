@@ -42,10 +42,13 @@ type ImageResolver struct {
 	auth map[string]authn.AuthConfig
 }
 
-func NewImageResolver(client mittwald.ContainerClient, projectID string, useRegistry bool) *ImageResolver {
+// NewImageResolver keeps image configs below cacheDir, by manifest digest.
+func NewImageResolver(client mittwald.ContainerClient, projectID string, useRegistry bool, cacheDir string) *ImageResolver {
 	r := &ImageResolver{client: client, projectID: projectID, cache: map[string]*Image{}, auth: map[string]authn.AuthConfig{}}
 	if useRegistry {
-		r.registry = registryImage
+		r.registry = func(ctx context.Context, ref string, auth authn.Authenticator) (*Image, error) {
+			return registryImage(ctx, ref, auth, cacheDir)
+		}
 	}
 	return r
 }
@@ -77,7 +80,7 @@ func (r *ImageResolver) Resolve(ctx context.Context, ref string) (*Image, error)
 			r.remember(img)
 			return img, nil
 		}
-		if errors.Is(err, ErrImageNotFound) {
+		if errors.Is(err, ErrImageNotFound) || errors.Is(err, ErrUnavailable) {
 			return nil, err
 		}
 		registryErr = err

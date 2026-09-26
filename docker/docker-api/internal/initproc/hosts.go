@@ -31,27 +31,40 @@ func localIPs() []string {
 	return ips
 }
 
-// syncHosts appends the entries the adapter publishes to /etc/hosts. It
-// keeps the original content and does nothing when the file is read-only,
-// as it is for containers that run as an unprivileged user.
-func (in *Init) syncHosts(ctx context.Context) {
+func (in *Init) readEtcHosts() []byte {
 	original, err := os.ReadFile(etcHosts)
 	if err != nil {
-		return
+		return nil
 	}
 	if i := bytes.Index(original, []byte(hostsMarker)); i >= 0 {
 		original = original[:i]
 	}
+	return original
+}
+
+// applyHosts writes the entries the adapter published below the original
+// content of /etc/hosts. It returns the entries it wrote, or last when
+// nothing changed or /etc/hosts is read-only, as it is for containers that
+// run as an unprivileged user.
+func (in *Init) applyHosts(original, last []byte) []byte {
+	if original == nil {
+		return last
+	}
+	entries, err := os.ReadFile(in.dir.HostsPath())
+	if err != nil || bytes.Equal(entries, last) {
+		return last
+	}
+	content := append(append(append([]byte{}, original...), hostsMarker...), entries...)
+	if os.WriteFile(etcHosts, content, 0o644) != nil {
+		return last
+	}
+	return entries
+}
+
+func (in *Init) syncHosts(ctx context.Context, original []byte) {
 	var last []byte
 	for {
-		entries, err := os.ReadFile(in.dir.HostsPath())
-		if err == nil && !bytes.Equal(entries, last) {
-			content := append(append(append([]byte{}, original...), hostsMarker...), entries...)
-			if os.WriteFile(etcHosts, content, 0o644) != nil {
-				return
-			}
-			last = entries
-		}
+		last = in.applyHosts(original, last)
 		select {
 		case <-ctx.Done():
 			return

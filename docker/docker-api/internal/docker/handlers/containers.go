@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bufio"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -196,7 +197,11 @@ func (h *ContainerHandler) Attach(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = conn.Close() }()
-	if err := h.engine.Attach(r.Context(), id, isTrue(r.URL.Query().Get("logs")), engine.Output{W: conn, Raw: raw}); err != nil {
+	go discardInput(conn)
+	// A hijacked request loses its context when the client closes its write
+	// side, which a client without stdin does right away. The stream ends
+	// with the container instead.
+	if err := h.engine.Attach(context.WithoutCancel(r.Context()), id, isTrue(r.URL.Query().Get("logs")), engine.Output{W: conn, Raw: raw}); err != nil {
 		slog.Debug("attach ended", "container", id, "error", err)
 	}
 }
@@ -228,6 +233,13 @@ func hijack(w http.ResponseWriter, r *http.Request, raw bool) (net.Conn, error) 
 		return nil, err
 	}
 	return &hijackedConn{Conn: conn, reader: buf.Reader}, nil
+}
+
+// discardInput reads what the client sends on a hijacked connection. There
+// is no stdin to forward it to, and unread input makes the close a reset,
+// which the docker CLI reports as an error.
+func discardInput(conn net.Conn) {
+	_, _ = io.Copy(io.Discard, conn)
 }
 
 type hijackedConn struct {
@@ -354,6 +366,8 @@ func writeEngineError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, engine.ErrUnsupported):
 		writeError(w, http.StatusNotImplemented, err.Error())
+	case errors.Is(err, engine.ErrUnavailable):
+		writeError(w, http.StatusServiceUnavailable, err.Error())
 	default:
 		writeError(w, http.StatusInternalServerError, err.Error())
 	}

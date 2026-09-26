@@ -22,6 +22,8 @@ import (
 
 var ErrNotModified = errors.New("not modified")
 
+const maxDescription = 80
+
 type CreateOptions struct {
 	Name      string
 	NameGiven bool
@@ -164,6 +166,7 @@ func (e *Engine) finishCreate(c *state.Container, warnings []string) (*CreateRes
 		_ = os.RemoveAll(string(dir))
 		return nil, err
 	}
+	e.publishHosts()
 	e.log.Info("container created", "id", c.ID[:12], "name", c.Name, "image", c.Image, "service", c.ServiceName)
 	return &CreateResult{ID: c.ID, Warnings: warnings}, nil
 }
@@ -309,6 +312,11 @@ func sanitizeName(name string) string {
 
 func (e *Engine) serviceRequest(c *state.Container) containerv2.ServiceRequest {
 	description := ServiceDescriptionPrefix + c.ID[:12] + " " + c.Name
+	// The API allows 80 characters; the prefix and the id identify the
+	// container, the name is only a hint for people reading mStudio.
+	if len(description) > maxDescription {
+		description = description[:maxDescription]
+	}
 	image := c.Image
 	self := filepath.Join(e.cfg.StateHostPath, "containers", c.ID) + ":" + state.SelfDir
 	bin := filepath.Join(e.cfg.StateHostPath, "bin") + ":" + state.BinDir
