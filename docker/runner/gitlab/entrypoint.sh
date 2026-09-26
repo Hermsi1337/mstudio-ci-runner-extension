@@ -49,6 +49,11 @@ if [[ ! "${RUNNER_CONCURRENT}" =~ ^[0-9]+$ ]]; then
     exit 1
 fi
 
+register_args=()
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" ]]; then
+    register_args+=(--pre-get-sources-script "/usr/local/bin/reclaim-workspace.sh ${RUNNER_BUILDS_DIR}")
+fi
+
 echo "[entrypoint] registering ${RUNNER_NAME} at ${CI_SERVER_URL} (executor: shell)"
 rm -f "${CONFIG}"
 gitlab-runner register \
@@ -60,7 +65,8 @@ gitlab-runner register \
     --executor shell \
     --shell bash \
     --builds-dir "${RUNNER_BUILDS_DIR}" \
-    --cache-dir "${RUNNER_CACHE_DIR}"
+    --cache-dir "${RUNNER_CACHE_DIR}" \
+    "${register_args[@]}"
 chmod 600 "${CONFIG}"
 unset CI_SERVER_TOKEN
 

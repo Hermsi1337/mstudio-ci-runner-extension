@@ -272,6 +272,11 @@ GitHub `container:` jobs work without translation.
   `.ci-work/<stack ID>/externals/<version>`, and the `docker` shim rewrites
   mounts of `/home/runner/externals` to that path.
 - GitLab: `builds_dir` is `.../<service>/builds`.
+- Containers often run as root, and the files they write into the workspace
+  belong to root. Before every checkout `reclaim-workspace.sh` hands them back
+  to the runner user: GitHub runs it as the job-started hook
+  (`ACTIONS_RUNNER_HOOK_JOB_STARTED`, unless you set your own), GitLab as
+  `pre_get_sources_script`.
 - Turning Docker in jobs off moves the work directory back to the data
   volume. The directories under `.ci-work` stay on the project file system
   after a runner is deleted; remove them over SSH or SFTP.

@@ -116,7 +116,7 @@ config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
 docker/builder/              image builder service: Dockerfile, loop.sh, kaniko version and patches (build context is docker/builder)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
-docker/runner/common/        scripts shared by all runner images (trim-cache.sh, docker-shim, mstudio-build and friends)
+docker/runner/common/        scripts shared by all runner images (trim-cache.sh, reclaim-workspace.sh, docker-shim, mstudio-build and friends)
 docker/runner/probes/        probe suite run inside the built images by the integration tests
 docker/runner/versions.json  runner software version per provider plus the crane and docker CLI versions, single source for workflow, build and UI
 docker/docker-api/           Docker API adapter for jobs, a Go module (build context is docker/docker-api)

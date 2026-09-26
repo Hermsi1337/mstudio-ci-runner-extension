@@ -88,8 +88,8 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && chmod 755 /usr/local/lib/docker/cli-plugins/docker-compose
 
 COPY --chown=runner:runner gitlab/entrypoint.sh /entrypoint.sh
-COPY --chown=runner:runner common/trim-cache.sh /usr/local/bin/trim-cache.sh
-RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh
+COPY --chown=runner:runner common/trim-cache.sh common/reclaim-workspace.sh /usr/local/bin/
+RUN chmod +x /entrypoint.sh /usr/local/bin/trim-cache.sh /usr/local/bin/reclaim-workspace.sh
 
 COPY --chown=runner:runner common/mstudio-build common/mstudio-crane common/mstudio-dockerfile-check common/mstudio-image-store common/mstudio-platform-check common/mstudio-port-forward common/docker-shim /usr/local/bin/
 RUN chmod +x /usr/local/bin/mstudio-build /usr/local/bin/mstudio-crane \

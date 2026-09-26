@@ -74,6 +74,9 @@ if [[ -n "${MSTUDIO_EXTERNALS_ROOT:-}" ]]; then
     fi
     export MSTUDIO_EXTERNALS="${externals}"
 fi
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" ]]; then
+    export ACTIONS_RUNNER_HOOK_JOB_STARTED="${ACTIONS_RUNNER_HOOK_JOB_STARTED:-/usr/local/bin/reclaim-workspace.sh}"
+fi
 
 if [[ -z "${RUNNER_TOKEN:-}" && -z "${GITHUB_TOKEN:-}" ]]; then
     echo "either RUNNER_TOKEN or GITHUB_TOKEN is required" >&2
