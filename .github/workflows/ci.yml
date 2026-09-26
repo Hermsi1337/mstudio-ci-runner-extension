@@ -50,5 +50,10 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # stoplight/prism publishes amd64 images only.
+      - if: runner.arch == 'ARM64'
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: amd64
       - name: Integration tests (testcontainers)
         run: pnpm run test:integration

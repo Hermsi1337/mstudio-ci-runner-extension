@@ -33,6 +33,9 @@ asserts its version against `docker/runner/versions.json`
 every pull request, forks included.
 
 `stoplight/prism:5` (latest) crashes on start (`isPrimary`), hence the pinned version.
+The image exists for amd64 only. On an arm64 host it runs under QEMU emulation: Docker
+Desktop ships it, CI installs it with `docker/setup-qemu-action` in the arm64 leg of
+`integration`.
 
 `tests/helpers/env.ts` sets the extension environment. Defaults only fill missing
 variables, overrides always win. Modules such as `src/db/schema.ts` read the environment
