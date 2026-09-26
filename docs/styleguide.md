@@ -128,7 +128,7 @@ had slipped out of the layout.
   subtitle in Flow's order "type – first fact – second fact" (provider, size,
   version), one `Content` with the values a user scans for, a `ContextMenu`. The
   `Content` holds its `LabeledValue`s in a wrapping `Flex`. Column layout
-  `s={[1]}`, `m={[1, 1]}`, `l={[1, 1]}`.
+  `s={[1]}`, `m={[1, 1]}`, `l={[3, 2]}`.
 - The header of a `ListItemView` is its first grid child and every `Content` adds one.
   More children than tracks wrap into the next row, where a value lands in the wide
   header track and looks indented. Keep header plus `Content`s equal to the number

@@ -204,7 +204,7 @@ const RunnerRow = ({
     const size = useSizeSummary(runner);
     const version = runner.imageVersion ?? runner.runnerVersion;
     return (
-        <Runners.ItemView s={[1]} m={[1, 1]} l={[1, 1]}>
+        <Runners.ItemView s={[1]} m={[1, 1]} l={[3, 2]}>
             <Avatar color={runner.provider === "github" ? "violet" : "teal"}>
                 <Initials>{providerInitials[runner.provider]}</Initials>
             </Avatar>
