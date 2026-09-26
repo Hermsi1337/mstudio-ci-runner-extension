@@ -91,6 +91,11 @@ type result struct {
 
 func (e *env) docker(args ...string) result {
 	e.t.Helper()
+	return e.dockerWithInput("", args...)
+}
+
+func (e *env) dockerWithInput(input string, args ...string) result {
+	e.t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	if os.Getenv("ADAPTER_TEST_LOG") != "" {
@@ -100,6 +105,9 @@ func (e *env) docker(args ...string) result {
 	cmd.Env = append(os.Environ(), "DOCKER_HOST="+e.host, "DOCKER_CONTEXT=", "DOCKER_CONFIG="+e.t.TempDir())
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if input != "" {
+		cmd.Stdin = strings.NewReader(input)
+	}
 	err := cmd.Run()
 	code := 0
 	if exitErr, ok := err.(*exec.ExitError); ok {
@@ -293,4 +301,35 @@ func TestVolumesOfTheAdapterOnly(t *testing.T) {
 	if out := e.mustDocker("volume", "ls", "-q"); out != "" {
 		t.Fatalf("volumes left: %q", out)
 	}
+}
+
+func TestStdinReachesRunAndExec(t *testing.T) {
+	e := setup(t)
+	r := e.dockerWithInput("line one\nline two\n", "run", "-i", "--rm", "alpine", "cat")
+	if r.code != 0 || r.stdout != "line one\nline two\n" {
+		t.Fatalf("run -i: code %d stdout %q stderr %q", r.code, r.stdout, r.stderr)
+	}
+	e.mustDocker("run", "-d", "--name", "box", "alpine", "sleep", "60")
+	r = e.dockerWithInput("to exec\n", "exec", "-i", "box", "sh", "-c", "tr a-z A-Z")
+	if r.code != 0 || r.stdout != "TO EXEC\n" {
+		t.Fatalf("exec -i: code %d stdout %q stderr %q", r.code, r.stdout, r.stderr)
+	}
+	e.mustDocker("rm", "-f", "box")
+}
+
+func TestComposeUpInTheForeground(t *testing.T) {
+	e := setup(t)
+	if r := e.docker("compose", "version"); r.code != 0 {
+		t.Skip("docker compose plugin not installed")
+	}
+	dir := t.TempDir()
+	compose := "services:\n  job:\n    image: alpine\n    command: [\"sh\", \"-c\", \"echo from-compose; exit 3\"]\n"
+	if err := os.WriteFile(filepath.Join(dir, "compose.yaml"), []byte(compose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := e.docker("compose", "-f", filepath.Join(dir, "compose.yaml"), "-p", "clitest", "up", "--abort-on-container-exit", "--exit-code-from", "job")
+	if r.code != 3 || !strings.Contains(r.stdout, "from-compose") {
+		t.Fatalf("compose up: code %d stdout %q stderr %q", r.code, r.stdout, r.stderr)
+	}
+	e.mustDocker("compose", "-f", filepath.Join(dir, "compose.yaml"), "-p", "clitest", "down")
 }

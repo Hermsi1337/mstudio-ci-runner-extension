@@ -100,6 +100,7 @@ type Engine struct {
 	forwards *forwarder
 	execs    *execStore
 	ryuk     *ryukServer
+	events   *eventBus
 
 	stackMu    sync.Mutex
 	mu         sync.Mutex
@@ -128,6 +129,7 @@ func New(cfg Config, client mittwald.ContainerClient) (*Engine, error) {
 		log:    cfg.Logger,
 		images: NewImageResolver(client, cfg.ProjectID, !cfg.SkipRegistry, filepath.Join(cfg.StateDir, "images")),
 		execs:  newExecStore(),
+		events: newEventBus(),
 	}
 	e.forwards = newForwarder(e.log, cfg.Dial)
 	e.ryuk = newRyukServer(e)
@@ -149,6 +151,7 @@ func (e *Engine) Restore(ctx context.Context) {
 		}
 	}
 	go e.autoRemoveLoop(ctx)
+	go e.watchExits(ctx)
 }
 
 // InstallInit copies the running binary to the shared directory, where every

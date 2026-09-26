@@ -83,7 +83,7 @@ func (in *Init) probe(args []string, timeout time.Duration) state.HealthResult {
 	result := state.HealthResult{Start: time.Now()}
 	var buf bytes.Buffer
 	proc := state.Process{Args: args, WorkingDir: in.container.Process.WorkingDir, User: in.container.Process.User}
-	p, err := in.spawn(proc, in.container.Process.Env, state.NewFrameWriter(&buf), false)
+	p, err := in.spawn(proc, in.container.Process.Env, state.NewFrameWriter(&buf), false, nil)
 	if err != nil {
 		result.End = time.Now()
 		result.ExitCode = -1

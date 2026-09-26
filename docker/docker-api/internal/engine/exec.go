@@ -85,6 +85,7 @@ func (e *Engine) CreateExec(ref string, req container.ExecCreateRequest) (string
 			WorkingDir: req.WorkingDir,
 			User:       req.User,
 			Tty:        req.Tty,
+			Stdin:      req.AttachStdin,
 		},
 	}
 	e.execs.mu.Unlock()
@@ -258,4 +259,22 @@ func (e *Engine) awaitTask(ctx context.Context, task state.Task, out *Output) (*
 		case <-time.After(50 * time.Millisecond):
 		}
 	}
+}
+
+// ExecStdin is where the input of an exec instance goes, if it takes any.
+func (e *Engine) ExecStdin(id string) (state.StdinFiles, bool) {
+	inst, ok := e.execs.get(id)
+	if !ok || !inst.Process.Stdin {
+		return state.StdinFiles{}, false
+	}
+	return state.Task(filepath.Join(e.dir(inst.ContainerID).TaskDir(), id)).Stdin(), true
+}
+
+// ContainerStdin is where the input of a container goes, if it takes any.
+func (e *Engine) ContainerStdin(ref string) (state.StdinFiles, bool) {
+	c, err := e.Resolve(ref)
+	if err != nil || !c.Process.Stdin {
+		return state.StdinFiles{}, false
+	}
+	return e.dir(c.ID).Stdin(), true
 }

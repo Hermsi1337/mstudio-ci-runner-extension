@@ -197,7 +197,11 @@ func (h *ContainerHandler) Attach(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = conn.Close() }()
-	go discardInput(conn)
+	if files, ok := h.engine.ContainerStdin(id); ok && isTrue(r.URL.Query().Get("stdin")) {
+		go func() { _ = files.Receive(conn) }()
+	} else {
+		go discardInput(conn)
+	}
 	// A hijacked request loses its context when the client closes its write
 	// side, which a client without stdin does right away. The stream ends
 	// with the container instead.

@@ -48,6 +48,8 @@ type Process struct {
 	WorkingDir string   `json:"workingDir,omitempty"`
 	User       string   `json:"user,omitempty"`
 	Tty        bool     `json:"tty,omitempty"`
+	// Stdin feeds the process from the stdin files instead of /dev/null.
+	Stdin bool `json:"stdin,omitempty"`
 }
 
 type Endpoint struct {

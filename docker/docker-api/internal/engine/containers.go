@@ -13,6 +13,7 @@ import (
 	"github.com/mittwald/api-client-go/mittwaldv2/generated/clients/containerclientv2"
 	"github.com/mittwald/api-client-go/mittwaldv2/generated/schemas/containerv2"
 	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/events"
 	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/api/types/network"
 
@@ -112,6 +113,7 @@ func (e *Engine) Create(ctx context.Context, opts CreateOptions) (*CreateResult,
 		WorkingDir: req.WorkingDir,
 		User:       req.User,
 		Tty:        req.Tty,
+		Stdin:      req.OpenStdin,
 	}
 
 	for port := range req.ExposedPorts {
@@ -167,6 +169,7 @@ func (e *Engine) finishCreate(c *state.Container, warnings []string) (*CreateRes
 		return nil, err
 	}
 	e.publishHosts()
+	e.emit(c, events.ActionCreate, nil)
 	e.log.Info("container created", "id", c.ID[:12], "name", c.Name, "image", c.Image, "service", c.ServiceName)
 	return &CreateResult{ID: c.ID, Warnings: warnings}, nil
 }
@@ -425,6 +428,7 @@ func (e *Engine) Start(ctx context.Context, ref string) error {
 		return err
 	}
 	e.publishHosts()
+	e.emit(c, events.ActionStart, nil)
 	return nil
 }
 
@@ -519,6 +523,7 @@ func (e *Engine) stop(ctx context.Context, c *state.Container, timeout *int, sig
 			return err
 		}
 		if e.waitExit(ctx, c, st.Generation(), time.Duration(grace)*time.Second) {
+			e.emit(c, events.ActionStop, nil)
 			return nil
 		}
 	}
@@ -528,6 +533,7 @@ func (e *Engine) stop(ctx context.Context, c *state.Container, timeout *int, sig
 	if !e.waitExit(ctx, c, st.Generation(), 15*time.Second) {
 		return fmt.Errorf("container %s did not stop", c.Name)
 	}
+	e.emit(c, events.ActionStop, nil)
 	return nil
 }
 
@@ -545,7 +551,11 @@ func (e *Engine) Kill(ctx context.Context, ref, sig string) error {
 	if sig == "" {
 		sig = "SIGKILL"
 	}
-	return e.signal(c, sig)
+	if err := e.signal(c, sig); err != nil {
+		return err
+	}
+	e.emit(c, events.ActionKill, map[string]string{"signal": sig})
+	return nil
 }
 
 func (e *Engine) Restart(ctx context.Context, ref string, timeout *int, sig string) error {
@@ -607,6 +617,7 @@ func (e *Engine) remove(ctx context.Context, c *state.Container, force bool) err
 	}
 	e.publishHosts()
 	e.execs.dropContainer(c.ID)
+	e.emit(c, events.ActionDestroy, nil)
 	e.log.Info("container removed", "id", c.ID[:12], "name", c.Name, "service", c.ServiceName)
 	return nil
 }

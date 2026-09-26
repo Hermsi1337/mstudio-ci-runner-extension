@@ -144,7 +144,8 @@ func (in *Init) start() {
 	in.generation++
 	generation := in.generation
 
-	p, err := in.spawn(in.container.Process, nil, in.log, true)
+	stdin := in.dir.Stdin()
+	p, err := in.spawn(in.container.Process, nil, in.log, true, &stdin)
 	if err != nil {
 		in.logf("starting %v failed: %v", in.container.Process.Args, err)
 		_ = state.WriteJSON(in.dir.RunPath(), state.Run{Generation: generation, StartedAt: time.Now()})
@@ -334,7 +335,8 @@ func (in *Init) exec(task state.Task, req state.TaskRequest) state.TaskResult {
 	if proc.User == "" {
 		proc.User = in.container.Process.User
 	}
-	p, err := in.spawn(proc, in.container.Process.Env, state.NewFrameWriter(out), false)
+	stdin := task.Stdin()
+	p, err := in.spawn(proc, in.container.Process.Env, state.NewFrameWriter(out), false, &stdin)
 	if err != nil {
 		return state.TaskResult{Code: 126, Error: err.Error()}
 	}
@@ -364,7 +366,7 @@ func (p *process) wait() int {
 // spawn starts a process. The main process of the container mirrors its
 // output to the container log and gets a process group of its own, so
 // signals reach every process it started, as they do in a Docker container.
-func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWriter, main bool) (*process, error) {
+func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWriter, main bool, stdin *state.StdinFiles) (*process, error) {
 	env := mergeEnv(os.Environ(), baseEnv, proc.Env)
 	path, err := lookPath(proc.Args[0], env)
 	if err != nil {
@@ -396,6 +398,16 @@ func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWrit
 	}
 	defer func() { _ = devnull.Close() }()
 	cmd.Stdin = devnull
+	var stdinW *os.File
+	if proc.Stdin && stdin != nil {
+		stdinR, w, err := os.Pipe()
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = stdinR.Close() }()
+		cmd.Stdin = stdinR
+		stdinW = w
+	}
 	stdoutR, stdoutW, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -430,6 +442,9 @@ func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWrit
 	var stdoutMirror, stderrMirror io.Writer
 	if main {
 		stdoutMirror, stderrMirror = os.Stdout, os.Stderr
+	}
+	if stdinW != nil {
+		go stdin.Feed(stdinW, p.done)
 	}
 	go func() { defer p.pumps.Done(); out.Pump(state.Stdout, stdoutR, stdoutMirror); _ = stdoutR.Close() }()
 	go func() { defer p.pumps.Done(); out.Pump(state.Stderr, stderrR, stderrMirror); _ = stderrR.Close() }()

@@ -63,7 +63,11 @@ func (h *ExecHandler) StartExec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = conn.Close() }()
-	go discardInput(conn)
+	if files, ok := h.engine.ExecStdin(id); ok {
+		go func() { _ = files.Receive(conn) }()
+	} else {
+		go discardInput(conn)
+	}
 	out := engine.Output{W: conn, Raw: raw}
 	if err := h.engine.StartExec(context.WithoutCancel(r.Context()), id, false, out); err != nil {
 		slog.Debug("exec ended with error", "exec", id, "error", err)

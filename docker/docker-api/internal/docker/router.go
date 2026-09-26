@@ -30,12 +30,14 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	volumes := handlers.NewVolumeHandler(cfg.Engine)
 	networks := handlers.NewNetworkHandler(cfg.Engine)
 	execs := handlers.NewExecHandler(cfg.Engine)
+	eventStream := handlers.NewEventHandler(cfg.Engine)
 
 	router := mux.NewRouter()
 
 	router.HandleFunc("/_ping", system.Ping).Methods("GET", "HEAD")
 	router.HandleFunc("/version", system.Version).Methods("GET")
 	router.HandleFunc("/info", system.Info).Methods("GET")
+	router.HandleFunc("/events", eventStream.Stream).Methods("GET")
 
 	router.HandleFunc("/containers/json", containers.List).Methods("GET")
 	router.HandleFunc("/containers/create", containers.Create).Methods("POST")
