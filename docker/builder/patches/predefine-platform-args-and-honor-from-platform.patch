@@ -1,0 +1,119 @@
+diff --git a/cmd/executor/cmd/root.go b/cmd/executor/cmd/root.go
+index 0a76fbb..a8f472e 100644
+--- a/cmd/executor/cmd/root.go
++++ b/cmd/executor/cmd/root.go
+@@ -104,6 +104,41 @@ func validateFlags() {
+ 	if _, err := v1.ParsePlatform(opts.CustomPlatform); err != nil {
+ 		logrus.Fatalf("Invalid platform %q: %v", opts.CustomPlatform, err)
+ 	}
++	addPlatformBuildArgs()
++}
++
++// addPlatformBuildArgs defines the platform arguments BuildKit predefines, so
++// Dockerfiles written for buildx resolve FROM --platform=$BUILDPLATFORM and
++// GOARCH=$TARGETARCH. A --build-arg of the same name wins.
++func addPlatformBuildArgs() {
++	build := platforms.Normalize(platforms.DefaultSpec())
++	target, err := v1.ParsePlatform(opts.CustomPlatform)
++	if err != nil {
++		logrus.Fatalf("Invalid platform %q: %v", opts.CustomPlatform, err)
++	}
++	predefined := []string{
++		"BUILDPLATFORM=" + platforms.Format(build),
++		"BUILDOS=" + build.OS,
++		"BUILDARCH=" + build.Architecture,
++		"BUILDVARIANT=" + build.Variant,
++		"TARGETPLATFORM=" + target.String(),
++		"TARGETOS=" + target.OS,
++		"TARGETARCH=" + target.Architecture,
++		"TARGETVARIANT=" + target.Variant,
++	}
++	for _, arg := range predefined {
++		key := strings.SplitN(arg, "=", 2)[0]
++		given := false
++		for _, existing := range opts.BuildArgs {
++			if existing == key || strings.HasPrefix(existing, key+"=") {
++				given = true
++				break
++			}
++		}
++		if !given {
++			opts.BuildArgs = append(opts.BuildArgs, arg)
++		}
++	}
+ }
+ 
+ // RootCmd is the kaniko command that is run
+diff --git a/pkg/executor/build.go b/pkg/executor/build.go
+index ccdfd17..91a5596 100644
+--- a/pkg/executor/build.go
++++ b/pkg/executor/build.go
+@@ -753,12 +753,23 @@ func DoBuild(opts *config.KanikoOptions) (v1.Image, error) {
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		if opts.CustomPlatform == "" {
++		stagePlatform, err := image_util.StagePlatform(stage, opts)
++		if err != nil {
++			return nil, err
++		}
++		if stagePlatform == "" {
+ 			configFile.OS = runtime.GOOS
+ 			configFile.Architecture = runtime.GOARCH
+ 		} else {
+-			configFile.OS = strings.Split(opts.CustomPlatform, "/")[0]
+-			configFile.Architecture = strings.Split(opts.CustomPlatform, "/")[1]
++			platform, err := v1.ParsePlatform(stagePlatform)
++			if err != nil {
++				return nil, err
++			}
++			configFile.OS = platform.OS
++			configFile.Architecture = platform.Architecture
++			if platform.Variant != "" {
++				configFile.Variant = platform.Variant
++			}
+ 		}
+ 		sourceImage, err = mutate.ConfigFile(sourceImage, configFile)
+ 		if err != nil {
+diff --git a/pkg/image/image_util.go b/pkg/image/image_util.go
+index e5a1b03..ada1b31 100644
+--- a/pkg/image/image_util.go
++++ b/pkg/image/image_util.go
+@@ -87,8 +87,35 @@ func RetrieveSourceImage(stage config.KanikoStage, opts *config.KanikoOptions) (
+ 		}
+ 	}
+ 
+-	// Otherwise, initialize image as usual
+-	return RetrieveRemoteImage(currentBaseName, opts.RegistryOptions, opts.CustomPlatform)
++	platform, err := StagePlatform(stage, opts)
++	if err != nil {
++		return nil, err
++	}
++	return RetrieveRemoteImage(currentBaseName, opts.RegistryOptions, platform)
++}
++
++// StagePlatform returns the platform of a stage: the value of FROM --platform
++// with build args expanded, or the platform of the build.
++func StagePlatform(stage config.KanikoStage, opts *config.KanikoOptions) (string, error) {
++	if stage.Platform == "" {
++		return opts.CustomPlatform, nil
++	}
++	var buildArgs []string
++	for _, marg := range stage.MetaArgs {
++		for _, arg := range marg.Args {
++			buildArgs = append(buildArgs, fmt.Sprintf("%s=%s", arg.Key, arg.ValueString()))
++		}
++	}
++	buildArgs = append(buildArgs, opts.BuildArgs...)
++	platform, err := util.ResolveEnvironmentReplacement(stage.Platform, buildArgs, false)
++	if err != nil {
++		return "", err
++	}
++	if _, err := v1.ParsePlatform(platform); err != nil {
++		return "", fmt.Errorf("FROM --platform=%s resolves to %q: %w", stage.Platform, platform, err)
++	}
++	logrus.Infof("Stage %d uses platform %s", stage.Index, platform)
++	return platform, nil
+ }
+ 
+ func tarballImage(index int) (v1.Image, error) {
