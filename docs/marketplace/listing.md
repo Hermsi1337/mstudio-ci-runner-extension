@@ -12,14 +12,16 @@ Limits per language: subtitle 40 characters, brief description 300 characters, d
 description unlimited. The API stores one brief description without a language and gets
 the German one.
 
-The screenshots in this directory are taken from the hosted extension inside mStudio;
-`logo.png` is a copy of `src/assets/logo.png`.
+The screenshots in this directory are taken from the hosted extension inside mStudio,
+dark theme, viewport 1440 × 830 px; `logo.png` is a copy of `src/assets/logo.png`.
 
 ## Assets
 
 | File | Use |
 |---|---|
 | `logo.png` | Marketplace logo |
-| `overview.png` | Runner list with a running GitHub runner |
+| `overview.png` | Runner list with an expanded GitHub runner: labels, job features, details |
+| `jobs.png` | "What jobs can run", one column per job feature |
 | `create-choice.png` | Create flow, CI system choice |
-| `create-form.png` | Create flow, GitHub form with resource summary |
+| `create-form.png` | Create flow, size and job feature cards with the resource summary |
+| `settings.png` | Runner settings, tab "Job features" |
