@@ -117,7 +117,7 @@ func New(cfg Config, client mittwald.ContainerClient) (*Engine, error) {
 		var d net.Dialer
 		cfg.Dial = d.DialContext
 	}
-	for _, dir := range []string{cfg.StateDir, filepath.Join(cfg.StateDir, "containers"), filepath.Join(cfg.StateDir, "networks"), filepath.Join(cfg.StateDir, "bin"), filepath.Join(cfg.StateDir, "images")} {
+	for _, dir := range []string{cfg.StateDir, filepath.Join(cfg.StateDir, "containers"), filepath.Join(cfg.StateDir, "networks"), filepath.Join(cfg.StateDir, "bin"), filepath.Join(cfg.StateDir, "images"), filepath.Join(cfg.StateDir, "volumes")} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, fmt.Errorf("prepare state directory: %w", err)
 		}

@@ -13,9 +13,50 @@ Testcontainers suites need no change.
 
 ```yaml
 # GitHub Actions
-- run: docker run --rm alpine echo hello
-- run: npm test   # Testcontainers finds DOCKER_HOST on its own
+jobs:
+  test:
+    runs-on: [self-hosted, mittwald]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker run --rm alpine:3.20 echo hello
+      - run: sudo apt-get install -y -q postgresql-client
+      # Services listen on the host of DOCKER_HOST, not on localhost
+      - run: psql -h docker -p ${{ job.services.postgres.ports[5432] }} -U postgres -c 'select 1'
+        env:
+          PGPASSWORD: secret
+      - run: npm ci && npm test   # Testcontainers reads DOCKER_HOST on its own
 ```
+
+```yaml
+# GitLab CI: image: and services: need the Docker executor, the runner uses the
+# shell executor. Start what the job needs with docker run or Testcontainers.
+test:
+  tags: [mittwald]
+  script:
+    - docker run -d --name db -e POSTGRES_PASSWORD=secret -p 5432 postgres:16-alpine
+    - until docker exec db pg_isready -U postgres; do sleep 2; done
+    - export DB_PORT=$(docker port db 5432 | cut -d: -f2)
+    - sudo apt-get install -y -q postgresql-client
+    - PGPASSWORD=secret psql -h docker -p "$DB_PORT" -U postgres -c 'select 1'
+    - npm ci && npm test
+  after_script:
+    - docker rm -f db
+```
+
+Tested with the `docker` CLI and with Testcontainers for Node (`testcontainers`,
+`@testcontainers/postgresql`), Python (`testcontainers`) and Go
+(`testcontainers-go`): PostgreSQL, MariaDB, Redis, nginx, health check, log, HTTP and
+port wait strategies, networks with aliases, copies before and after start, exec,
+restart. The probes live in
+[mstudio-ci-runner-extension-test](https://github.com/Hermsi1337/mstudio-ci-runner-extension-test)
+(`docker-api.yml`, `docker-api-extended.yml`).
 
 ## Why it looks like this
 
@@ -199,6 +240,23 @@ boundary.
   image a container starts in about four seconds.
 - Stats and top return empty values.
 
+## Known issues
+
+| What | Behaviour | Instead |
+|---|---|---|
+| GitHub `services:` | Work: the runner starts them through the Docker API. Their ports listen on the host of `DOCKER_HOST` (`docker`), not on `localhost`, and the service names do not resolve in the runner | `docker:${{ job.services.<name>.ports[<port>] }}` |
+| GitHub `container:`, `uses: docker://...`, Docker container actions | Fail: the runner bind-mounts its work directory, which is no project path | Run the steps on the runner, start tools with `docker run` |
+| GitLab `image:`, `services:` | Ignored by the shell executor | `docker run` or Testcontainers in `script:` |
+| `-v "$PWD:/src"`, bind mounts of the workspace | Refused: the source must lie on the project file system | `docker cp`, or the copy functions of Testcontainers (`withCopyFilesToContainer`, `withCopyDirectoriesToContainer`) |
+| `docker build` then `docker run` of that image | The image exists only in the image store of the runner | Push it and run it from the registry |
+| `docker compose` | Not part of the runner image | One `docker run` per service |
+| `docker run -i`, piped stdin | The container gets no input | Pass data as file (`docker cp`) or argument |
+| `docker run -t` | Accepted, the output is no terminal | |
+| Docker Hub | Anonymous manifest reads count against the rate limit of the project's address. The adapter caches image configs by digest and asks with HEAD first, which does not count | `docker login` raises the limit |
+| Start time | About 4 seconds per container with a cached image, the first start of an image includes the pull by the platform | |
+| Resources | Every container is a service with 1 CPU and 2 GB unless `--cpus` and `--memory` say otherwise, and counts against the project | |
+| Volumes | `docker volume` sees only the volumes the adapter created, never the data volume of the runner | |
+
 ## Private images
 
 The platform pulls the image of a container itself, and the adapter reads its
@@ -254,7 +312,6 @@ container of the stack with `DOCKER_HOST=tcp://docker:2375` and `npm test`.
 | `internal/state` | the shared directory: layout, records, log frames |
 | `internal/tarutil` | archive extraction and packing with Docker semantics |
 | `internal/docker` | HTTP routing and handlers |
-| `internal/adapter` | volumes |
 | `internal/mittwald` | client interfaces |
 | `internal/fakeplatform` | fake mittwald API for tests |
 

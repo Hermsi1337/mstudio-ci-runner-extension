@@ -189,7 +189,11 @@ func (e *Engine) volumes(host *container.HostConfig) ([]string, []string, error)
 			return nil
 		}
 		if !bind {
-			specs = append(specs, sanitizeName(source)+":"+target)
+			v, err := e.recordVolume(source, nil)
+			if err != nil {
+				return err
+			}
+			specs = append(specs, v.Name+":"+target)
 			return nil
 		}
 		translated, err := e.projectPath(source)

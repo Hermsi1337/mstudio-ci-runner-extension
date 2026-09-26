@@ -277,3 +277,20 @@ func TestHealthCheck(t *testing.T) {
 	}
 	e.mustDocker("rm", "-f", "hc")
 }
+
+func TestVolumesOfTheAdapterOnly(t *testing.T) {
+	e := setup(t)
+	e.mustDocker("volume", "create", "cache")
+	e.mustDocker("run", "--rm", "-v", "data:/data", "alpine", "true")
+	names := e.mustDocker("volume", "ls", "--format", "{{.Name}}")
+	if names != "cache\ndata" {
+		t.Fatalf("volume ls shows %q", names)
+	}
+	if r := e.docker("volume", "rm", "runner-web-data"); r.code == 0 {
+		t.Fatal("removing a volume the adapter did not create succeeded")
+	}
+	e.mustDocker("volume", "rm", "cache", "data")
+	if out := e.mustDocker("volume", "ls", "-q"); out != "" {
+		t.Fatalf("volumes left: %q", out)
+	}
+}

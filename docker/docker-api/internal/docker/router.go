@@ -7,7 +7,6 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/adapter"
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/docker/handlers"
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
 	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/mittwald"
@@ -25,12 +24,10 @@ type RouterConfig struct {
 var versionPrefix = regexp.MustCompile(`^/v[0-9.]+/`)
 
 func NewRouter(cfg RouterConfig) http.Handler {
-	volumeAdapter := adapter.NewVolumeAdapter(cfg.ContainerClient, cfg.ProjectID, cfg.StackID)
-
 	system := handlers.NewSystemHandler(cfg.ProjectID, cfg.StackID)
 	containers := handlers.NewContainerHandler(cfg.Engine)
 	images := handlers.NewImageHandler(cfg.Engine)
-	volumes := handlers.NewVolumeHandler(volumeAdapter)
+	volumes := handlers.NewVolumeHandler(cfg.Engine)
 	networks := handlers.NewNetworkHandler(cfg.Engine)
 	execs := handlers.NewExecHandler(cfg.Engine)
 

@@ -164,10 +164,11 @@ commands the shim forwards and the ones it still refuses are in
 ## Limitations
 
 No Docker daemon in the runner. Without Docker in jobs nothing that starts a container
-works: `docker run` and the other container commands fail with a message. `docker
-compose`, `container:` and `services:` in GitHub Actions and Docker container actions do
-not work either way. In GitLab `image:` and `services:` are ignored by the shell
-executor; jobs run directly in the Ubuntu userland.
+works: `docker run` and the other container commands fail with a message. With it,
+`docker run`, Testcontainers and GitHub `services:` work, while `container:` jobs,
+Docker container actions and `docker compose` do not; the list with workarounds is in
+[docker-api.md](docker-api.md#known-issues). In GitLab `image:` and `services:` are
+ignored by the shell executor; jobs run directly in the Ubuntu userland.
 
 `docker build` works: the `docker` in the image is a shim that hands the build to the
 builder service of the stack and pushes with crane. What it supports, fills in, warns
