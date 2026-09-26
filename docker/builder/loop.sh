@@ -26,12 +26,15 @@
 # This container never receives registry credentials. It writes the image as a
 # tarball, the runner pushes it.
 #
-# A job for the other architecture (arm64 on amd64, amd64 on arm64) runs in a
-# fresh root directory inside a user namespace with qemu registered, see
-# sandbox.sh. A probe on startup decides whether that works here and writes the
+# When a probe on startup finds that it works, every job runs in a fresh root
+# directory inside a user namespace with qemu registered for the other
+# architecture (arm64 on amd64, amd64 on arm64), see sandbox.sh. The native
+# platform goes there as well, because a stage with a literal FROM --platform
+# of the other architecture can appear in any build. The probe writes the
 # platforms this builder runs RUN steps for into BUILD_QUEUE_DIR/builder.env,
-# where the runner reads them. Without emulation such a job still builds, as
-# long as no RUN step executes a binary of the other architecture.
+# where the runner reads them. Without emulation a job runs on the root
+# filesystem of this container, and a job for the other architecture still
+# builds as long as no RUN step executes a binary of it.
 #
 # Environment:
 #   BUILD_QUEUE_DIR  shared directory (default: /builds)
@@ -178,7 +181,7 @@ prepare_sandbox() {
 
 build() {
     local sandboxed=false
-    if [[ "${platform}" != "linux/${native}" && "${emulation}" == namespace ]]; then
+    if [[ "${emulation}" == namespace ]]; then
         sandboxed=true
     fi
 
@@ -222,13 +225,21 @@ build() {
         echo "[builder] ${job_id}: running kaniko, output goes to the job log and to the runner"
     fi
     started=${SECONDS}
-    {
-        timeout -s KILL "${build_timeout}" "$@"
-        echo "$?" >"${job}/exit-code"
-    } 2>&1 | tee "${job}/log"
-
-    code=1
-    read -r code <"${job}/exit-code"
+    timeout -s KILL "${build_timeout}" "$@" > >(tee "${job}/log") 2>&1
+    code=$?
+    # busybox timeout kills only the process it started. The processes of the
+    # sandbox, and a RUN step that kaniko started in a process group of its own,
+    # outlive it and keep the output open. This container ends after one job
+    # anyway, so everything but PID 1 goes, once tee had a second for the last
+    # lines. Only builtins work here, kaniko may have removed every binary.
+    read -rt 1 <> <(:) || true
+    kill -KILL -1 2>/dev/null || true
+    if ((code == 137 && SECONDS - started >= build_timeout)); then
+        stopped="[builder] the build took longer than BUILD_TIMEOUT=${build_timeout}s and was stopped"
+        echo "${stopped}"
+        echo "${stopped}" >>"${job}/log"
+    fi
+    echo "${code}" >"${job}/exit-code"
     if [[ "${sandboxed}" == true && "${code}" == 0 ]]; then
         cp "${sandbox_root}/out/image.tar" "${job}/image.tar" || code=1
     fi

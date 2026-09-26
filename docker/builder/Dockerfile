@@ -73,7 +73,7 @@ RUN apk add --no-cache ca-certificates bash setpriv util-linux-misc \
 
 COPY --from=kaniko /out/executor /kaniko/executor
 COPY --from=emulation /out/ /kaniko/emulation/
-COPY loop.sh sandbox.sh /kaniko/
+COPY --chown=0:0 loop.sh sandbox.sh /kaniko/
 RUN chmod +x /kaniko/executor /kaniko/loop.sh /kaniko/sandbox.sh /kaniko/emulation/* \
     && mkdir -p /kaniko/.docker
 

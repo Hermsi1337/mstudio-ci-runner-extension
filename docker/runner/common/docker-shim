@@ -337,14 +337,23 @@ command_emulator() {
 
 # `docker/setup-qemu-action` starts a binfmt image to register emulators. The
 # builder emulates by itself, and the docker service must not get a privileged
-# container for it.
-emulator_run() {
-    local argument
-    for argument in "$@"; do
-        case "${argument}" in
-            *binfmt* | *qemu-user-static*) return 0 ;;
+# container for it. Only the image decides, an argument like
+# /proc/sys/fs/binfmt_misc does not. The image is the first argument that is
+# neither an option nor its value.
+run_image() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --*=* | --rm | --privileged | --init | --read-only | -d | --detach | -i | --interactive | -t | --tty | -it | -ti) shift ;;
+            -*) shift $(($# > 1 ? 2 : 1)) ;;
+            *) echo "$1"; return 0 ;;
         esac
     done
+}
+
+emulator_run() {
+    case "$(run_image "$@")" in
+        binfmt | binfmt:* | */binfmt | */binfmt:* | *qemu-user-static | *qemu-user-static:*) return 0 ;;
+    esac
     return 1
 }
 
