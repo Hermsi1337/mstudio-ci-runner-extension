@@ -243,6 +243,126 @@ repository_of() {
     echo "${reference}"
 }
 
+tag_of() {
+    local reference="${1%%@*}" last
+    last="${reference##*/}"
+    if [[ "${last}" == *:* ]]; then
+        echo "${last##*:}"
+    else
+        echo latest
+    fi
+}
+
+repositories() {
+    local tag repository
+    local -A seen=()
+    for tag in "${tags[@]}"; do
+        repository="$(repository_of "${tag}")"
+        if [[ ! -v seen["${repository}"] ]]; then
+            seen["${repository}"]=1
+            echo "${repository}"
+        fi
+    done
+}
+
+# The upload is what fails in practice: large layers, credentials that only
+# cover some repositories, quotas. It goes to every repository by digest first,
+# so a failure there leaves every tag where it was.
+upload() {
+    local tarball="$1" digest="$2" repository
+    for repository in "${@:3}"; do
+        log "mstudio-build: pushing ${repository}@${digest}"
+        if ! mstudio-crane "${repository}" push "${tarball}" "${repository}@${digest}" >/dev/null; then
+            fail "uploading ${digest} to ${repository} failed, no tag was changed"
+        fi
+    done
+}
+
+# crane index append only writes to a tag. The index is built here instead and
+# goes to every repository by digest with crane edit manifest, so it exists
+# everywhere before a tag moves. The children are the same in every repository,
+# and so are the index and its digest.
+build_index() {
+    local repository="$1" digest size platform
+    : >"${job}/children.jsonl"
+    for digest in "${@:2}"; do
+        mstudio-crane "${repository}" manifest "${repository}@${digest}" >"${job}/child.json"
+        size="$(wc -c <"${job}/child.json")"
+        platform="$(mstudio-crane "${repository}" config "${repository}@${digest}" | jq -c '{architecture, os, variant} | with_entries(select(.value != null and .value != ""))')"
+        jq -c --arg digest "${digest}" --argjson size "${size}" --argjson platform "${platform}" \
+            '{mediaType, size: $size, digest: $digest} + (if $platform == {} then {} else {platform: $platform} end)' \
+            "${job}/child.json" >>"${job}/children.jsonl"
+    done
+    jq -j -c -s '{schemaVersion: 2, mediaType: "application/vnd.oci.image.index.v1+json", manifests: .}' \
+        "${job}/children.jsonl" >"${job}/index.json"
+    index_digest="sha256:$(sha256sum "${job}/index.json" | cut -d ' ' -f 1)"
+}
+
+# Registries have no transaction across tags. Every manifest is already in every
+# repository, so each tag is one small manifest PUT. When one fails, the tags
+# that moved before it go back to the digest they had.
+declare -A previous=()
+ordered=()
+moved=()
+
+record_previous() {
+    local tag digest
+    for tag in "${tags[@]}"; do
+        [[ -v previous["${tag}"] ]] && continue
+        if digest="$(mstudio-crane "${tag}" digest "${tag}" 2>"${job}/crane.err")"; then
+            previous["${tag}"]="${digest}"
+        elif grep -q -E '^Error: .*(MANIFEST_UNKNOWN|NAME_UNKNOWN|NOT_FOUND|status code 404)' "${job}/crane.err"; then
+            previous["${tag}"]=""
+        else
+            cat "${job}/crane.err" >&2
+            fail "reading the current digest of ${tag} failed, no tag was changed"
+        fi
+        ordered+=("${tag}")
+    done
+}
+
+roll_back() {
+    local failed="$1" digest="$2" tag unrestored=() untouched=false
+    if [[ ${#moved[@]} -eq 0 ]]; then
+        fail "tagging ${failed} failed, no tag was changed"
+    fi
+    echo "mstudio-build: tagging ${failed} failed, moving the tags that already moved back" >&2
+    for tag in "${moved[@]}"; do
+        if [[ -z "${previous[${tag}]}" ]]; then
+            echo "mstudio-build: ${tag} did not exist before and stays at ${digest}" >&2
+        elif mstudio-crane "${tag}" tag "$(repository_of "${tag}")@${previous[${tag}]}" "$(tag_of "${tag}")" >/dev/null 2>"${job}/crane.err"; then
+            echo "mstudio-build: ${tag} points at ${previous[${tag}]} again" >&2
+        else
+            cat "${job}/crane.err" >&2
+            echo "mstudio-build: ${tag} still points at ${digest}, moving it back to ${previous[${tag}]} failed" >&2
+            unrestored+=("${tag}")
+        fi
+    done
+    for tag in "${ordered[@]}"; do
+        [[ "${tag}" == "${failed}" ]] && untouched=true
+        if [[ "${untouched}" == true ]]; then
+            echo "mstudio-build: ${tag} was not changed" >&2
+        fi
+    done
+    if [[ ${#unrestored[@]} -gt 0 ]]; then
+        fail "tagging ${failed} failed and $(IFS=,; echo "${unrestored[*]}") could not be moved back. Set them with crane tag <repository>@<previous digest> <tag>."
+    fi
+    fail "tagging ${failed} failed, every tag that existed before points at its previous image again"
+}
+
+tag_everywhere() {
+    local digest="$1" tag
+    record_previous
+    for tag in "${ordered[@]}"; do
+        log "mstudio-build: tagging ${tag}"
+        if ! mstudio-crane "${tag}" tag "$(repository_of "${tag}")@${digest}" "$(tag_of "${tag}")" >/dev/null 2>"${job}/crane.err"; then
+            cat "${job}/crane.err" >&2
+            roll_back "${tag}" "${digest}"
+        fi
+        moved+=("${tag}")
+    done
+}
+
 write_outputs() {
     local image_id="$1" manifest_digest="$2"
     if [[ -n "${iidfile}" ]]; then
@@ -275,16 +395,14 @@ if [[ ${#platforms[@]} -eq 1 ]]; then
     build_for "${platforms[0]}" "${tags[0]:-}"
     image_id="$(mstudio-image-store put "${job}/image.tar" "${tags[@]}")"
 
-    # The digest of the pushed manifest only exists once it is pushed: crane
-    # builds the manifest from the tarball, so it differs from what kaniko would
-    # have pushed itself. Without a push there is no digest to report.
+    # crane builds the manifest from the tarball, so its digest differs from what
+    # kaniko would have pushed itself. Without a push there is no digest to report.
     manifest_digest=""
     if [[ "${push}" == true ]]; then
-        for tag in "${tags[@]}"; do
-            log "mstudio-build: pushing ${tag}"
-            pushed="$(mstudio-crane "${tag}" push "${job}/image.tar" "${tag}")"
-            manifest_digest="$(grep -o -E 'sha256:[0-9a-f]{64}' <<<"${pushed}" | tail -n 1)"
-        done
+        manifest_digest="$(crane digest --tarball "${job}/image.tar")"
+        mapfile -t targets < <(repositories)
+        upload "${job}/image.tar" "${manifest_digest}" "${targets[@]}"
+        tag_everywhere "${manifest_digest}"
     fi
     write_outputs "${image_id}" "${manifest_digest}"
 
@@ -302,22 +420,24 @@ for platform in "${platforms[@]}"; do
     tarballs+=("${job}/image.tar")
 done
 
-# Each image goes to the registry by digest, so the tag never points at a
-# single platform image. The index is the only thing that gets the tag.
-index_digest=""
-for tag in "${tags[@]}"; do
-    repository="$(repository_of "${tag}")"
-    children=()
-    for tarball in "${tarballs[@]}"; do
-        digest="$(crane digest --tarball "${tarball}")"
-        log "mstudio-build: pushing ${repository}@${digest}"
-        mstudio-crane "${tag}" push "${tarball}" "${repository}@${digest}" >/dev/null
-        children+=(-m "${repository}@${digest}")
-    done
-    log "mstudio-build: pushing ${tag} as an index of $(IFS=,; echo "${platforms[*]}")"
-    pushed="$(mstudio-crane "${tag}" index append "${children[@]}" -t "${tag}")"
-    index_digest="$(grep -o -E 'sha256:[0-9a-f]{64}' <<<"${pushed}" | tail -n 1)"
+# No tag ever points at a single platform image, the index is the only thing
+# that gets tagged.
+mapfile -t targets < <(repositories)
+children=()
+for tarball in "${tarballs[@]}"; do
+    digest="$(crane digest --tarball "${tarball}")"
+    upload "${tarball}" "${digest}" "${targets[@]}"
+    children+=("${digest}")
 done
+build_index "${targets[0]}" "${children[@]}"
+for repository in "${targets[@]}"; do
+    log "mstudio-build: pushing ${repository}@${index_digest} as an index of $(IFS=,; echo "${platforms[*]}")"
+    if ! pushed="$(mstudio-crane "${repository}" edit manifest -m application/vnd.oci.image.index.v1+json "${repository}@${children[0]}" <"${job}/index.json")"; then
+        fail "pushing the index to ${repository} failed, no tag was changed"
+    fi
+    [[ "${pushed}" == *"@${index_digest}" ]] || fail "${repository} stored the index as ${pushed#*@} instead of ${index_digest}, no tag was changed"
+done
+tag_everywhere "${index_digest}"
 write_outputs "" "${index_digest}"
 
 printf '%s\n' "${tags[0]}"

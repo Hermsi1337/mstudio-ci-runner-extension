@@ -211,6 +211,45 @@ async function readFromImage(
     return content.output.trim();
 }
 
+/** Digest a tag points at, or undefined when the registry does not know it. */
+async function digestOf(
+    runner: StartedTestContainer,
+    reference: string,
+): Promise<string | undefined> {
+    const digest = await runner.exec([
+        "crane",
+        "digest",
+        "--insecure",
+        reference,
+    ]);
+    return digest.exitCode === 0 ? digest.output.trim() : undefined;
+}
+
+async function tagsOf(
+    runner: StartedTestContainer,
+    repository: string,
+): Promise<string[]> {
+    const tags = await runner.exec(["crane", "ls", "--insecure", repository]);
+    expect(tags.exitCode).toBe(0);
+    return tags.output.trim().split("\n").sort();
+}
+
+/** Points a tag at an image of its own, so a test sees whether it moved. */
+async function seedTag(
+    runner: StartedTestContainer,
+    reference: string,
+): Promise<string> {
+    const seeded = await runner.exec([
+        "bash",
+        "-c",
+        `tar -cf /tmp/empty.tar -T /dev/null && crane append --insecure -f /tmp/empty.tar -t ${reference} >/dev/null 2>&1 && crane digest --insecure ${reference}`,
+    ]);
+    expect(seeded.exitCode).toBe(0);
+    return seeded.output.trim();
+}
+
+const login = `echo ci-password | docker login -u ci --password-stdin ${authRegistryHost} >/dev/null`;
+
 /**
  * CI runs the image whose RUN steps ran under qemu on hardware of its own
  * architecture (docs/testing.md). This directory takes it as a tarball that
@@ -837,6 +876,230 @@ describe("image builds", () => {
             await builders.stop();
         }
     }, 900_000);
+
+    it("moves no tag when the upload to a second repository fails", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            const first = `${registryHost}/upload-fails:1`;
+            const second = `${authRegistryHost}/upload-fails:1`;
+            const previous = await seedTag(runner, first);
+
+            await writeContext(runner, "FROM alpine:3.20\nRUN echo new > /new");
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                `cd /home/runner/app && docker build --push -t ${first} -t ${second} . 2>&1`,
+            ]);
+            expect(build.exitCode).not.toBe(0);
+            expect(build.output).toMatch(/401 Unauthorized|UNAUTHORIZED/);
+            expect(build.output).toMatch(
+                new RegExp(
+                    `uploading sha256:[0-9a-f]{64} to ${authRegistryHost}/upload-fails failed, no tag was changed`,
+                ),
+            );
+            expect(build.output).not.toContain("tagging");
+
+            expect(await digestOf(runner, first)).toBe(previous);
+            expect(
+                await tagsOf(runner, `${registryHost}/upload-fails`),
+            ).toEqual(["1"]);
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
+
+    it("moves the tags back when a later tag cannot be set", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            const existing = `${registryHost}/rollback:1`;
+            const added = `${registryHost}/rollback:new`;
+            const refused = `${registryHost}/rollback-refused:1`;
+            const previous = await seedTag(runner, existing);
+
+            // Registries that refuse a tag after accepting the upload (a tag
+            // protection rule, a quota on manifests) cannot be set up with
+            // registry:2, so crane refuses that one tag instead.
+            const fake = await runner.exec([
+                "bash",
+                "-c",
+                [
+                    "mkdir -p /tmp/fake && cat > /tmp/fake/crane <<'CRANE'",
+                    "#!/usr/bin/env bash",
+                    `if [[ "$1" == tag && "$2" == ${registryHost}/rollback-refused@* ]]; then`,
+                    '    echo "Error: PUT manifests/$3: DENIED: tag is protected" >&2',
+                    "    exit 1",
+                    "fi",
+                    'exec /usr/local/bin/crane "$@"',
+                    "CRANE",
+                    "chmod +x /tmp/fake/crane",
+                ].join("\n"),
+            ]);
+            expect(fake.exitCode).toBe(0);
+
+            await writeContext(runner, "FROM alpine:3.20\nRUN echo new > /new");
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                `cd /home/runner/app && PATH=/tmp/fake:$PATH docker build --push -t ${existing} -t ${added} -t ${refused} --iidfile /tmp/iid . 2>&1`,
+            ]);
+            expect(build.exitCode).not.toBe(0);
+            expect(build.output).toContain("DENIED: tag is protected");
+            expect(build.output).toContain(
+                `${existing} points at ${previous} again`,
+            );
+            expect(build.output).toContain(
+                `${added} did not exist before and stays at sha256:`,
+            );
+            expect(build.output).toContain(`${refused} was not changed`);
+            expect(build.output).toContain(
+                `tagging ${refused} failed, every tag that existed before points at its previous image again`,
+            );
+
+            expect(await digestOf(runner, existing)).toBe(previous);
+            const pushed = await digestOf(runner, added);
+            expect(pushed).toMatch(/^sha256:[0-9a-f]{64}$/);
+            expect(pushed).not.toBe(previous);
+            expect(await digestOf(runner, refused)).toBeUndefined();
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
+
+    it("points every tag of a multi platform build at one index", async () => {
+        const builders = await superviseBuilders();
+        const runner = await startRunner();
+        try {
+            const tags = [
+                `${registryHost}/fanout:1`,
+                `${registryHost}/fanout:2`,
+                `${authRegistryHost}/fanout:1`,
+            ];
+            await writeContextFile(runner, "greeting", "moin");
+            await writeContext(
+                runner,
+                "FROM alpine:3.20\nCOPY greeting /greeting",
+            );
+            const previous = await seedTag(runner, tags[0]);
+
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                [
+                    `cd /home/runner/app && ${login} &&`,
+                    `docker build --platform linux/amd64,linux/arm64 --push ${tags.map((tag) => `-t ${tag}`).join(" ")}`,
+                    "--iidfile /tmp/iid . 2>&1",
+                ].join(" "),
+            ]);
+            expect(build.exitCode).toBe(0);
+
+            const index = (
+                await runner.exec(["cat", "/tmp/iid"])
+            ).output.trim();
+            expect(index).toMatch(/^sha256:[0-9a-f]{64}$/);
+            expect(index).not.toBe(previous);
+            for (const tag of tags) {
+                expect(await digestOf(runner, tag)).toBe(index);
+            }
+            const manifest = await runner.exec([
+                "crane",
+                "manifest",
+                "--insecure",
+                tags[2],
+            ]);
+            const parsed = JSON.parse(manifest.output) as {
+                mediaType: string;
+                manifests: { platform: { architecture: string; os: string } }[];
+            };
+            expect(parsed.mediaType).toBe(
+                "application/vnd.oci.image.index.v1+json",
+            );
+            expect(
+                parsed.manifests
+                    .map(
+                        (entry) =>
+                            `${entry.platform.os}/${entry.platform.architecture}`,
+                    )
+                    .sort(),
+            ).toEqual(["linux/amd64", "linux/arm64"]);
+            expect(
+                await readFromImage(
+                    runner,
+                    tags[2],
+                    "greeting",
+                    `linux/${foreign}`,
+                ),
+            ).toBe("moin");
+
+            expect(await tagsOf(runner, `${registryHost}/fanout`)).toEqual([
+                "1",
+                "2",
+            ]);
+            expect(await tagsOf(runner, `${authRegistryHost}/fanout`)).toEqual([
+                "1",
+            ]);
+        } finally {
+            await runner.stop();
+            await builders.stop();
+        }
+    }, 900_000);
+
+    it("points every tag of a single platform build at one manifest", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            const tags = [
+                `${registryHost}/solo:1`,
+                `${registryHost}/solo:2`,
+                `${authRegistryHost}/solo:1`,
+            ];
+            await writeContext(
+                runner,
+                "FROM alpine:3.20\nRUN echo solo > /solo",
+            );
+            const previous = await seedTag(runner, tags[0]);
+
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                [
+                    `cd /home/runner/app && ${login} &&`,
+                    `docker build --push ${tags.map((tag) => `-t ${tag}`).join(" ")}`,
+                    "--iidfile /tmp/iid --metadata-file /tmp/metadata.json . 2>&1",
+                ].join(" "),
+            ]);
+            expect(build.exitCode).toBe(0);
+
+            const manifest = (
+                await runner.exec(["cat", "/tmp/iid"])
+            ).output.trim();
+            expect(manifest).toMatch(/^sha256:[0-9a-f]{64}$/);
+            expect(manifest).not.toBe(previous);
+            for (const tag of tags) {
+                expect(await digestOf(runner, tag)).toBe(manifest);
+            }
+            const metadata = await runner.exec(["cat", "/tmp/metadata.json"]);
+            expect(JSON.parse(metadata.output)).toMatchObject({
+                "containerimage.digest": manifest,
+                "image.name": tags.join(","),
+            });
+            expect(await readFromImage(runner, tags[2], "solo")).toBe("solo");
+
+            expect(await tagsOf(runner, `${registryHost}/solo`)).toEqual([
+                "1",
+                "2",
+            ]);
+            expect(await tagsOf(runner, `${authRegistryHost}/solo`)).toEqual([
+                "1",
+            ]);
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
 
     it("keeps two builds of two runners apart that share one queue", async () => {
         const builders = await superviseBuilders();

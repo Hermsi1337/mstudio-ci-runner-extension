@@ -98,6 +98,34 @@ runner pushes it. That is the same boundary as the rest of the runner
 ([architecture.md](architecture.md#trust-model-of-a-runner)): one stack per trust
 boundary, and no untrusted pull requests.
 
+### How a push moves the tags
+
+A registry has no transaction across tags, so a push with several `-t` cannot be atomic.
+`mstudio-build --push` keeps the part that can fail halfway away from the tags:
+
+1. **Upload.** Every image goes to every repository among the tags by digest
+   (`crane push image.tar <repository>@sha256:...`), one image per platform. Large
+   layers, credentials that only cover some repositories and quotas fail here, and no
+   tag has moved yet.
+2. **Index.** With several platforms, `mstudio-build` writes the index itself with `jq`
+   and puts it into every repository by digest with `crane edit manifest`. The children
+   are the same everywhere, so the index and its digest are too. `crane index append`
+   cannot do this step: it only writes to a tag and rejects a digest reference it cannot
+   know in advance.
+3. **Tags.** `mstudio-build` reads what each tag points at with `crane digest`, then sets
+   one tag after the other with `crane tag <repository>@<digest> <tag>`. Each is one small
+   manifest PUT.
+
+When a tag PUT fails, the tags set before it go back to the digest they had. A tag that did
+not exist before stays at the new image, because a registry offers no way to delete only
+a tag. The log names every tag with its state (`points at ... again`, `did not exist before
+and stays at ...`, `was not changed`), and `mstudio-build` exits with 1. No temporary tag
+is created at any point.
+
+What remains open: between the first and the last tag PUT, some tags point at the new
+image and others at the old one. When the registry also refuses to move a tag back, that
+tag keeps the new image and the final message names it.
+
 ## Setting it up
 
 Turn on *Image builds in jobs* when creating a runner or later in its settings. The
@@ -203,9 +231,10 @@ How the parts fit:
   container. When one of them fails, `mstudio-build` stops with its exit code before it
   pushes anything, so the tags keep what they pointed at.
 - With several platforms, `mstudio-build` pushes each image by digest
-  (`crane push image.tar <repository>@sha256:...`), then ties them together with
-  `crane index append` under every tag. No tag ever points at a single platform image. The
-  pushes use the credentials of `docker login`, like any other push. `--iidfile` and
+  (`crane push image.tar <repository>@sha256:...`), then ties them together in one index
+  that every tag gets ([How a push moves the tags](#how-a-push-moves-the-tags)). No tag
+  ever points at a single platform image. The pushes use the credentials of
+  `docker login`, like any other push. `--iidfile` and
   `containerimage.digest` in `--metadata-file` get the digest of the index. There is no
   image store entry for an index, so several platforms need `--push`.
 - A stage runs on the platform its `FROM --platform=` names, and every stage without one
@@ -400,6 +429,16 @@ with exit code 137. Raise `BUILD_TIMEOUT` on the builder service and
 `the build for linux/arm64 failed with exit code 1, nothing was pushed` comes from a build
 for several platforms. None of the images went to the registry, and the tags point where
 they pointed before.
+
+`uploading sha256:... to <repository> failed, no tag was changed` means the credentials of
+`docker login` do not cover that repository, or the registry refused the upload. The crane
+error above it names the reason. Every tag points where it pointed before.
+
+`tagging <tag> failed, every tag that existed before points at its previous image again`
+means the registry accepted the upload but refused that tag, for example through a tag
+protection rule. The lines above list each tag and its state. When the message says a tag
+`could not be moved back`, set it by hand with
+`crane tag <repository>@<previous digest> <tag>`; the log shows the previous digest.
 
 `/builds/queue is not writable by runner` means the builder never started: it is the
 service that creates the directory and makes it writable.
