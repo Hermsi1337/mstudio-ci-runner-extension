@@ -19,7 +19,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl git git-lfs jq unzip zip tar gzip xz-utils \
         openssh-client rsync sudo build-essential \
-        python3 python3-pip \
+        python3 python3-pip tini \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --home-dir ${RUNNER_HOME} --shell /bin/bash runner \
@@ -88,4 +88,5 @@ WORKDIR ${RUNNER_HOME}
 
 VOLUME ["/home/runner/data"]
 
-ENTRYPOINT ["/entrypoint.sh"]
+# forgejo-runner does not reap orphaned job processes, so tini runs as PID 1.
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]

@@ -103,4 +103,49 @@ describe("forgejo provider", () => {
             }),
         ).resolves.toBeUndefined();
     });
+
+    it.each([
+        "ubuntu-latest:docker://node:20",
+        "mittwald:host",
+        "a?b",
+        "mittwald,node?platform=linux/amd64",
+    ])("rejects the label list %s", async (labels) => {
+        const { forgejoProvider } = await import("./forgejo.ts");
+
+        await expect(
+            forgejoProvider.prepare({ ...request, labels }, "forgejo-runner"),
+        ).rejects.toMatchObject({
+            messageKey: "error.forgejo.labelsInvalid",
+        });
+    });
+
+    it("accepts plain label names with dashes and dots", async () => {
+        const { assertForgejoLabels } = await import("./forgejo.ts");
+
+        expect(() =>
+            assertForgejoLabels("mittwald,ubuntu-24.04,node_22"),
+        ).not.toThrow();
+    });
+
+    it.each([
+        "6634bb58be0db23cc013a2e72dd1828ae0257cf.",
+        "6634bb58be0db23c c013a2e72dd1828ae0257cf",
+        "6634bb58-be0db23cc013a2e72dd1828ae0257cf",
+    ])("rejects the token %s in the request schema", async (token) => {
+        const { zForgejoRunnerRequest } = await import(
+            "@/generated/extension-api/zod.gen.ts"
+        );
+
+        expect(
+            zForgejoRunnerRequest.safeParse({ ...request, token }).success,
+        ).toBe(false);
+    });
+
+    it("accepts a letters and digits token in the request schema", async () => {
+        const { zForgejoRunnerRequest } = await import(
+            "@/generated/extension-api/zod.gen.ts"
+        );
+
+        expect(zForgejoRunnerRequest.safeParse(request).success).toBe(true);
+    });
 });

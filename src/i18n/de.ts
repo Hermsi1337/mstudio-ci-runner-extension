@@ -231,6 +231,10 @@ export const de: Messages = {
     "form.forgejo.token.required": "Runner-Token fehlt",
     "form.forgejo.token.invalid":
         "Das Token ist zu kurz. Kopiere es vollständig aus Forgejo.",
+    "form.forgejo.labels.invalid":
+        "Entferne : und ? aus den Labels. :host hängt die Extension selbst an.",
+    "form.forgejo.token.characters":
+        "Das Token besteht nur aus Buchstaben und Ziffern. Kopiere es noch einmal aus Forgejo, ohne Leerzeichen.",
     "form.labels.label": "Labels",
     "form.tags.label": "Tags",
     "form.labels.description.github":
@@ -282,7 +286,7 @@ export const de: Messages = {
     "form.labels.help.github":
         "Kommagetrennte Labels, mit denen sich der Runner registriert. Im Workflow referenzierst du sie mit `runs-on: [self-hosted, mittwald]`. Jobs mit anderen Labels erreichen diesen Runner nicht.",
     "form.labels.help.forgejo":
-        "Kommagetrennte Labels, die der Runner Forgejo bei jedem Start meldet. Jobs mit diesen Labels laufen direkt im Container, nicht in einem Docker-Image. Im Workflow referenzierst du sie mit `runs-on: mittwald`. Jobs mit anderen Labels erreichen diesen Runner nicht.",
+        "Kommagetrennte Labels, die der Runner Forgejo bei jedem Start meldet. Nutze einfache Namen ohne `:` und `?`; die Extension hängt `:host` an, Jobs mit diesen Labels laufen also direkt im Container, nicht in einem Docker-Image. Im Workflow referenzierst du sie mit `runs-on: mittwald`. Jobs mit anderen Labels erreichen diesen Runner nicht.",
     "form.cache.label": "Paketmanager-Cache",
     "form.cache.description":
         "Behält Downloads von npm, pip, Composer und Go für spätere Jobs.",
@@ -374,4 +378,6 @@ export const de: Messages = {
         "Der GitLab-Runner konnte nicht entfernt werden (Status {status}).",
     "error.forgejo.instanceUrlInvalid":
         "Die Forgejo-URL muss eine https-Adresse ohne Benutzer, Query und Fragment sein, zum Beispiel https://forgejo.example.com.",
+    "error.forgejo.labelsInvalid":
+        "Forgejo-Labels dürfen weder : noch ? enthalten. Gib einfache Namen wie mittwald an; :host hängt die Extension selbst an.",
 };
