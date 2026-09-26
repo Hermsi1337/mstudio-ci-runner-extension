@@ -26,9 +26,10 @@ const features = ["cache", "imageBuilds", "dockerApi"] as const;
  * Shared by the create form and the settings modal. The group holds the three
  * booleans of the API as one list of keys, so the form values keep the shape
  * of the request. The generic keeps the fields typed against the owning form,
- * whose values are a superset. The cards stack: Flow's column layout does not
- * stretch them to one height, and side by side a shorter text leaves a
- * shorter card.
+ * whose values are a superset. Flow's column layout does not stretch the cards
+ * to one height, and a CheckboxButton wider than its text centers the text,
+ * so the cards sit side by side and their descriptions keep about the same
+ * length.
  */
 export function JobFeatureFields<T extends JobFeatureFormValues>({
     form,
@@ -57,8 +58,7 @@ export function JobFeatureFields<T extends JobFeatureFormValues>({
                 value={selected}
                 onChange={select}
                 s={[1]}
-                m={[1]}
-                l={[1]}
+                m={[1, 1, 1]}
             >
                 <Label>
                     {t("form.section.features")}

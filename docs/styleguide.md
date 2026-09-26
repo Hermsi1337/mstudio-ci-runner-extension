@@ -105,6 +105,11 @@ had slipped out of the layout.
   saved with the form (job features). Each card has a `Text` as title and a `Content`
   with one sentence that names the effect or the limits. Flow reserves `Switch` for
   settings that apply at once, without a save button.
+- Cards in one group sit side by side and their descriptions have about the same
+  length in both languages. Flow's `ColumnLayout` does not stretch cards to one
+  height, and a `CheckboxButton` that is wider than its text centers the text
+  (Flow 1.1.48 lacks `grid-template-columns: auto 1fr` there, which `RadioButton`
+  has).
 - Background that does not fit one sentence goes into the `FieldHelp` of the group
   label, at most a few short paragraphs, with a link into the documentation. No help
   button inside a card: the card is a label, and a button inside a label breaks the

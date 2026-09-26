@@ -253,7 +253,7 @@ export const de: Messages = {
         "Kommagetrennte Labels, mit denen sich der Runner registriert. Im Workflow referenzierst du sie mit `runs-on: [self-hosted, mittwald]`. Jobs mit anderen Labels erreichen diesen Runner nicht.",
     "form.cache.label": "Paketmanager-Cache",
     "form.cache.description":
-        "Nutzt Downloads von npm, pnpm, yarn, pip, Composer und Go aus früheren Jobs wieder.",
+        "Behält Downloads von npm, pip, Composer und Go für spätere Jobs.",
     "form.cacheSize.label": "Cache-Limit (GB)",
     "form.cacheSize.description":
         "Ein stündlicher Cronjob im Projekt löscht die ältesten Dateien oberhalb dieses Limits.",
@@ -263,10 +263,10 @@ export const de: Messages = {
         "mittwald-Volumes haben selbst kein Größenlimit, daher legt die Extension im Projekt einen Cronjob an, der stündlich im Runner-Container läuft. Er löscht die am längsten nicht geänderten Dateien, bis der Cache ins Limit passt. Der Cronjob wird mit dem Runner entfernt.",
     "form.imageBuilds.label": "Image-Builds",
     "form.imageBuilds.description":
-        "Baut und pusht Container-Images aus einem Job.",
+        "Führt docker build und docker push ohne Docker-Daemon aus.",
     "form.dockerApi.label": "Docker in Jobs",
     "form.dockerApi.description":
-        "Startet Container, Compose-Setups und Testcontainers aus einem Job.",
+        "Startet Container, Compose-Setups und Testcontainers im Job.",
     "form.features.help":
         "**Paketmanager-Cache:** ein Volume unter `/home/runner/.cache`, das Jobs, Neustarts und Updates übersteht. `XDG_CACHE_HOME` und die Variablen der einzelnen Tools zeigen darauf. Schaltest du den Cache aus, wird das Volume gelöscht.\n**Image-Builds:** ein `builder`-Container im Stack baut mit kaniko, der Runner pusht mit den Zugangsdaten aus `docker login`. Es gibt keinen Layer-Cache. `RUN --mount`, `--secret`, `--ssh` und Builds für eine andere Architektur brechen mit einer Meldung ab.\n**Docker in Jobs:** ein `docker`-Container im Stack startet jeden Container eines Jobs als Container des Stacks. Container brauchen ein paar Sekunden zum Start und laufen ohne TTY und ohne Privilegien. Bind-Mounts müssen im Projekt-Dateisystem liegen, dort liegt auch der Workspace des Runners. Jeder Container zählt zu den Ressourcen des Projekts.",
     "form.features.docs": "Doku auf GitHub",

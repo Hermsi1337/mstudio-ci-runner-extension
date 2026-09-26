@@ -247,7 +247,7 @@ export const en = {
         "Comma separated labels the runner registers with. Reference them in the workflow with `runs-on: [self-hosted, mittwald]`. Jobs whose labels do not match never reach this runner.",
     "form.cache.label": "Package manager cache",
     "form.cache.description":
-        "Reuses downloads of npm, pnpm, yarn, pip, Composer and Go from earlier jobs.",
+        "Keeps downloads of npm, pip, Composer and Go for later jobs.",
     "form.cacheSize.label": "Cache limit (GB)",
     "form.cacheSize.description":
         "An hourly cronjob in the project deletes the oldest files above this limit.",
@@ -257,10 +257,10 @@ export const en = {
         "mittwald volumes have no size limit of their own, so the extension creates a cronjob in the project that runs every hour inside the runner container. It deletes the least recently modified files until the cache fits the limit. The cronjob is removed with the runner.",
     "form.imageBuilds.label": "Image builds",
     "form.imageBuilds.description":
-        "Builds and pushes container images from a job.",
+        "Runs docker build and docker push without a Docker daemon.",
     "form.dockerApi.label": "Docker in jobs",
     "form.dockerApi.description":
-        "Starts containers, Compose setups and Testcontainers from a job.",
+        "Starts containers, Compose setups and Testcontainers in a job.",
     "form.features.help":
         "**Package manager cache:** a volume at `/home/runner/.cache` that survives jobs, restarts and updates. `XDG_CACHE_HOME` and the variables of each tool point at it. Turning the cache off deletes the volume.\n**Image builds:** a `builder` container in the stack builds with kaniko, the runner pushes with the credentials from `docker login`. There is no layer cache. `RUN --mount`, `--secret`, `--ssh` and builds for another architecture stop with a message.\n**Docker in jobs:** a `docker` container in the stack starts every container of a job as a container of the stack. Containers take a few seconds to start and run without TTY and privileges. Bind mounts must lie in the project file system, where the workspace of the runner lives. Every container counts against the resources of the project.",
     "form.features.docs": "Documentation on GitHub",
