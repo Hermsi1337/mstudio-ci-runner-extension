@@ -200,3 +200,33 @@ func TestStatAndArchiveGet(t *testing.T) {
 		t.Fatalf("expected not found, got %+v", result)
 	}
 }
+
+func TestLeftoverChildrenEndWithTheMainProcess(t *testing.T) {
+	marker := filepath.Join(t.TempDir(), "child-alive")
+	dir := prepare(t, state.Process{Args: []string{"sh", "-c", "(sleep 30; touch " + marker + ") & echo started"}})
+	start := time.Now()
+	run(t, dir)
+	eventually(t, "exit", exited(dir, 1))
+	if waited := time.Since(start); waited > 5*time.Second {
+		t.Fatalf("exit took %s, a child holding stdout delayed it", waited)
+	}
+	frames, _ := state.ReadAllFrames(dir.LogPath())
+	if len(frames) == 0 || string(frames[0].Payload) != "started\n" {
+		t.Fatalf("output %+v", frames)
+	}
+}
+
+func TestStopSignalReachesChildren(t *testing.T) {
+	dir := prepare(t, state.Process{Args: []string{"sh", "-c", "trap 'exit 0' TERM; sleep 60 & wait"}})
+	run(t, dir)
+	eventually(t, "start", func() bool { return dir.Status().Running() })
+	time.Sleep(300 * time.Millisecond)
+	_, _ = state.Enqueue(dir.ControlDir(), ".json", func(p string) error {
+		return state.WriteJSON(p, state.Control{Action: "signal", Signal: "SIGTERM"})
+	})
+	start := time.Now()
+	eventually(t, "exit", exited(dir, 1))
+	if waited := time.Since(start); waited > 5*time.Second {
+		t.Fatalf("stop took %s", waited)
+	}
+}

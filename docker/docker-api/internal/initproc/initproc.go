@@ -184,7 +184,7 @@ func (in *Init) signalMain(name string) {
 	p := in.main
 	in.mu.Unlock()
 	if p != nil {
-		_ = syscall.Kill(p.pid, sig)
+		_ = syscall.Kill(-p.pid, sig)
 	}
 }
 
@@ -195,11 +195,11 @@ func (in *Init) shutdown(sig os.Signal) {
 	if p == nil {
 		return
 	}
-	_ = syscall.Kill(p.pid, sig.(syscall.Signal))
+	_ = syscall.Kill(-p.pid, sig.(syscall.Signal))
 	select {
 	case <-p.done:
 	case <-time.After(shutdownGrace):
-		_ = syscall.Kill(p.pid, syscall.SIGKILL)
+		_ = syscall.Kill(-p.pid, syscall.SIGKILL)
 		<-p.done
 	}
 	time.Sleep(200 * time.Millisecond)
@@ -350,6 +350,7 @@ func (in *Init) logf(format string, args ...any) {
 // reaper, because the wrapper is PID 1 and has to reap orphans as well.
 type process struct {
 	pid   int
+	group bool
 	code  int
 	done  chan struct{}
 	pumps sync.WaitGroup
@@ -360,7 +361,10 @@ func (p *process) wait() int {
 	return p.code
 }
 
-func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWriter, mirror bool) (*process, error) {
+// spawn starts a process. The main process of the container mirrors its
+// output to the container log and gets a process group of its own, so
+// signals reach every process it started, as they do in a Docker container.
+func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWriter, main bool) (*process, error) {
 	env := mergeEnv(os.Environ(), baseEnv, proc.Env)
 	path, err := lookPath(proc.Args[0], env)
 	if err != nil {
@@ -380,6 +384,12 @@ func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWrit
 		}
 		cmd.SysProcAttr = &syscall.SysProcAttr{Credential: cred}
 	}
+	if main {
+		if cmd.SysProcAttr == nil {
+			cmd.SysProcAttr = &syscall.SysProcAttr{}
+		}
+		cmd.SysProcAttr.Setpgid = true
+	}
 	devnull, err := os.Open(os.DevNull)
 	if err != nil {
 		return nil, err
@@ -397,7 +407,7 @@ func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWrit
 	cmd.Stdout = stdoutW
 	cmd.Stderr = stderrW
 
-	p := &process{done: make(chan struct{})}
+	p := &process{done: make(chan struct{}), group: main}
 	// Before the start: the reaper may wait for the pumps as soon as the
 	// process is watched, and a process can end right away.
 	p.pumps.Add(2)
@@ -418,7 +428,7 @@ func (in *Init) spawn(proc state.Process, baseEnv []string, out *state.FrameWrit
 	}
 
 	var stdoutMirror, stderrMirror io.Writer
-	if mirror {
+	if main {
 		stdoutMirror, stderrMirror = os.Stdout, os.Stderr
 	}
 	go func() { defer p.pumps.Done(); out.Pump(state.Stdout, stdoutR, stdoutMirror); _ = stdoutR.Close() }()
@@ -473,6 +483,12 @@ func (r *reaper) reap() {
 			continue
 		}
 		p.code = exitCode(status)
+		// When the main process ends, a Docker container ends with every
+		// process in it. Leftovers such as nginx workers would otherwise keep
+		// the output pipes open and delay the exit.
+		if p.group {
+			_ = syscall.Kill(-p.pid, syscall.SIGKILL)
+		}
 		go func() {
 			drained := make(chan struct{})
 			go func() { p.pumps.Wait(); close(drained) }()
