@@ -13,6 +13,20 @@
       "arm64": "6bf1cd34c3decad55503414045db759db20ba3a2c05a3ac251d02eac7876dcbc"
     }
   },
+  "forgejo": {
+    "version": "13.2.0",
+    "sha256": {
+      "amd64": "fadaec897f5e6641c363f87ecaf75f866f99c81b7097ec6b433e4c48123fcad1",
+      "arm64": "9d3d462ee83e4e629f959faeacceb20eed2f25290bddea402e65ace46a31afd9"
+    }
+  },
+  "node": {
+    "version": "24.21.0",
+    "sha256": {
+      "amd64": "fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6",
+      "arm64": "6ad1325edbdb5649c379b75a237147a666c95d4f9ae8d340fef2d1575d289ad2"
+    }
+  },
   "crane": {
     "version": "v0.22.1",
     "sha256": {
