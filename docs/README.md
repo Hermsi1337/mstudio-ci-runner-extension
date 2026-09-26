@@ -10,6 +10,7 @@
 | [testing.md](testing.md) | Test setup with Testcontainers and Prism mocks |
 | [runner-image.md](runner-image.md) | Runner images per provider: env vars, entrypoint, building, workflow examples |
 | [image-builds.md](image-builds.md) | Building container images from a pipeline: builder service, docker shim, limits |
+| [docker-api.md](docker-api.md) | Docker API for jobs: `docker run` and Testcontainers on Container Hosting, mstudio-init, limits |
 | [operations.md](operations.md) | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | [i18n.md](i18n.md) | Languages: locale detection, catalogs, adding texts |
 | [styleguide.md](styleguide.md) | UI rules: components, layout, modals, forms, lists, texts, colors |

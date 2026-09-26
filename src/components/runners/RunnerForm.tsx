@@ -35,6 +35,7 @@ import { toMemoryMb } from "@/runner-sizes.ts";
 import { CacheFields } from "./CacheFields.tsx";
 import { ConcurrencyField } from "./ConcurrencyField.tsx";
 import { CreatedResources } from "./CreatedResources.tsx";
+import { DockerApiField } from "./DockerApiField.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
 import { ImageBuildsField } from "./ImageBuildsField.tsx";
 import { ParsedCommand } from "./ParsedCommand.tsx";
@@ -66,6 +67,7 @@ interface FormValues {
     cache: boolean;
     cacheSizeGb: number;
     imageBuilds: boolean;
+    dockerApi: boolean;
     concurrency: number;
     configCommand: string;
     runnerGroup: string;
@@ -85,6 +87,7 @@ function toRequest(values: FormValues): CreateRunnerRequest {
         cache: values.cache,
         cacheSizeGb: values.cacheSizeGb,
         imageBuilds: values.imageBuilds,
+        dockerApi: values.dockerApi,
         concurrency: values.concurrency,
     };
     if (values.provider === "gitlab") {
@@ -137,6 +140,7 @@ export const RunnerForm = ({
             cache: false,
             cacheSizeGb: 10,
             imageBuilds: false,
+            dockerApi: false,
             concurrency: 1,
             configCommand: "",
             runnerGroup: "",
@@ -153,6 +157,7 @@ export const RunnerForm = ({
     const cache = form.watch("cache");
     const cacheSizeGb = form.watch("cacheSizeGb");
     const imageBuilds = form.watch("imageBuilds");
+    const dockerApi = form.watch("dockerApi");
     const configCommand = form.watch("configCommand");
     const stackId = form.watch("stackId");
     const selectedStack = stacks.find((stack) => stack.id === stackId);
@@ -392,6 +397,8 @@ export const RunnerForm = ({
                         <CacheFields form={form} />
 
                         <ImageBuildsField form={form} />
+
+                        <DockerApiField form={form} />
                     </Section>
 
                     <RootError />
@@ -408,6 +415,7 @@ export const RunnerForm = ({
                         cache={cache}
                         cacheSizeGb={cacheSizeGb}
                         imageBuilds={imageBuilds}
+                        dockerApi={dockerApi}
                         selectedStackName={selectedStack?.description}
                     />
                 </AccentBox>

@@ -1,0 +1,4 @@
+# go test -c and coverage output
+*.test
+*.out
+coverage.html

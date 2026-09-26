@@ -59,6 +59,7 @@ the builder image from `docker/builder/versions.json` ([image-builds.md](image-b
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `docker/runner/github/` | must be **public**, mittwald pulls it without credentials |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `docker/runner/gitlab/` | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-builder` | `docker/builder/` | must be **public** |
+| `ghcr.io/hermsi1337/mstudio-ci-docker-api` | `docker/docker-api/` ([docker-api.md](docker-api.md)) | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `docker/extension/Dockerfile`, build context is the repo root, ignore rules in `docker/extension/Dockerfile.dockerignore` | any |
 
 Package visibility is independent of the repository and can only be changed on the web:
@@ -71,9 +72,9 @@ Package visibility is independent of the repository and can only be changed on t
 
 | Workflow | Trigger | Content |
 |---|---|---|
-| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests |
+| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests, `gofmt`, `go vet` and `go test` of `docker/docker-api` |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
-| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)), `linux/amd64` |
+| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)) and the Docker API image ([docker-api.md](docker-api.md)), `linux/amd64` |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
 | `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
 | `deploy-production.yml` | Manual | Deploys into the production installation |
@@ -175,6 +176,7 @@ mittwald.
    | `EXTENSION_ID`, `EXTENSION_SECRET` | secret | Extension registration ([mstudio-setup.md](mstudio-setup.md)) |
    | `ENCRYPTION_MASTER_PASSWORD`, `ENCRYPTION_SALT` | secret | `pnpm run init:encryption` prints suitable values. Changing them later makes the stored instance secrets unreadable, so the cleanup after an uninstall stops working. |
    | `POSTGRES_PASSWORD` | secret | Any strong value. Used by both services. |
+   | `PUBLIC_URL` | variable | The URL of step 4, e.g. `https://ci-runner.example.com`. The service `docker` of a stack fetches its tokens there ([docker-api.md](docker-api.md#tokens)). Without it *Docker in jobs* is refused. |
 
 2. Image access. The extension image is private. Either set the package
    `mstudio-ci-runner-extension` to public, or create a registry in the project
@@ -245,10 +247,16 @@ under the container `extension`.
    is deployed; *Update* moves them to the new image. Running GitHub runners also update
    themselves unless `DISABLE_AUTO_UPDATE` is set.
 
-`crane` in the runner images and `kaniko` in the builder image follow the same path.
-`crane.version` and its two checksums live in `docker/runner/versions.json`
+`crane`, the docker CLI and the docker compose plugin in the runner images and `kaniko` in the builder image
+follow the same path. `crane.version` and its two checksums live in
+`docker/runner/versions.json`
 ([releases](https://github.com/google/go-containerregistry/releases), file
-`checksums.txt`), `kaniko.version` and the Go version that compiles it in
+`checksums.txt`), so do `dockerCli.version` and the checksums of the two static
+archives (`download.docker.com/linux/static/stable/<x86_64|aarch64>/docker-<version>.tgz`,
+computed with `sha256sum` after downloading), `dockerCompose.version` and the checksums of
+the two binaries from the [compose releases](https://github.com/docker/compose/releases)
+(`docker-compose-linux-<x86_64|aarch64>`, each with a `.sha256` file next to it), `kaniko.version` and the Go version that
+compiles it in
 `docker/builder/versions.json`
 ([releases](https://github.com/chainguard-forks/kaniko/releases)). Both are read by the
 workflow, by `pnpm run runner:build` and by the integration tests; a bump needs a tag

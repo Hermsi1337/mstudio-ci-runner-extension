@@ -6,7 +6,8 @@
 # right here. This shim maps the commands that produce or move images onto
 # mstudio-build (builds in the builder service of the stack) and crane
 # (everything that talks to a registry). Commands that need a running daemon
-# have no equivalent and fail with a message instead of a missing binary.
+# go to the docker service of the stack when there is one, and fail with a
+# message instead of a missing binary when there is none.
 #
 # Supported: build, buildx build, push, pull, tag, images, image
 # (ls/inspect/rm/push/pull/tag), inspect, save, load, login, logout, manifest
@@ -14,8 +15,20 @@
 # bookkeeping of the docker CLI is answered with a single fixed builder, which
 # is what `docker/setup-buildx-action` reads before it hands work to buildx.
 #
-# Not supported: run, exec, compose, ps, network, volume, commit, system,
-# buildx bake, and everything else that needs a daemon.
+# Container commands need a daemon: run, create, start, stop, restart, kill,
+# rm, exec, logs, ps, wait, cp, port, top, stats, attach, rename, update,
+# container, network, volume, events, compose. With Docker in jobs turned on,
+# the extension sets DOCKER_HOST to the docker service of the stack, and the
+# shim hands these commands unchanged to the real docker CLI, which lives off
+# PATH in /usr/local/libexec/docker-cli. `docker inspect` answers from the
+# image store for a stored image and forwards everything else. Without
+# DOCKER_HOST these commands fail with a message.
+#
+# The docker service publishes container ports on itself. After a command that
+# can start containers, the shim wakes mstudio-port-forward, which makes those
+# ports reachable on localhost.
+#
+# Not supported: system, commit, buildx bake.
 set -euo pipefail
 
 warn() {
@@ -37,6 +50,63 @@ BUILDER_NAME="mstudio-builder"
 # hanging. Reporting 0.12.1 keeps those actions on the plain build path.
 BUILDX_VERSION="v0.12.1"
 DOCKER_VERSION="27.3.1"
+DOCKER_CLI="/usr/local/libexec/docker-cli/docker"
+
+has_docker_service() {
+    [[ -n "${DOCKER_HOST:-}" ]]
+}
+
+forward() {
+    [[ -x "${DOCKER_CLI}" ]] || fail "the docker CLI is missing from this image"
+    exec "${DOCKER_CLI}" "$@"
+}
+
+forward_and_publish_ports() {
+    [[ -x "${DOCKER_CLI}" ]] || fail "the docker CLI is missing from this image"
+    local status=0
+    "${DOCKER_CLI}" "$@" || status=$?
+    pkill -USR1 -f '^bash /usr/local/bin/mstudio-port-forward$' 2>/dev/null || true
+    exit "${status}"
+}
+
+# The GitHub runner mounts its externals (node for actions) into `container:`
+# jobs. They live in the image, where the docker service cannot mount them
+# from; the entrypoint copies them to the project file system and names the
+# copy in MSTUDIO_EXTERNALS.
+rewrite_externals() {
+    rewritten=()
+    local source="${RUNNER_HOME:-/home/runner}/externals"
+    local argument
+    for argument in "$@"; do
+        if [[ -n "${MSTUDIO_EXTERNALS:-}" && "${argument}" == *"${source}"* ]]; then
+            argument="${argument//"${source}"/"${MSTUDIO_EXTERNALS}"}"
+        fi
+        rewritten+=("${argument}")
+    done
+}
+
+starts_containers() {
+    case "$1" in
+        run | create | start | restart | compose) return 0 ;;
+        container)
+            case "${2:-}" in
+                run | create | start | restart) return 0 ;;
+            esac
+            ;;
+    esac
+    return 1
+}
+
+needs_docker_service() {
+    fail "${1} needs a Docker daemon, turn on Docker in jobs in the runner settings. Image builds and registry access work without it, see docs/image-builds.md"
+}
+
+command_inspect() {
+    if has_docker_service && ! { [[ $# -eq 1 ]] && mstudio-image-store resolve "$1" >/dev/null 2>&1; }; then
+        forward inspect "$@"
+    fi
+    mstudio-image-store config "${1:?usage: docker inspect <image>}"
+}
 
 require_crane() {
     command -v crane >/dev/null || fail "crane is missing from this image"
@@ -330,7 +400,7 @@ case "${command}" in
     images) mstudio-image-store list ;;
     rmi) mstudio-image-store untag "${1:?usage: docker rmi <image>}" ;;
     image) command_image "$@" ;;
-    inspect) mstudio-image-store config "${1:?usage: docker inspect <image>}" ;;
+    inspect) command_inspect "$@" ;;
     save) command_save "$@" ;;
     load) command_load "$@" ;;
     login) command_login "$@" ;;
@@ -353,13 +423,22 @@ case "${command}" in
         ;;
     info) echo "mstudio-ci-runner docker shim: no daemon, no containers, images are built by the builder service of this stack" ;;
     "" | -h | --help)
-        sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '2,/^set -euo pipefail$/p' "$0" | sed -e '$d' -e 's/^# \{0,1\}//'
         ;;
     builder)
         command_buildx "$@"
         ;;
-    run | exec | start | stop | ps | compose | network | volume | container | system | commit | cp | logs | attach | kill | restart | rm)
-        fail "${command} needs a Docker daemon, which mittwald Container Hosting does not provide. Only image builds and registry access work here, see docs/image-builds.md"
+    run | create | start | stop | restart | kill | rm | exec | logs | ps | wait | cp | port | top | stats | attach | rename | update | container | network | volume | events | compose)
+        has_docker_service || needs_docker_service "${command}"
+        rewrite_externals "$@"
+        set -- "${rewritten[@]}"
+        if starts_containers "${command}" "$@"; then
+            forward_and_publish_ports "${command}" "$@"
+        fi
+        forward "${command}" "$@"
+        ;;
+    system | commit)
+        fail "${command} is not supported by the docker shim, see docs/image-builds.md"
         ;;
     *)
         fail "${command} is not supported by the docker shim, see docs/image-builds.md"

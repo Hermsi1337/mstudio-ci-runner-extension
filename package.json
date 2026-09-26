@@ -23,6 +23,7 @@
     "test": "vitest run --config config/vitest.config.ts --project unit",
     "test:integration": "vitest run --config config/vitest.config.ts --project integration",
     "test:all": "vitest run --config config/vitest.config.ts",
+    "docker-api:test": "cd docker/docker-api && go test ./...",
     "db:start": "scripts/dev-db.sh up",
     "db:stop": "scripts/dev-db.sh down",
     "db:push": "drizzle-kit push --config config/drizzle.config.ts",

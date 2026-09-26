@@ -29,6 +29,14 @@ extension creates, updates and deletes per runner with a cache limit
 Adding scopes to an existing extension requires every installed instance to consent
 again.
 
+*Docker in jobs* needs no new scope. The service `docker` works with access tokens of
+the extension instance, which the extension issues through `POST
+/api/docker-api/token` ([docker-api.md](docker-api.md#tokens)). With them it reads the
+project and declares and removes services and volumes in its stack. The image lookup
+of the API (`GET /v2/container-image-config`) answers extension tokens with 403
+(`access denied; verdict: abstain`) whatever the scopes, so the adapter reads image
+configurations from the registries itself ([docker-api.md](docker-api.md#limits)).
+
 After creation:
 
 1. Generate the extension secret → `EXTENSION_SECRET`.
@@ -70,6 +78,13 @@ form. The token goes into the runner container only; deleting the runner reads i
 there. No PAT is involved.
 
 The PAT mode is disabled, see [providers.md](providers.md#existing-providers).
+
+### Docker in jobs
+
+The service `docker` of a stack holds a random secret of that stack
+(`DOCKER_API_SECRET`, the database keeps its SHA-256) and trades it at `PUBLIC_URL` for short-lived instance tokens.
+No user token and no extension secret reach a container. Details in
+[docker-api.md](docker-api.md#tokens).
 
 ## Marketplace entry and frontend fragment
 

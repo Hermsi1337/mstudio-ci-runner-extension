@@ -6,9 +6,60 @@ info:
     Internal API contract of the extension. Server functions validate their input
     against schemas generated from this document; the UI uses the generated types.
     New providers are added here first (see docs/providers.md).
-paths: {}
+paths:
+  /api/docker-api/token:
+    post:
+      operationId: issueDockerApiToken
+      summary: Short-lived mittwald API token for the service `docker` of a stack
+      description: |
+        Called by the Docker API adapter, not by the UI. The bearer token is the secret the
+        extension put into the environment of the service (`DOCKER_API_SECRET`). The answer is
+        an access token of the extension instance, valid for a few minutes.
+      security:
+        - dockerApiSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DockerApiTokenRequest'
+      responses:
+        '200':
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DockerApiTokenResponse'
+        '400':
+          description: Body does not match the schema
+        '401':
+          description: Secret missing, unknown or not valid for this stack
+        '502':
+          description: mittwald did not issue an instance token
 components:
+  securitySchemes:
+    dockerApiSecret:
+      type: http
+      scheme: bearer
   schemas:
+    DockerApiTokenRequest:
+      type: object
+      required: [stackId]
+      properties:
+        stackId:
+          type: string
+          format: uuid
+          example: 3f9a7c21-6d4e-4b8a-a1c2-7e5d9f0b2c4a
+    DockerApiTokenResponse:
+      type: object
+      required: [token, expiresAt]
+      properties:
+        token:
+          type: string
+          description: mittwald access token of the extension instance, sent as X-Access-Token.
+        expiresAt:
+          type: string
+          format: date-time
     Provider:
       type: string
       enum: [github, gitlab]
@@ -67,6 +118,8 @@ components:
           $ref: '#/components/schemas/CacheSizeGb'
         imageBuilds:
           $ref: '#/components/schemas/ImageBuilds'
+        dockerApi:
+          $ref: '#/components/schemas/DockerApi'
         concurrency:
           $ref: '#/components/schemas/Concurrency'
         size:
@@ -99,6 +152,10 @@ components:
       type: boolean
       default: false
       description: Lets jobs build container images with `docker build`. Mounts the build queue of the stack into the runner and adds the builder service to the stack if it is missing.
+    DockerApi:
+      type: boolean
+      default: false
+      description: Lets jobs run containers with `docker run` and Testcontainers. Points DOCKER_HOST of the runner at the service `docker` of the stack, which the extension adds if it is missing (see docs/docker-api.md).
     CacheSizeGb:
       type: integer
       minimum: 1
@@ -202,6 +259,8 @@ components:
           $ref: '#/components/schemas/CacheSizeGb'
         imageBuilds:
           $ref: '#/components/schemas/ImageBuilds'
+        dockerApi:
+          $ref: '#/components/schemas/DockerApi'
         concurrency:
           $ref: '#/components/schemas/Concurrency'
         size:
@@ -224,7 +283,7 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, tokenType, size, cpus, memoryMb, cache, cacheSizeGb, imageBuilds, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, latestImageVersion, imageVersion, updateAvailable, createdAt]
+      required: [id, provider, name, target, targetUrl, labels, ephemeral, tokenType, size, cpus, memoryMb, cache, cacheSizeGb, imageBuilds, dockerApi, concurrency, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, latestImageVersion, imageVersion, updateAvailable, createdAt]
       properties:
         id:
           type: string
@@ -272,6 +331,9 @@ components:
         imageBuilds:
           type: boolean
           description: Jobs of this runner can build container images through the builder service of its stack.
+        dockerApi:
+          type: boolean
+          description: Jobs of this runner can run containers through the service `docker` of its stack.
         concurrency:
           type: integer
           example: 1

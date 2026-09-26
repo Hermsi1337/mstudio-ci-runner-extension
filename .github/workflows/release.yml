@@ -68,6 +68,7 @@ jobs:
             echo "| GitHub runner (actions/runner ${github_runner}) | \`docker pull ghcr.io/hermsi1337/mstudio-ci-runner-github:${version}\` |"
             echo "| GitLab runner (gitlab-runner ${gitlab_runner}) | \`docker pull ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:${version}\` |"
             echo "| Image builder (kaniko ${kaniko}) | \`docker pull ghcr.io/hermsi1337/mstudio-ci-builder:${version}\` |"
+            echo "| Docker API for jobs | \`docker pull ghcr.io/hermsi1337/mstudio-ci-docker-api:${version}\` |"
             echo
           } > notes.md
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3

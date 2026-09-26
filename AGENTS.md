@@ -80,6 +80,7 @@ into this file. Every file has exactly one topic and links to the others.
 | `docs/testing.md` | Test setup, Testcontainers, mock servers, how tests run |
 | `docs/runner-image.md` | Runner images per provider: env vars, entrypoint, building, workflow examples |
 | `docs/image-builds.md` | Building container images from a pipeline: builder service, docker shim, limits |
+| `docs/docker-api.md` | Docker API for jobs: adapter, mstudio-init, shared directory, limits |
 | `docs/operations.md` | Releases, images, GHCR, CI workflows, deployment to Container Hosting |
 | `docs/i18n.md` | Languages: how the locale is chosen, catalogs, adding texts |
 | `docs/styleguide.md` | UI rules: components, layout, modals, forms, lists, texts, colors |
@@ -93,6 +94,7 @@ Checklist before every commit:
 - New or changed scope, anchor, webhook, token requirement: `docs/mstudio-setup.md`.
 - New provider or changed provider behavior: `docs/providers.md`, `docs/runner-image.md`.
 - Changed builder, docker shim or build queue protocol: `docs/image-builds.md`.
+- Changed Docker API adapter, mstudio-init or its shared directory: `docs/docker-api.md`.
 - New or changed user-facing text: both catalogs in `src/i18n/`, `docs/i18n.md` if the
   mechanism changes.
 - New or changed screen, modal or component pattern: `docs/styleguide.md`, screenshots
@@ -114,9 +116,10 @@ config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
 docker/builder/              image builder service: Dockerfile, loop.sh, kaniko version and patches (build context is docker/builder)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
-docker/runner/common/        scripts shared by all runner images (trim-cache.sh, docker-shim, mstudio-build and friends)
+docker/runner/common/        scripts shared by all runner images (trim-cache.sh, reclaim-workspace.sh, docker-shim, mstudio-build and friends)
 docker/runner/probes/        probe suite run inside the built images by the integration tests
-docker/runner/versions.json  runner software version per provider plus the crane version, single source for workflow, build and UI
+docker/runner/versions.json  runner software version per provider plus the crane and docker CLI versions, single source for workflow, build and UI
+docker/docker-api/           Docker API adapter for jobs, a Go module (build context is docker/docker-api)
 deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml (dev and production)
 deploy/mstudio/extension.yaml  marketplace entry and fragment properties, applied by deploy.yml
 docs/                        documentation, one topic per file
@@ -166,6 +169,7 @@ Everything else lives in a subdirectory.
 
 - TypeScript strict, Biome for lint and format (`pnpm run check`). Generated files are
   excluded in `biome.json`.
+- Go only in `docker/docker-api/`, formatted with `gofmt`, checked with `go vet`.
 - Scripts in images and in `scripts/` are bash (`#!/usr/bin/env bash`, `set -euo pipefail`),
   never sh, never Python. JSON is read and written with `jq`, which every image ships.
   The builder image installs bash for this.
@@ -191,6 +195,7 @@ pnpm run check && pnpm run typecheck && pnpm run build
 pnpm run check:bundle                                        # no server-only code in the client bundle
 pnpm run test                                                # unit tests, catalog consistency
 pnpm run test:integration                                    # requires Docker
+pnpm run docker-api:test                                     # Go tests of docker/docker-api, needs the docker CLI
 ```
 
 CI runs the same steps (`.github/workflows/ci.yml`).

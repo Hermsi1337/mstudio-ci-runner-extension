@@ -42,6 +42,20 @@ export function isQueueMountOfStack(mount: string, stackId: string): boolean {
 }
 
 /**
+ * Strips tag and digest. The tag separator is the last colon after the last
+ * slash; a colon before it belongs to a registry port (registry:5000/app).
+ */
+export function imageRepository(image: string): string {
+    const reference = image.split("@")[0];
+    const tagSeparator = reference.lastIndexOf(":");
+    if (tagSeparator <= reference.lastIndexOf("/")) {
+        return reference;
+    }
+
+    return reference.slice(0, tagSeparator);
+}
+
+/**
  * mittwald reports the image of a service normalized ("library/alpine:3.20" for
  * "alpine:3.20"), so a plain comparison would redeclare a service that already
  * runs what it should.

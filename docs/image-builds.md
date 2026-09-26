@@ -164,7 +164,7 @@ mstudio-build --push -t ghcr.io/me/app:1 --build-arg VERSION=1 .
 |---|---|
 | `--iidfile` | image id (config digest); with `--push` the digest of the pushed manifest, like buildx |
 | `--metadata-file` | `containerimage.config.digest`, `containerimage.digest` (only after a push), `image.name` |
-| `docker images`, `docker inspect`, `docker tag`, `docker rmi` | served from the image store on the data volume |
+| `docker images`, `docker inspect`, `docker tag`, `docker rmi` | served from the image store on the data volume. With `DOCKER_HOST` set, `docker inspect` with flags or a reference that is not in the store goes to the real CLI |
 | `docker push`, `docker pull`, `docker manifest inspect` | crane |
 | `docker save`, `docker load` | copies the tarball in and out of the store. `docker load` needs `-i <file>`, it does not read from a pipe |
 | `docker login`, `docker logout` | `crane auth login`, writes the usual `~/.docker/config.json` |
@@ -184,6 +184,29 @@ after every build and waits for the answer; there are no build records here, so 
 step of the action hung until the job was killed. Reporting 0.12.1 keeps those actions on
 the plain build path. `docker buildx history` is answered quietly anyway, in case
 something asks.
+
+## What Docker in jobs forwards
+
+With Docker in jobs turned on, the extension sets `DOCKER_HOST=tcp://docker:2375` and the
+stack gets a `docker` service that speaks the Docker Engine API
+([docker-api.md](docker-api.md)). The shim then hands container commands with all their
+arguments to the real docker CLI at `/usr/local/libexec/docker-cli/docker`
+([runner-image.md](runner-image.md#docker-in-jobs)):
+
+| Commands | With `DOCKER_HOST` | Without |
+|---|---|---|
+| `run`, `create`, `start`, `stop`, `restart`, `kill`, `rm`, `exec`, `logs`, `ps`, `wait`, `cp`, `port`, `top`, `stats`, `attach`, `rename`, `update` | real CLI | refused |
+| `container` (every subcommand), `network`, `volume`, `events` | real CLI | refused |
+| `compose` (every subcommand) | real CLI with the compose plugin | refused |
+| `inspect` | image store for a stored image, real CLI otherwise | image store |
+| `build`, `buildx`, `push`, `pull`, `images`, `tag`, `save`, `load`, `login`, `logout`, `manifest`, `version`, `info` | shim, as described above | shim |
+
+Builds stay with the builder service because the Docker API builds no images. An image
+built with `docker build` is in the image store only, so push it and run it from the
+registry. After `run`, `create`, `start`, `restart`, `container run|create|start|restart` and
+`compose` the shim wakes `mstudio-port-forward`, which makes the ports the `docker` service
+published reachable on localhost ([runner-image.md](runner-image.md#docker-in-jobs)). The limits of the Docker API (no stdin, no TTY, no read-only mounts, bind
+mounts on the project file system only) are in [docker-api.md](docker-api.md#limits).
 
 ## What it warns about
 
@@ -207,7 +230,8 @@ Failing early with a clear message beats a build that silently does something el
 | `--platform` with a foreign or multiple platforms | kaniko cannot emulate another architecture |
 | `RUN --mount=...`, `--network=`, `--security=` in the Dockerfile | checked before the job is queued |
 | `--output` other than `type=registry`, `push=true` or `type=docker,dest=` | no equivalent |
-| `docker run`, `exec`, `compose`, `ps`, `network`, `volume`, `commit` | need a daemon |
+| `docker run`, `exec`, `ps`, `compose`, `network`, `volume` and the other container commands without `DOCKER_HOST` | need a daemon, turn on Docker in jobs in the runner settings |
+| `docker system`, `docker commit` | not supported, with or without `DOCKER_HOST` |
 | `docker buildx bake` | not supported, call `docker build` per image |
 
 `COPY --link` and here-documents in `RUN` produce a warning: kaniko ignores the first and

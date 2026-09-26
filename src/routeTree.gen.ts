@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiDockerApiTokenRouteImport } from './routes/api/docker-api.token'
 import { Route as ApiWebhooksMittwaldRouteImport } from './routes/api/webhooks.mittwald'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDockerApiTokenRoute = ApiDockerApiTokenRouteImport.update({
+  id: '/api/docker-api/token',
+  path: '/api/docker-api/token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWebhooksMittwaldRoute = ApiWebhooksMittwaldRouteImport.update({
@@ -25,27 +31,31 @@ const ApiWebhooksMittwaldRoute = ApiWebhooksMittwaldRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/docker-api/token': typeof ApiDockerApiTokenRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/docker-api/token': typeof ApiDockerApiTokenRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/docker-api/token': typeof ApiDockerApiTokenRoute
   '/api/webhooks/mittwald': typeof ApiWebhooksMittwaldRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/webhooks/mittwald'
+  fullPaths: '/' | '/api/docker-api/token' | '/api/webhooks/mittwald'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/webhooks/mittwald'
-  id: '__root__' | '/' | '/api/webhooks/mittwald'
+  to: '/' | '/api/docker-api/token' | '/api/webhooks/mittwald'
+  id: '__root__' | '/' | '/api/docker-api/token' | '/api/webhooks/mittwald'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiDockerApiTokenRoute: typeof ApiDockerApiTokenRoute
   ApiWebhooksMittwaldRoute: typeof ApiWebhooksMittwaldRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/docker-api/token': {
+      id: '/api/docker-api/token'
+      path: '/api/docker-api/token'
+      fullPath: '/api/docker-api/token'
+      preLoaderRoute: typeof ApiDockerApiTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/webhooks/mittwald': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiDockerApiTokenRoute: ApiDockerApiTokenRoute,
   ApiWebhooksMittwaldRoute: ApiWebhooksMittwaldRoute,
 }
 export const routeTree = rootRouteImport

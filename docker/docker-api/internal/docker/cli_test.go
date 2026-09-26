@@ -1,0 +1,362 @@
+package docker_test
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/docker"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/engine"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/fakeplatform"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/initproc"
+	"github.com/hermsi1337/mstudio-ci-runner-extension/docker/docker-api/internal/state"
+)
+
+// The test binary doubles as mstudio-init for the fake platform.
+func TestMain(m *testing.M) {
+	if self := os.Getenv("MSTUDIO_INIT_SELF"); self != "" {
+		if err := initproc.Run(state.Dir(self)); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+	os.Exit(m.Run())
+}
+
+type env struct {
+	t        *testing.T
+	platform *fakeplatform.Platform
+	host     string
+	stateDir string
+}
+
+func setup(t *testing.T) *env {
+	t.Helper()
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("docker CLI not installed")
+	}
+	stateDir := t.TempDir()
+	platform := fakeplatform.New(os.Args[0])
+	t.Cleanup(platform.Close)
+
+	var dialer net.Dialer
+	eng, err := engine.New(engine.Config{
+		ProjectID:     "p-test",
+		StackID:       "s-test",
+		StateDir:      stateDir,
+		StateHostPath: stateDir,
+		ProjectHome:   "/home/p-test",
+		StartTimeout:  20 * time.Second,
+		SkipRegistry:  true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			_, port, _ := net.SplitHostPort(address)
+			return dialer.DialContext(ctx, network, net.JoinHostPort("127.0.0.1", port))
+		},
+		Logger: testLogger(),
+	}, platform)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	eng.Restore(ctx)
+
+	server := httptest.NewServer(docker.NewRouter(docker.RouterConfig{
+		Engine:          eng,
+		ContainerClient: platform,
+		ProjectID:       "p-test",
+		StackID:         "s-test",
+		Logger:          testLogger(),
+	}))
+	t.Cleanup(server.Close)
+	return &env{t: t, platform: platform, host: "tcp://" + strings.TrimPrefix(server.URL, "http://"), stateDir: stateDir}
+}
+
+type result struct {
+	stdout, stderr string
+	code           int
+}
+
+func (e *env) docker(args ...string) result {
+	e.t.Helper()
+	return e.dockerWithInput("", args...)
+}
+
+func (e *env) dockerWithInput(input string, args ...string) result {
+	e.t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	if os.Getenv("ADAPTER_TEST_LOG") != "" {
+		args = append([]string{"--debug"}, args...)
+	}
+	cmd := exec.CommandContext(ctx, "docker", args...)
+	cmd.Env = append(os.Environ(), "DOCKER_HOST="+e.host, "DOCKER_CONTEXT=", "DOCKER_CONFIG="+e.t.TempDir())
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if input != "" {
+		cmd.Stdin = strings.NewReader(input)
+	}
+	err := cmd.Run()
+	code := 0
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		code = exitErr.ExitCode()
+	} else if err != nil {
+		e.t.Fatalf("docker %v: %v", args, err)
+	}
+	return result{stdout: stdout.String(), stderr: stderr.String(), code: code}
+}
+
+func (e *env) mustDocker(args ...string) string {
+	e.t.Helper()
+	r := e.docker(args...)
+	if r.code != 0 {
+		e.t.Fatalf("docker %v exited %d\nstdout: %s\nstderr: %s", args, r.code, r.stdout, r.stderr)
+	}
+	return strings.TrimSpace(r.stdout)
+}
+
+func TestRunForwardsOutputAndExitCode(t *testing.T) {
+	e := setup(t)
+	r := e.docker("run", "--rm", "alpine", "sh", "-c", "echo hi; echo err >&2; exit 3")
+	if r.code != 3 {
+		t.Fatalf("exit code %d, want 3 (stderr %q)", r.code, r.stderr)
+	}
+	if r.stdout != "hi\n" || !strings.Contains(r.stderr, "err") {
+		t.Fatalf("stdout %q stderr %q", r.stdout, r.stderr)
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		if e.mustDocker("ps", "-aq") == "" {
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	t.Fatalf("container with --rm is still there: %s", e.mustDocker("ps", "-a"))
+}
+
+func TestDetachedContainerLifecycle(t *testing.T) {
+	e := setup(t)
+	port := freePort(t)
+	e.mustDocker("run", "-d", "--name", "web", "--label", "suite=cli", "-p", "8080",
+		"alpine", "python3", "-m", "http.server", port, "--bind", "127.0.0.1")
+
+	hostPort := e.mustDocker("inspect", "web", "--format", `{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostPort}}`)
+	if hostPort == "" {
+		t.Fatal("no host port published")
+	}
+	if got := e.mustDocker("ps", "--filter", "label=suite=cli", "--format", "{{.Names}}"); got != "web" {
+		t.Fatalf("label filter returned %q", got)
+	}
+
+	exec := e.docker("exec", "web", "sh", "-c", "echo from-exec; exit 7")
+	if exec.code != 7 || exec.stdout != "from-exec\n" {
+		t.Fatalf("exec: code %d stdout %q stderr %q", exec.code, exec.stdout, exec.stderr)
+	}
+
+	target := t.TempDir()
+	src := filepath.Join(t.TempDir(), "greeting.txt")
+	_ = os.WriteFile(src, []byte("hello"), 0o644)
+	e.mustDocker("cp", src, "web:"+target)
+	if got := e.mustDocker("exec", "web", "cat", filepath.Join(target, "greeting.txt")); got != "hello" {
+		t.Fatalf("copied file holds %q", got)
+	}
+	back := t.TempDir()
+	e.mustDocker("cp", "web:"+filepath.Join(target, "greeting.txt"), back)
+	if data, _ := os.ReadFile(filepath.Join(back, "greeting.txt")); string(data) != "hello" {
+		t.Fatalf("copied back %q", data)
+	}
+
+	e.mustDocker("stop", "-t", "2", "web")
+	if st := e.mustDocker("inspect", "web", "--format", "{{.State.Status}}"); st != "exited" {
+		t.Fatalf("state after stop %q", st)
+	}
+	e.mustDocker("start", "web")
+	if st := e.mustDocker("inspect", "web", "--format", "{{.State.Status}}"); st != "running" {
+		t.Fatalf("state after start %q", st)
+	}
+	e.mustDocker("rm", "-f", "web")
+	if r := e.docker("container", "inspect", "web"); r.code == 0 {
+		t.Fatal("container still exists after rm")
+	}
+}
+
+func TestPortForwardReachesContainer(t *testing.T) {
+	e := setup(t)
+	port := freePort(t)
+	e.mustDocker("run", "-d", "--name", "srv", "-p", port, "alpine", "python3", "-m", "http.server", port, "--bind", "127.0.0.1")
+	hostPort := e.mustDocker("port", "srv", port)
+	_, published, _ := net.SplitHostPort(strings.Split(hostPort, "\n")[0])
+	var resp *http.Response
+	var err error
+	for i := 0; i < 50; i++ {
+		resp, err = http.Get("http://127.0.0.1:" + published + "/")
+		if err == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatalf("forwarded port not reachable: %v", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	e.mustDocker("rm", "-f", "srv")
+}
+
+func TestLogsAndWait(t *testing.T) {
+	e := setup(t)
+	id := e.mustDocker("run", "-d", "alpine", "sh", "-c", "echo one; sleep 1; echo two >&2; exit 5")
+	if code := e.mustDocker("wait", id); code != "5" {
+		t.Fatalf("wait returned %q", code)
+	}
+	r := e.docker("logs", id)
+	if r.stdout != "one\n" || r.stderr != "two\n" {
+		t.Fatalf("logs stdout %q stderr %q", r.stdout, r.stderr)
+	}
+	if tail := e.docker("logs", "--tail", "1", id); tail.stdout != "" || tail.stderr != "two\n" {
+		t.Fatalf("tail stdout %q stderr %q", tail.stdout, tail.stderr)
+	}
+}
+
+func TestForeignServicesStayInvisible(t *testing.T) {
+	e := setup(t)
+	e.platform.AddForeignService("runner")
+	if r := e.docker("rm", "runner"); r.code == 0 {
+		t.Fatal("removing a foreign service succeeded")
+	}
+	if out := e.mustDocker("ps", "-a", "--format", "{{.Names}}"); out != "" {
+		t.Fatalf("foreign service listed: %q", out)
+	}
+	if _, ok := e.platform.Service("runner"); !ok {
+		t.Fatal("foreign service was removed")
+	}
+}
+
+func testLogger() *slog.Logger {
+	if os.Getenv("ADAPTER_TEST_LOG") != "" {
+		return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	}
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+func freePort(t *testing.T) string {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = l.Close() }()
+	_, port, _ := net.SplitHostPort(l.Addr().String())
+	return port
+}
+
+func TestHealthCheck(t *testing.T) {
+	e := setup(t)
+	marker := filepath.Join(t.TempDir(), "ready")
+	e.mustDocker("run", "-d", "--name", "hc", "--health-cmd", "test -f "+marker,
+		"--health-interval", "1s", "--health-start-interval", "200ms", "--health-retries", "2",
+		"alpine", "sleep", "60")
+	status := func() string {
+		return e.mustDocker("inspect", "hc", "--format", "{{.State.Health.Status}}")
+	}
+	if s := status(); s != "starting" {
+		t.Fatalf("health %q before the check passed, want starting", s)
+	}
+	_ = os.WriteFile(marker, nil, 0o644)
+	deadline := time.Now().Add(10 * time.Second)
+	for status() != "healthy" {
+		if time.Now().After(deadline) {
+			t.Fatalf("health still %q", status())
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	e.mustDocker("rm", "-f", "hc")
+}
+
+func TestVolumesOfTheAdapterOnly(t *testing.T) {
+	e := setup(t)
+	e.mustDocker("volume", "create", "cache")
+	e.mustDocker("run", "--rm", "-v", "data:/data", "alpine", "true")
+	names := e.mustDocker("volume", "ls", "--format", "{{.Name}}")
+	if names != "cache\ndata" {
+		t.Fatalf("volume ls shows %q", names)
+	}
+	if r := e.docker("volume", "rm", "runner-web-data"); r.code == 0 {
+		t.Fatal("removing a volume the adapter did not create succeeded")
+	}
+	e.mustDocker("volume", "rm", "cache", "data")
+	if out := e.mustDocker("volume", "ls", "-q"); out != "" {
+		t.Fatalf("volumes left: %q", out)
+	}
+}
+
+func TestStdinReachesRunAndExec(t *testing.T) {
+	e := setup(t)
+	r := e.dockerWithInput("line one\nline two\n", "run", "-i", "--rm", "alpine", "cat")
+	if r.code != 0 || r.stdout != "line one\nline two\n" {
+		t.Fatalf("run -i: code %d stdout %q stderr %q", r.code, r.stdout, r.stderr)
+	}
+	e.mustDocker("run", "-d", "--name", "box", "alpine", "sleep", "60")
+	r = e.dockerWithInput("to exec\n", "exec", "-i", "box", "sh", "-c", "tr a-z A-Z")
+	if r.code != 0 || r.stdout != "TO EXEC\n" {
+		t.Fatalf("exec -i: code %d stdout %q stderr %q", r.code, r.stdout, r.stderr)
+	}
+	e.mustDocker("rm", "-f", "box")
+}
+
+func TestComposeUpInTheForeground(t *testing.T) {
+	e := setup(t)
+	if r := e.docker("compose", "version"); r.code != 0 {
+		t.Skip("docker compose plugin not installed")
+	}
+	dir := t.TempDir()
+	compose := "services:\n  job:\n    image: alpine\n    command: [\"sh\", \"-c\", \"echo from-compose; exit 3\"]\n"
+	if err := os.WriteFile(filepath.Join(dir, "compose.yaml"), []byte(compose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := e.docker("compose", "-f", filepath.Join(dir, "compose.yaml"), "-p", "clitest", "up", "--abort-on-container-exit", "--exit-code-from", "job")
+	if r.code != 3 || !strings.Contains(r.stdout, "from-compose") {
+		t.Fatalf("compose up: code %d stdout %q stderr %q", r.code, r.stdout, r.stderr)
+	}
+	e.mustDocker("compose", "-f", filepath.Join(dir, "compose.yaml"), "-p", "clitest", "down")
+}
+
+func TestLabelFiltersMustAllMatch(t *testing.T) {
+	e := setup(t)
+	e.mustDocker("run", "-d", "--name", "one", "--label", "project=p", "--label", "service=db", "alpine", "sleep", "60")
+	e.mustDocker("run", "-d", "--name", "two", "--label", "project=p", "--label", "service=app", "alpine", "sleep", "60")
+	got := e.mustDocker("ps", "--filter", "label=project=p", "--filter", "label=service=db", "--format", "{{.Names}}")
+	if got != "one" {
+		t.Fatalf("filter returned %q, want one", got)
+	}
+	e.mustDocker("rm", "-f", "one", "two")
+}
+
+func TestStartReturnsOnceSiblingsResolve(t *testing.T) {
+	e := setup(t)
+	e.mustDocker("network", "create", "hosts-net")
+	e.mustDocker("run", "-d", "--name", "db", "--network", "hosts-net", "--network-alias", "database", "alpine", "sleep", "60")
+	e.mustDocker("run", "-d", "--name", "app", "--network", "hosts-net", "alpine", "sleep", "60")
+	id := strings.TrimSpace(e.mustDocker("inspect", "app", "--format", "{{.Id}}"))
+	applied, err := os.ReadFile(state.Dir(filepath.Join(e.stateDir, "containers", id)).HostsAppliedPath())
+	if err != nil {
+		t.Fatalf("hosts of app not confirmed when run returned: %v", err)
+	}
+	if !strings.Contains(string(applied), "database") {
+		t.Fatalf("hosts of app lack the alias of db:\n%s", applied)
+	}
+	e.mustDocker("rm", "-f", "app", "db")
+}

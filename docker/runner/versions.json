@@ -19,5 +19,19 @@
       "amd64": "0ab7a1d6932a213aed964ce97666c3077fe691c8606413674a8b3e0b9ec4cda0",
       "arm64": "898c0cff975f898a33e8c4580bdafb0e7c02c7faa33374e946762f97c4ab7110"
     }
+  },
+  "dockerCli": {
+    "version": "29.8.1",
+    "sha256": {
+      "amd64": "d8db66739d2e28d4933786d73e918d9be643a67fbd835db1bf740d650a259e70",
+      "arm64": "667395fbffab52901b80181dfbb39ea76da2fbd7642c4fbddd24e42146b07b48"
+    }
+  },
+  "dockerCompose": {
+    "version": "v5.5.1",
+    "sha256": {
+      "amd64": "db1889184726840f75c4f9c001048430d4f25b3be3cb084d3ddd762bc0aed576",
+      "arm64": "732e3a84c1a0f67256ce80bc2598a24546b10ca05f9faa97efceb1171ece2ef7"
+    }
   }
 }
