@@ -391,10 +391,12 @@ the flag and pulls every base image for the platform of the build.
   the registry of the user with cache tags. Every build starts from the base image.
 - **Memory depends on the image.** kaniko unpacks the base image and takes a snapshot of
   the file system after every `RUN`. The builder runs it with `--snapshot-mode=redo` and
-  `--compressed-caching=false`: the snapshot compares mtime, size and mode instead of
-  hashing every file. A build with a 1 GB base image and a large Python layer peaked at
-  6.1 GB with the defaults and at 1.7 GB with these flags. A file whose content changes
-  while mtime and size stay the same does not land in the layer. A builder that runs out
+  `--compressed-caching=false`. The snapshot compares mode, mtime, size and owner instead
+  of hashing every file, and no layer is held compressed in memory. A build with a 1 GB
+  base image and a large Python layer peaked at 6.1 GB with the defaults and at 1.7 GB
+  with these flags. A file whose content changes while all four stay the same does not
+  land in the layer, for example a file replaced by one of equal size that gets the old
+  mtime back through `touch -r`. A builder that runs out
   of memory is replaced mid build, and the runner reports
   `the build container was replaced before the build finished`.
 - **One build at a time per stack.** The builder claims one job, builds it and exits.

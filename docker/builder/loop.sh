@@ -199,9 +199,9 @@ build() {
             --ignore-path "${queue_dir}"
     fi
     # The default snapshot hashes every file of the root file system after each
-    # RUN step. With a large base image that pushed the builder above 6 GB and
-    # Container Hosting replaced the container mid build. redo compares mtime,
-    # size and mode instead and stays below 2 GB for the same build.
+    # RUN step. With a large base image the builder peaked above 6 GB, and
+    # Container Hosting replaced it mid build. redo compares mode, mtime, size
+    # and owner instead. The same build stays below 2 GB.
     set -- "$@" --dockerfile "${dockerfile}" \
         --destination "${destination}" \
         --custom-platform "${platform}" \
