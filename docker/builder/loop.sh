@@ -198,9 +198,15 @@ build() {
             --tarPath "${job}/image.tar" \
             --ignore-path "${queue_dir}"
     fi
+    # The default snapshot hashes every file of the root file system after each
+    # RUN step. With a large base image the builder peaked above 6 GB, and
+    # Container Hosting replaced it mid build. redo compares mode, mtime, size
+    # and owner instead. The same build stays below 2 GB.
     set -- "$@" --dockerfile "${dockerfile}" \
         --destination "${destination}" \
         --custom-platform "${platform}" \
+        --snapshot-mode=redo \
+        --compressed-caching=false \
         --no-push \
         --verbosity info
     if [ -n "${target}" ]; then

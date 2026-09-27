@@ -422,6 +422,47 @@ describe("image builds", () => {
         }
     }, 600_000);
 
+    // The builder snapshots with --snapshot-mode=redo, which compares metadata
+    // instead of content. Edits of files from the base image must still land in
+    // the layer: same size with a new mtime, a deletion, a new owner only.
+    it("keeps changes to base image files in the layer", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            await writeContext(
+                runner,
+                [
+                    "FROM alpine:3.20",
+                    "RUN sed -i 's/Alpine/ALPINE/' /etc/os-release && rm /etc/motd && chown 1234:1234 /etc/shells",
+                ].join("\n"),
+            );
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                `cd /home/runner/app && docker build --push -t ${registryHost}/redo:1 .`,
+            ]);
+            expect(build.exitCode).toBe(0);
+
+            const files = await runner.exec([
+                "bash",
+                "-c",
+                [
+                    `crane export ${registryHost}/redo:1 - --insecure > /tmp/redo.tar &&`,
+                    "tar -xOf /tmp/redo.tar etc/os-release | grep -c ALPINE;",
+                    "tar -tf /tmp/redo.tar etc/motd >/dev/null 2>&1 && echo present || echo absent;",
+                    "tar -tvf /tmp/redo.tar --numeric-owner etc/shells",
+                ].join(" "),
+            ]);
+            const [edited, deleted, owner] = files.output.trim().split("\n");
+            expect(Number(edited)).toBeGreaterThan(0);
+            expect(deleted).toBe("absent");
+            expect(owner).toContain("1234/1234");
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
+
     it("defines the platform arguments BuildKit predefines", async () => {
         const builder = await startBuilder();
         const runner = await startRunner();
