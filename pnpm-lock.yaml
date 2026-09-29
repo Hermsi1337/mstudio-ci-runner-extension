@@ -51,8 +51,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
       '@weissaufschwarz/mitthooks-drizzle':
-        specifier: ^0.1.0
-        version: 0.1.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(drizzle-orm@0.44.7(@opentelemetry/api@1.9.0)(@types/pg@8.23.1)(pg@8.23.0))(pg@8.23.0)
+        specifier: ^0.1.1
+        version: 0.1.1(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(drizzle-orm@0.44.7(@opentelemetry/api@1.9.0)(@types/pg@8.23.1)(pg@8.23.0))(pg@8.23.0)
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@opentelemetry/api@1.9.0)(@types/pg@8.23.1)(pg@8.23.0)
@@ -2271,14 +2271,17 @@ packages:
   '@vitest/spy@5.0.2':
     resolution: {integrity: sha512-Ijc7T1nT9efNb5LxvjaBrEqw3f/QwUv5EE0nKqZxgqsaV/FxAAZ8baGylA8X/Z2oS4Lp+K74Jr6dTJsDKxJDeg==}
 
-  '@weissaufschwarz/mitthooks-drizzle@0.1.0':
-    resolution: {integrity: sha512-YEXaMGW0jaQjckHvPTCUBrlM7gTynWNIKdkmWF0hRQ3oMreWkd5kY9mZV3AQTt7YNh1yKnoGe6iTCa1NGpNWSQ==}
+  '@weissaufschwarz/mitthooks-drizzle@0.1.1':
+    resolution: {integrity: sha512-bpFyLxLUoX/5MavkBsxnSIA62UssM7zf/puHu3S5SfWkhUyYCOAWTzjJBY9lgnx0t20Tj4ct37aCwBl1ptWspA==}
     peerDependencies:
       drizzle-orm: ^0.44.7
       pg: ^8.16.3
 
   '@weissaufschwarz/mitthooks@0.3.0':
     resolution: {integrity: sha512-+4wHGdYgAMeFpiPKZG/Ve8ghYOUl7EsxJCvTM60nNT86FI7/LL2PvizKDaBoQSWMx1vVv56JInk1fxmIeNW7mw==}
+
+  '@weissaufschwarz/mitthooks@0.3.1':
+    resolution: {integrity: sha512-Spb0PeH6vAlSoFwgcj6uJQRF7T+ypBarLuw2Xepl6KixUyfMXfZo+S4Byy/rDO9sWu70guSMooSdnUzI1grtpg==}
 
   '@zxcvbn-ts/core@4.2.0':
     resolution: {integrity: sha512-tuwzwOcYVca9MufHuUvzKGRyL04iP52OjCNoRDuGXjzzrtPiPcl8r5QtOotbx0AyTR/CMcDTU9qLkN16b9fXiw==}
@@ -6880,9 +6883,9 @@ snapshots:
 
   '@vitest/spy@5.0.2': {}
 
-  '@weissaufschwarz/mitthooks-drizzle@0.1.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(drizzle-orm@0.44.7(@opentelemetry/api@1.9.0)(@types/pg@8.23.1)(pg@8.23.0))(pg@8.23.0)':
+  '@weissaufschwarz/mitthooks-drizzle@0.1.1(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(drizzle-orm@0.44.7(@opentelemetry/api@1.9.0)(@types/pg@8.23.1)(pg@8.23.0))(pg@8.23.0)':
     dependencies:
-      '@weissaufschwarz/mitthooks': 0.3.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
+      '@weissaufschwarz/mitthooks': 0.3.1(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
       drizzle-orm: 0.44.7(@opentelemetry/api@1.9.0)(@types/pg@8.23.1)(pg@8.23.0)
       pg: 8.23.0
     transitivePeerDependencies:
@@ -6892,6 +6895,17 @@ snapshots:
       - supports-color
 
   '@weissaufschwarz/mitthooks@0.3.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))':
+    dependencies:
+      '@mittwald/api-client': 4.469.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
+      '@noble/ed25519': 2.3.0
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@jest/globals'
+      - '@mittwald/react-use-promise'
+      - debug
+      - supports-color
+
+  '@weissaufschwarz/mitthooks@0.3.1(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))':
     dependencies:
       '@mittwald/api-client': 4.469.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
       '@noble/ed25519': 2.3.0
