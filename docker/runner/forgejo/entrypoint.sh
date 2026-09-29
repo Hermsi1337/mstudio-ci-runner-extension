@@ -11,6 +11,11 @@
 #   RUNNER_LABELS         comma separated labels, each registered as <label>:host (default: mittwald)
 #   RUNNER_CAPACITY       jobs at once (default: 1)
 #   RUNNER_DATA_DIR       persistent state, the data volume (default: /home/runner/data)
+#   DOCKER_HOST           set by Docker in jobs; starts mstudio-port-forward, which makes ports
+#                         published by the docker service reachable on localhost
+#   MSTUDIO_WORK_ROOT     set by Docker in jobs: a directory of the project file system, mounted
+#                         at its own path; the work directory moves there, so containers of a
+#                         job can bind-mount the workspace
 set -euo pipefail
 
 : "${FORGEJO_INSTANCE_URL:?FORGEJO_INSTANCE_URL is required}"
@@ -21,6 +26,9 @@ RUNNER_LABELS="${RUNNER_LABELS:-mittwald}"
 RUNNER_CAPACITY="${RUNNER_CAPACITY:-1}"
 RUNNER_DATA_DIR="${RUNNER_DATA_DIR:-/home/runner/data}"
 RUNNER_WORK_DIR="${RUNNER_DATA_DIR}/work"
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" ]]; then
+    RUNNER_WORK_DIR="${MSTUDIO_WORK_ROOT}/work"
+fi
 CONFIG_DIR="${HOME}/.forgejo-runner"
 CONFIG="${CONFIG_DIR}/config.yml"
 
@@ -29,7 +37,17 @@ if [[ ! "${RUNNER_CAPACITY}" =~ ^[1-9][0-9]*$ ]]; then
     exit 1
 fi
 
+# The platform creates the mount point of the project file system as root.
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" && ! -w "${MSTUDIO_WORK_ROOT}" ]]; then
+    sudo -n install -d -o runner -g runner "${MSTUDIO_WORK_ROOT}"
+fi
 mkdir -p "${RUNNER_WORK_DIR}" "${CONFIG_DIR}"
+
+# forgejo-runner has no hook that runs before a job, so files that containers
+# of earlier jobs wrote as root are only taken back when the runner starts.
+if [[ -n "${MSTUDIO_WORK_ROOT:-}" ]]; then
+    reclaim-workspace.sh "${RUNNER_WORK_DIR}"
+fi
 
 # Forgejo matches runs-on against the label name; the part after the colon
 # picks the executor. Container Hosting has no container runtime, so every
@@ -67,6 +85,10 @@ fi
     mv "${CONFIG}.tmp" "${CONFIG}"
 )
 unset FORGEJO_RUNNER_TOKEN
+
+if [[ -n "${DOCKER_HOST:-}" ]]; then
+    mstudio-port-forward &
+fi
 
 echo "[entrypoint] starting ${RUNNER_NAME} for ${FORGEJO_INSTANCE_URL} (labels: $(jq -r 'join(",")' <<<"${labels_json}"), capacity: ${RUNNER_CAPACITY}, executor: host)"
 exec forgejo-runner daemon --config "${CONFIG}"
