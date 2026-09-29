@@ -338,13 +338,14 @@ arguments to the real docker CLI at `/usr/local/libexec/docker-cli/docker`
 | `container` (every subcommand), `network`, `volume`, `events` | real CLI | refused |
 | `compose` (every subcommand) | real CLI with the compose plugin | refused |
 | `inspect` | image store for a stored image, real CLI otherwise | image store |
-| `build`, `buildx`, `push`, `pull`, `images`, `tag`, `save`, `load`, `login`, `logout`, `manifest`, `version`, `info` | shim, as described above | shim |
+| `info` | real CLI | shim |
+| `build`, `buildx`, `push`, `pull`, `images`, `tag`, `save`, `load`, `login`, `logout`, `manifest`, `version` | shim, as described above | shim |
 
 Builds stay with the builder service because the Docker API builds no images. An image
 built with `docker build` is in the image store only, so push it and run it from the
 registry. After `run`, `create`, `start`, `restart`, `container run|create|start|restart` and
-`compose` the shim wakes `mstudio-port-forward`, which makes the ports the `docker` service
-published reachable on localhost ([runner-image.md](runner-image.md#docker-in-jobs)). The limits of the Docker API (no stdin, no TTY, no read-only mounts, bind
+`compose` the shim wakes `mstudio-port-forward` and returns once the ports the `docker` service
+published are reachable on localhost ([runner-image.md](runner-image.md#docker-in-jobs)). The limits of the Docker API (no stdin, no TTY, no read-only mounts, bind
 mounts on the project file system only) are in [docker-api.md](docker-api.md#limits).
 
 ## What it warns about
