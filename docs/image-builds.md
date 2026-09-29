@@ -312,7 +312,7 @@ times slower, so compile in a `$BUILDPLATFORM` stage where the toolchain can cro
 | `docker buildx` without a subcommand | prints its subcommands and exits 0, which is how `docker/build-push-action` probes for buildx |
 | `docker buildx use/stop/rm/prune/du`, `docker context use/create/rm` | does nothing and says so |
 | `docker builder` | the same as `docker buildx` |
-| `docker info` | one line about the shim, enough for the actions that print it |
+| `docker info` | with `DOCKER_HOST` set the real CLI, which reports the docker service. Without it one line about the shim, enough for the actions that print it |
 | `docker buildx imagetools inspect` | `crane manifest` |
 
 ### Why buildx 0.12.1

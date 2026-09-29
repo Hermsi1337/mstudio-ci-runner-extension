@@ -11,7 +11,8 @@
 #
 # Supported: build, buildx build, push, pull, tag, images, image
 # (ls/inspect/rm/push/pull/tag), inspect, save, load, login, logout, manifest
-# inspect, buildx imagetools inspect, version, info. The context and builder
+# inspect, buildx imagetools inspect, version, info. `docker info` goes to the
+# docker service when there is one. The context and builder
 # bookkeeping of the docker CLI is answered with a single fixed builder, which
 # is what `docker/setup-buildx-action` reads before it hands work to buildx.
 # `docker run` of a binfmt or qemu-user-static image, which
@@ -28,8 +29,8 @@
 # DOCKER_HOST these commands fail with a message.
 #
 # The docker service publishes container ports on itself. After a command that
-# can start containers, the shim wakes mstudio-port-forward, which makes those
-# ports reachable on localhost.
+# can start containers, the shim wakes mstudio-port-forward and returns once it
+# made those ports reachable on localhost.
 #
 # Not supported: system, commit, buildx bake.
 set -euo pipefail
@@ -54,6 +55,8 @@ BUILDER_NAME="mstudio-builder"
 BUILDX_VERSION="v0.12.1"
 DOCKER_VERSION="27.3.1"
 DOCKER_CLI="/usr/local/libexec/docker-cli/docker"
+PORT_FORWARD_ROUNDS="/tmp/mstudio-port-forward"
+PORT_FORWARD_TIMEOUT_SECONDS=15
 
 has_docker_service() {
     [[ -n "${DOCKER_HOST:-}" ]]
@@ -64,11 +67,25 @@ forward() {
     exec "${DOCKER_CLI}" "$@"
 }
 
+wait_for_port_forward() {
+    local started completed forwarder
+    started="$(cat "${PORT_FORWARD_ROUNDS}/started" 2>/dev/null)" || return 0
+    forwarder="$(cat "${PORT_FORWARD_ROUNDS}/pid" 2>/dev/null)" || return 0
+    kill -USR1 "${forwarder}" 2>/dev/null || return 0
+    local deadline=$((SECONDS + PORT_FORWARD_TIMEOUT_SECONDS))
+    while ((SECONDS < deadline)); do
+        completed="$(cat "${PORT_FORWARD_ROUNDS}/completed" 2>/dev/null)" || completed=0
+        ((completed > started)) && return 0
+        sleep 0.1
+    done
+    warn "published ports may not be reachable on localhost yet, mstudio-port-forward did not answer within ${PORT_FORWARD_TIMEOUT_SECONDS} seconds"
+}
+
 forward_and_publish_ports() {
     [[ -x "${DOCKER_CLI}" ]] || fail "the docker CLI is missing from this image"
     local status=0
     "${DOCKER_CLI}" "$@" || status=$?
-    pkill -USR1 -f '^bash /usr/local/bin/mstudio-port-forward$' 2>/dev/null || true
+    wait_for_port_forward
     exit "${status}"
 }
 
@@ -481,7 +498,12 @@ case "${command}" in
             echo " Builds run in the builder service of this stack (kaniko), registry access through crane"
         fi
         ;;
-    info) echo "mstudio-ci-runner docker shim: no daemon, no containers, images are built by the builder service of this stack" ;;
+    info)
+        if has_docker_service; then
+            forward info "$@"
+        fi
+        echo "mstudio-ci-runner docker shim: no daemon, no containers, images are built by the builder service of this stack"
+        ;;
     "" | -h | --help)
         sed -n '2,/^set -euo pipefail$/p' "$0" | sed -e '$d' -e 's/^# \{0,1\}//'
         ;;
