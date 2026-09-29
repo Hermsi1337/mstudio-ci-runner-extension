@@ -290,11 +290,15 @@ GitHub `container:` jobs work without translation.
   `.ci-work/<stack ID>/externals/<version>`, and the `docker` shim rewrites
   mounts of `/home/runner/externals` to that path.
 - GitLab: `builds_dir` is `.../<service>/builds`.
+- Forgejo: `host.workdir_parent` is `.../<service>/work`.
 - Containers often run as root, and the files they write into the workspace
   belong to root. Before every checkout `reclaim-workspace.sh` hands them back
   to the runner user: GitHub runs it as the job-started hook
   (`ACTIONS_RUNNER_HOOK_JOB_STARTED`, unless you set your own), GitLab as
-  `pre_get_sources_script`.
+  `pre_get_sources_script`. `forgejo-runner` has no such hook, so the Forgejo
+  entrypoint runs it once on every container start. Between restarts a Forgejo
+  job that meets root owned files takes them back itself with
+  `sudo chown -R runner: .`.
 - Turning Docker in jobs off moves the work directory back to the data
   volume. The directories under `.ci-work` stay on the project file system
   after a runner is deleted; remove them over SSH or SFTP.

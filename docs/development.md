@@ -44,6 +44,7 @@ Defined and validated in `src/env.ts`, template in `.env.example`.
 | `EXTENSION_VERSION` | Release of the extension, default the version in `package.json`; set by the image build |
 | `RUNNER_IMAGE_GITHUB` | Image for GitHub runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-github:<EXTENSION_VERSION>` |
 | `RUNNER_IMAGE_GITLAB` | Image for GitLab runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab:<EXTENSION_VERSION>` |
+| `RUNNER_IMAGE_FORGEJO` | Image for Forgejo runners, default `ghcr.io/hermsi1337/mstudio-ci-runner-forgejo:<EXTENSION_VERSION>` |
 | `BUILDER_IMAGE` | Image of the builder service, default `ghcr.io/hermsi1337/mstudio-ci-builder:<EXTENSION_VERSION>` ([image-builds.md](image-builds.md)) |
 | `DOCKER_API_IMAGE` | Image of the service `docker`, default `ghcr.io/hermsi1337/mstudio-ci-docker-api:<EXTENSION_VERSION>` ([docker-api.md](docker-api.md)) |
 | `PUBLIC_URL` | Public address of the extension, where the service `docker` of a stack fetches its tokens. No default; without it *Docker in jobs* is refused. Locally the zrok share URL |
@@ -83,7 +84,7 @@ edit an applied migration; a fresh database gets `0000_initial.sql`.
 | `test`, `test:integration`, `test:all` | Unit tests, Testcontainers tests, both ([testing.md](testing.md)) |
 | `db:start`, `db:stop` | Local PostgreSQL via `scripts/dev-db.sh` (`rm` also deletes the volume) |
 | `db:push`, `db:generate-migrations`, `db:migrate`, `db:studio` | Drizzle |
-| `runner:build` | Build both runner images, the builder image and the Docker API image locally via `scripts/build-runner-images.sh` ([runner-image.md](runner-image.md), [image-builds.md](image-builds.md), [docker-api.md](docker-api.md)) |
+| `runner:build` | Build all runner images, the builder image and the Docker API image locally via `scripts/build-runner-images.sh` ([runner-image.md](runner-image.md), [image-builds.md](image-builds.md), [docker-api.md](docker-api.md)) |
 | `docker-api:test` | `go test ./...` in `docker/docker-api` ([docker-api.md](docker-api.md#development-and-tests)) |
 | `image:build` | Build the extension image locally (`docker/extension/Dockerfile`) |
 | `init:encryption` | Generate encryption secrets into `.env` |
