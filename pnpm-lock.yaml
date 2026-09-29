@@ -9,20 +9,20 @@ importers:
   .:
     dependencies:
       '@mittwald/api-client':
-        specifier: ^4.469.0
-        version: 4.469.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
+        specifier: ^4.471.0
+        version: 4.471.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
       '@mittwald/ext-bridge':
-        specifier: 1.2.22
-        version: 1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: 1.2.28
+        version: 1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@mittwald/flow-react-components':
-        specifier: 1.2.22
-        version: 1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.28
+        version: 1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
       '@mittwald/flow-remote-react-components':
-        specifier: 1.2.22
-        version: 1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.28
+        version: 1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
       '@mittwald/mstudio-ext-react-components':
-        specifier: 1.2.22
-        version: 1.2.22(@mittwald/flow-remote-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)
+        specifier: 1.2.28
+        version: 1.2.28(@mittwald/flow-remote-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)
       '@mittwald/react-ghostmaker':
         specifier: ^1.5.4
         version: 1.5.4(@tanstack/react-query@5.103.2(react@19.3.0))(react@19.3.0)
@@ -310,8 +310,8 @@ packages:
   '@codemirror/lang-less@6.0.2':
     resolution: {integrity: sha512-EYdQTG22V+KUUk8Qq582g7FMnCZeEHsyuOJisHRft/mQ+ZSZ2w51NupvDUHiqtsOy7It5cHLPGfHQLpMh9bqpQ==}
 
-  '@codemirror/lang-liquid@6.3.2':
-    resolution: {integrity: sha512-6PDVU3ZnfeYyz1at1E/ttorErZvZFXXt1OPhtfe1EZJ2V2iDFa0CwPqPgG5F7NXN0yONGoBogKmFAafKTqlwIw==}
+  '@codemirror/lang-liquid@6.3.3':
+    resolution: {integrity: sha512-U9EnyzWuAx1TX3MZSKDXydKH734n1Aogk/ijKdW+jdIwmbf9zSPQYOIKggC/b2PTRjQb7ddvMktmxnfTLuv/SQ==}
 
   '@codemirror/lang-markdown@6.5.2':
     resolution: {integrity: sha512-AwBOdkWYuA//WcM0xO5PfHPUcmz/O2i5o0Nsg1U69SII/loCJlFI1Romd9xp2HYb1kYJRGZotyqRghuHH5n8Kw==}
@@ -1010,9 +1010,6 @@ packages:
   '@lezer/go@1.0.1':
     resolution: {integrity: sha512-xToRsYxwsgJNHTgNdStpcvmbVuKxTapV0dM0wey1geMMRc9aggoVyKgzYp41D2/vVOx+Ii4hmE206kvxIXBVXQ==}
 
-  '@lezer/highlight@1.2.4':
-    resolution: {integrity: sha512-4UeRVFO0lsBaM7GA32zOqbmqNPme9jedo8Ey+5c5656MU3MLitMLIA8aCZTYjUMEpEsuSeXEm78Uea6Iq3bvSg==}
-
   '@lezer/highlight@1.2.5':
     resolution: {integrity: sha512-O1GMVKgtf5YspFaRzpmqkVgMtIk2HG9uMAbH6wdAIdNh3TVzCsch/+cRi+6l2//UGDKe6NB9BW3cvuR5ezMQ0w==}
 
@@ -1062,8 +1059,8 @@ packages:
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
 
-  '@mittwald/api-client-commons@4.473.0':
-    resolution: {integrity: sha512-5WhjktMQ7OcTZUbMVWDCwJQ+M1Au9zQRpl8Z8FOdmVVV1c/Iyju3wRGyOA5XiFxdv3GGH4XOA8N/LfM0pgCQOw==}
+  '@mittwald/api-client-commons@4.475.0':
+    resolution: {integrity: sha512-D94gR4Yh2nDmgqwGcy9LcBGM9jIJMPFScHLfQZaJouSGzKgzlsgCfrPPslQd87+bbqjw4B4xW7qF0zKB+aBiTg==}
     peerDependencies:
       '@jest/globals': '*'
       '@mittwald/react-use-promise': ^2.6.0 || ^3.0.0 || ^4.0.0
@@ -1073,16 +1070,16 @@ packages:
       '@mittwald/react-use-promise':
         optional: true
 
-  '@mittwald/api-client@4.469.0':
-    resolution: {integrity: sha512-jBl+xNd9dvoXkx74p0Io4Q82+G8RGq+cVXAsVyeV+81vu9f60PPuxD6hSlUd6A+jPNkL61Hnt/NYHTJASgTcjQ==}
+  '@mittwald/api-client@4.471.0':
+    resolution: {integrity: sha512-KIx6mh7h6IYz3bonFIRPBp5D4EYCKbP3zbpUSmTSu0Bx76UggHDRYbB+pUYL8DT0wcKDKzdb9PqpYzpKzQqHsg==}
     peerDependencies:
       '@mittwald/react-use-promise': ^2.6.0 || ^3.0.0 || ^4.0.0
     peerDependenciesMeta:
       '@mittwald/react-use-promise':
         optional: true
 
-  '@mittwald/ext-bridge@1.2.22':
-    resolution: {integrity: sha512-PBvnSOqXQz+sII6gKyzjTtMgxSDJJTivrgXccf9Qdyu8crKR7iGURfKNjWTcn6100MOHeOfUfO4bu7cADGSUqw==}
+  '@mittwald/ext-bridge@1.2.28':
+    resolution: {integrity: sha512-5q5UGwvaA9aX7im86/KYRdWlgF0+IRgwkZyK0UHOJHGA5mKXjd1d8a71/DybjzTxM0RKRRIyq6jfWmtT9JpxfQ==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       i18next: ^26.0.0
@@ -1096,18 +1093,18 @@ packages:
       react-dom:
         optional: true
 
-  '@mittwald/flow-icons@1.2.28':
-    resolution: {integrity: sha512-NLldjOsXcNIq10fA4vuPkwafmBtAsw+VyKyLHI7FY6om8ghhQIwOOjPjtqeVAkH3ps2P9AncFafGjn6Z2uNOCw==}
+  '@mittwald/flow-icons@1.3.11':
+    resolution: {integrity: sha512-rec5r3HhXdSYhIv0K17iEG0qK+8ZL1BCUIJlogFggAGLM3XE7dJp5SlfTIskTlX9mDtDlgasul/9lOsNyNQx1g==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       react: ^19.2.0
 
-  '@mittwald/flow-react-components@1.2.22':
-    resolution: {integrity: sha512-q8nTNVK8k8QqIxy/0X4ZddhWpYpRSLDSj14rlaNFTyj3yd/STqo9A+bwrJ9Qg2j0434ma1JwRB+NjmXBHXPjSg==}
+  '@mittwald/flow-react-components@1.2.28':
+    resolution: {integrity: sha512-83/xfKqSTfrqN029tYsyeB8zyTCNckYhpCeSDCwfu8OSjet9+F+qaAS3HDTfgHJcWySQGYO+mVvfVyohPaz8qQ==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@internationalized/date': ^3.12.2
-      '@mittwald/flow-icons-pro': 1.2.22
+      '@mittwald/flow-icons-pro': 1.2.28
       '@mittwald/react-use-promise': ^4.2.2
       next: ^16.2.3
       react: ^19.2.0
@@ -1123,28 +1120,28 @@ packages:
       react-hook-form:
         optional: true
 
-  '@mittwald/flow-remote-core@1.2.22':
-    resolution: {integrity: sha512-VCJg16s0egtofARy1gA34cxcIZifuYh8xf53ia+DjCpyu+vIvuV1LaDdzMArsKanjBUE1fQJnjqUzLj3LbxUKQ==}
+  '@mittwald/flow-remote-core@1.2.28':
+    resolution: {integrity: sha512-uJhIU32zUdvnPZjI3caaLkiOjq95mM1PSz9ADkD2+fZ58UD3OUI2OL5Ul4oEuERcWn2J2ezMV/AtF7VS2E+I/A==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@mittwald/ext-bridge': 1.2.22
-      '@mittwald/flow-react-components': 1.2.22
+      '@mittwald/ext-bridge': 1.2.28
+      '@mittwald/flow-react-components': 1.2.28
     peerDependenciesMeta:
       '@mittwald/ext-bridge':
         optional: true
 
-  '@mittwald/flow-remote-elements@1.2.22':
-    resolution: {integrity: sha512-7L/JTyP+tK8lAWGpp1qE28XML5gHmVsWwt5rcRRP3/BTPJsTZdlNyo8y1juDH2V+ZGTyurMWNHf4l+5mblS7zA==}
+  '@mittwald/flow-remote-elements@1.2.28':
+    resolution: {integrity: sha512-1KlJYkMvKjZqT1pCThU1hM8BLDqGLM9rXVorZvsOG4VYmKdT7xFJLmgJ2zCeN0JieBYG4OywiRnqCb12JhwCTw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@mittwald/flow-react-components': 1.2.22
+      '@mittwald/flow-react-components': 1.2.28
 
-  '@mittwald/flow-remote-react-components@1.2.22':
-    resolution: {integrity: sha512-FdDqr+kNm7hjrliV9ozpdlRiI2FBzjXyDTgmr2z0UpZN0CBfK3Xv3PX6EEjb2WtYyNXTJvnBoNXCD/lNV3+EBw==}
+  '@mittwald/flow-remote-react-components@1.2.28':
+    resolution: {integrity: sha512-9qqPp3RcrKN8TdeNw+VYKLd3xVpQNWNyzpXGXMKoCLG3gfgzMNbGzp+nCj2tTOh0XJOQRG6flXLht17Ax4j7aw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@internationalized/date': ^3.12.2
-      '@mittwald/ext-bridge': 1.2.22
+      '@mittwald/ext-bridge': 1.2.28
       react: ^19.2.0
       react-hook-form: ^7.65.0
     peerDependenciesMeta:
@@ -1155,11 +1152,11 @@ packages:
       react-hook-form:
         optional: true
 
-  '@mittwald/mstudio-ext-react-components@1.2.22':
-    resolution: {integrity: sha512-kHeHnWlUrt6tT1I49M4m+XMsC1DwhEwd8mIx7lexvlL9buq/y1oWvUCzfgpnSKk0akSTuBrTrTx2GISAIuHilA==}
+  '@mittwald/mstudio-ext-react-components@1.2.28':
+    resolution: {integrity: sha512-vNLeLf808JYXXMyCcCns87XuqelM2jkBtFzEULge4j9VaTt77edc/rplGeZWkPhcIO3h8ebPhU/hU+JQFOFRMw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@mittwald/flow-remote-react-components': 1.2.22
+      '@mittwald/flow-remote-react-components': 1.2.28
       react: ^19.2.0
 
   '@mittwald/password-tools-js@3.0.0':
@@ -1177,8 +1174,8 @@ packages:
       polytype:
         optional: true
 
-  '@mittwald/react-tunnel@1.2.28':
-    resolution: {integrity: sha512-1tSumsPRtl9fPgVRj8Hd0WoZOpbtJgLBC/9LYGfvCf3/wzhV5EUzPF41c7RjBBGkSSzIphP2tGrLBirVM0dGLA==}
+  '@mittwald/react-tunnel@1.3.11':
+    resolution: {integrity: sha512-c+0Y1mc9udXqMQ1AQ6hcjQI/I1qn83Z7NXP4bmxJhO3Mu8LmeEi8AoXFwdRP0l/SSpZppWe8woHBy3FOENBgfw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       react: ^19.2.0
@@ -1631,8 +1628,8 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
-  '@reduxjs/toolkit@2.12.0':
-    resolution: {integrity: sha512-KiT+RzZbp6mQET+Mg+h2c97+9j1sNflUxQkIHI7Yuzf6Peu+OYpmkn6nbHWmLLWj+1ZODUJFwGZ7gx3L9R9EOw==}
+  '@reduxjs/toolkit@2.13.0':
+    resolution: {integrity: sha512-f6jwVRfwW30+tnllz4YcsHHpPYYOE7abcHkyUCovD+P7DyhdAI5prz2Fh/8TLhakjpN+7aIEion1s5L/tvlYlA==}
     peerDependencies:
       react: ^16.9.0 || ^17.0.0 || ^18 || ^19
       react-redux: ^7.2.1 || ^8.1.3 || ^9.0.0
@@ -2150,8 +2147,8 @@ packages:
   '@types/luxon@3.7.1':
     resolution: {integrity: sha512-H3iskjFIAn5SlJU7OuxUmTEpebK6TKB8rxZShDslBMZJ5u9S//KM1sbdAisiSrqwLQncVjnpi2OK2J51h+4lsg==}
 
-  '@types/luxon@3.7.5':
-    resolution: {integrity: sha512-jJ41Q4z6ZVO260MNDdHfW7+7a5iMiX8Mr6ZJHcmgrvhZha6dz5704o/lF2kKl6URjH6ivEL97w9xS/MgpJEphg==}
+  '@types/luxon@3.7.6':
+    resolution: {integrity: sha512-6KSjliQAXK8ZLgFQO4B7iE4Rpf/B3rItzCFuXezBY/XIAGxOdLd7vRNK9/StRPwiS/yJsVbB7HKpW46B8tcEuQ==}
 
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
@@ -4941,7 +4938,7 @@ snapshots:
       '@codemirror/state': 6.7.6
       '@codemirror/view': 6.43.13
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@codemirror/lang-json@6.0.2':
@@ -4954,10 +4951,10 @@ snapshots:
       '@codemirror/lang-css': 6.3.1
       '@codemirror/language': 6.12.4
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
-  '@codemirror/lang-liquid@6.3.2':
+  '@codemirror/lang-liquid@6.3.3':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/lang-html': 6.4.12
@@ -4965,7 +4962,7 @@ snapshots:
       '@codemirror/state': 6.7.6
       '@codemirror/view': 6.43.13
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@codemirror/lang-markdown@6.5.2':
@@ -5013,7 +5010,7 @@ snapshots:
       '@codemirror/language': 6.12.4
       '@codemirror/state': 6.7.6
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@codemirror/lang-vue@0.1.3':
@@ -5022,14 +5019,14 @@ snapshots:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/language': 6.12.4
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@codemirror/lang-wast@6.0.2':
     dependencies:
       '@codemirror/language': 6.12.4
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@codemirror/lang-xml@6.1.0':
@@ -5047,7 +5044,7 @@ snapshots:
       '@codemirror/language': 6.12.4
       '@codemirror/state': 6.7.6
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
       '@lezer/yaml': 1.0.4
 
@@ -5056,7 +5053,7 @@ snapshots:
       '@codemirror/state': 6.7.6
       '@codemirror/view': 6.43.13
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
       style-mod: 4.1.4
 
@@ -5561,24 +5558,20 @@ snapshots:
   '@lezer/cpp@1.1.6':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/css@1.3.8':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/go@1.0.1':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
-
-  '@lezer/highlight@1.2.4':
-    dependencies:
-      '@lezer/common': 1.5.3
 
   '@lezer/highlight@1.2.5':
     dependencies:
@@ -5587,25 +5580,25 @@ snapshots:
   '@lezer/html@1.3.13':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/java@1.1.4':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/javascript@1.5.5':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/json@1.0.3':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/lr@1.4.10':
@@ -5615,42 +5608,42 @@ snapshots:
   '@lezer/markdown@1.7.2':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
 
   '@lezer/php@1.0.6':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/python@1.1.19':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/rust@1.0.3':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/sass@1.1.0':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/xml@1.0.6':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lezer/yaml@1.0.4':
     dependencies:
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@lit-labs/ssr-dom-shim@1.6.0': {}
@@ -5659,7 +5652,7 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.4': {}
 
-  '@mittwald/api-client-commons@4.473.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))':
+  '@mittwald/api-client-commons@4.475.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))':
     dependencies:
       '@types/parse-path': 7.1.0
       axios: 1.20.0
@@ -5672,9 +5665,9 @@ snapshots:
       - debug
       - supports-color
 
-  '@mittwald/api-client@4.469.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))':
+  '@mittwald/api-client@4.471.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))':
     dependencies:
-      '@mittwald/api-client-commons': 4.473.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
+      '@mittwald/api-client-commons': 4.475.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
       browser-or-node: 3.0.0
     optionalDependencies:
       '@mittwald/react-use-promise': 4.2.3(axios@1.20.0)(react@19.3.0)
@@ -5683,7 +5676,7 @@ snapshots:
       - debug
       - supports-color
 
-  '@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@mittwald/react-use-promise': 4.2.3(axios@1.20.0)(react@19.3.0)
       axios: 1.20.0
@@ -5697,11 +5690,11 @@ snapshots:
       - debug
       - supports-color
 
-  '@mittwald/flow-icons@1.2.28(react@19.3.0)':
+  '@mittwald/flow-icons@1.3.11(react@19.3.0)':
     dependencies:
       react: 19.3.0
 
-  '@mittwald/flow-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)':
+  '@mittwald/flow-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)':
     dependencies:
       '@codemirror/language': 6.12.4
       '@codemirror/lint': 6.9.7
@@ -5712,10 +5705,10 @@ snapshots:
       '@internationalized/string': 3.2.10
       '@internationalized/string-compiler': 3.4.1
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
-      '@mittwald/flow-icons': 1.2.28(react@19.3.0)
+      '@lezer/highlight': 1.2.5
+      '@mittwald/flow-icons': 1.3.11(react@19.3.0)
       '@mittwald/password-tools-js': 3.0.0
-      '@mittwald/react-tunnel': 1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@mittwald/react-tunnel': 1.3.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@mittwald/react-use-promise': 4.2.3(axios@1.20.0)(react@19.3.0)
       '@react-aria/form': 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/i18n': 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -5726,11 +5719,11 @@ snapshots:
       '@replit/codemirror-indentation-markers': 6.5.3(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)
       '@tanstack/react-table': 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/invariant': 2.2.37
-      '@types/luxon': 3.7.5
+      '@types/luxon': 3.7.6
       '@types/prop-types': 15.7.15
       '@types/react': 19.3.0
       '@types/react-dom': 19.3.0(@types/react@19.3.0)
-      '@uiw/codemirror-extensions-langs': 4.25.12(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)
+      '@uiw/codemirror-extensions-langs': 4.25.12(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.5)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)
       '@uiw/codemirror-theme-github': 4.25.12(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)
       '@uiw/react-codemirror': 4.25.12(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.2)(@codemirror/state@6.7.6)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.13)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       clsx: 2.1.1
@@ -5782,11 +5775,11 @@ snapshots:
       - redux
       - supports-color
 
-  '@mittwald/flow-remote-core@1.2.22(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)':
+  '@mittwald/flow-remote-core@1.2.28(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)':
     dependencies:
       '@internationalized/date': 3.12.4
       '@lit-labs/ssr-dom-shim': 1.6.0
-      '@mittwald/flow-react-components': 1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
+      '@mittwald/flow-react-components': 1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
       '@mittwald/remote-dom-core': 1.7.0-mittwald.10(@preact/signals-core@1.14.4)
       '@quilted/threads': 3.3.1(@preact/signals-core@1.14.4)
       '@types/invariant': 2.2.37
@@ -5794,15 +5787,15 @@ snapshots:
       remeda: 2.50.0
       zod: 4.6.5
     optionalDependencies:
-      '@mittwald/ext-bridge': 1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@mittwald/ext-bridge': 1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     transitivePeerDependencies:
       - '@preact/signals-core'
       - preact
 
-  '@mittwald/flow-remote-elements@1.2.22(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)':
+  '@mittwald/flow-remote-elements@1.2.28(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)':
     dependencies:
-      '@mittwald/flow-react-components': 1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
-      '@mittwald/flow-remote-core': 1.2.22(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)
+      '@mittwald/flow-react-components': 1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
+      '@mittwald/flow-remote-core': 1.2.28(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)
       remeda: 2.50.0
       type-fest: 5.10.0
     transitivePeerDependencies:
@@ -5810,18 +5803,18 @@ snapshots:
       - '@preact/signals-core'
       - preact
 
-  '@mittwald/flow-remote-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)':
+  '@mittwald/flow-remote-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)':
     dependencies:
-      '@mittwald/flow-react-components': 1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
-      '@mittwald/flow-remote-core': 1.2.22(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)
-      '@mittwald/flow-remote-elements': 1.2.22(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)
+      '@mittwald/flow-react-components': 1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
+      '@mittwald/flow-remote-core': 1.2.28(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)
+      '@mittwald/flow-remote-elements': 1.2.28(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/flow-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(@preact/signals-core@1.14.4)
       '@mittwald/remote-dom-react': 1.2.2-mittwald.10(@preact/signals-core@1.14.4)(react@19.3.0)
       '@types/react': 19.3.0
       react: 19.3.0
       react-error-boundary: 6.1.6(@types/react@19.3.0)(react@19.3.0)
     optionalDependencies:
       '@internationalized/date': 3.12.4
-      '@mittwald/ext-bridge': 1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@mittwald/ext-bridge': 1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-hook-form: 7.88.0(react@19.3.0)
     transitivePeerDependencies:
       - '@babel/runtime'
@@ -5844,9 +5837,9 @@ snapshots:
       - redux
       - supports-color
 
-  '@mittwald/mstudio-ext-react-components@1.2.22(@mittwald/flow-remote-react-components@1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)':
+  '@mittwald/mstudio-ext-react-components@1.2.28(@mittwald/flow-remote-react-components@1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)':
     dependencies:
-      '@mittwald/flow-remote-react-components': 1.2.22(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
+      '@mittwald/flow-remote-react-components': 1.2.28(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)(@mittwald/ext-bridge@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))(@preact/signals-core@1.14.4)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.88.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1)
       '@types/react': 19.3.0
       react: 19.3.0
 
@@ -5873,7 +5866,7 @@ snapshots:
       react: 19.3.0
       type-fest: 5.9.0
 
-  '@mittwald/react-tunnel@1.2.28(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@mittwald/react-tunnel@1.3.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       mobx: 6.16.1
       mobx-react-lite: 4.1.1(mobx@6.16.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -6223,7 +6216,7 @@ snapshots:
     dependencies:
       react: 19.3.0
 
-  '@reduxjs/toolkit@2.12.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)':
+  '@reduxjs/toolkit@2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@standard-schema/utils': 0.3.0
@@ -6243,22 +6236,22 @@ snapshots:
       '@codemirror/state': 6.7.6
       '@codemirror/view': 6.43.13
 
-  '@replit/codemirror-lang-nix@6.0.1(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.4)(@lezer/lr@1.4.10)':
+  '@replit/codemirror-lang-nix@6.0.1(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.5)(@lezer/lr@1.4.10)':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/language': 6.12.4
       '@codemirror/state': 6.7.6
       '@codemirror/view': 6.43.13
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   '@replit/codemirror-lang-solidity@6.0.2(@codemirror/language@6.12.4)':
     dependencies:
       '@codemirror/language': 6.12.4
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
 
-  '@replit/codemirror-lang-svelte@6.0.0(@codemirror/autocomplete@6.20.3)(@codemirror/lang-css@6.3.1)(@codemirror/lang-html@6.4.12)(@codemirror/lang-javascript@6.2.5)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)':
+  '@replit/codemirror-lang-svelte@6.0.0(@codemirror/autocomplete@6.20.3)(@codemirror/lang-css@6.3.1)(@codemirror/lang-html@6.4.12)(@codemirror/lang-javascript@6.2.5)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.5)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/lang-css': 6.3.1
@@ -6268,7 +6261,7 @@ snapshots:
       '@codemirror/state': 6.7.6
       '@codemirror/view': 6.43.13
       '@lezer/common': 1.5.3
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/javascript': 1.5.5
       '@lezer/lr': 1.4.10
 
@@ -6727,7 +6720,7 @@ snapshots:
 
   '@types/luxon@3.7.1': {}
 
-  '@types/luxon@3.7.5': {}
+  '@types/luxon@3.7.6': {}
 
   '@types/mdast@4.0.4':
     dependencies:
@@ -6792,7 +6785,7 @@ snapshots:
       '@codemirror/state': 6.7.6
       '@codemirror/view': 6.43.13
 
-  '@uiw/codemirror-extensions-langs@4.25.12(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)':
+  '@uiw/codemirror-extensions-langs@4.25.12(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.5)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)':
     dependencies:
       '@codemirror/lang-cpp': 6.0.3
       '@codemirror/lang-css': 6.3.1
@@ -6803,7 +6796,7 @@ snapshots:
       '@codemirror/lang-jinja': 6.0.1
       '@codemirror/lang-json': 6.0.2
       '@codemirror/lang-less': 6.0.2
-      '@codemirror/lang-liquid': 6.3.2
+      '@codemirror/lang-liquid': 6.3.3
       '@codemirror/lang-markdown': 6.5.2
       '@codemirror/lang-php': 6.0.2
       '@codemirror/lang-python': 6.2.1
@@ -6816,9 +6809,9 @@ snapshots:
       '@codemirror/lang-yaml': 6.1.3
       '@codemirror/language': 6.12.4
       '@codemirror/legacy-modes': 6.5.4
-      '@replit/codemirror-lang-nix': 6.0.1(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.4)(@lezer/lr@1.4.10)
+      '@replit/codemirror-lang-nix': 6.0.1(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.5)(@lezer/lr@1.4.10)
       '@replit/codemirror-lang-solidity': 6.0.2(@codemirror/language@6.12.4)
-      '@replit/codemirror-lang-svelte': 6.0.0(@codemirror/autocomplete@6.20.3)(@codemirror/lang-css@6.3.1)(@codemirror/lang-html@6.4.12)(@codemirror/lang-javascript@6.2.5)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.4)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)
+      '@replit/codemirror-lang-svelte': 6.0.0(@codemirror/autocomplete@6.20.3)(@codemirror/lang-css@6.3.1)(@codemirror/lang-html@6.4.12)(@codemirror/lang-javascript@6.2.5)(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(@lezer/common@1.5.3)(@lezer/highlight@1.2.5)(@lezer/javascript@1.5.5)(@lezer/lr@1.4.10)
       codemirror-lang-mermaid: 0.5.0
     transitivePeerDependencies:
       - '@codemirror/autocomplete'
@@ -6832,7 +6825,7 @@ snapshots:
   '@uiw/codemirror-theme-github@4.25.12(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@uiw/codemirror-themes': 4.25.12(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)
     transitivePeerDependencies:
       - '@codemirror/language'
@@ -6893,7 +6886,7 @@ snapshots:
 
   '@weissaufschwarz/mitthooks@0.3.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))':
     dependencies:
-      '@mittwald/api-client': 4.469.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
+      '@mittwald/api-client': 4.471.0(@mittwald/react-use-promise@4.2.3(axios@1.20.0)(react@19.3.0))
       '@noble/ed25519': 2.3.0
       zod: 3.25.76
     transitivePeerDependencies:
@@ -7173,7 +7166,7 @@ snapshots:
   codemirror-lang-mermaid@0.5.0:
     dependencies:
       '@codemirror/language': 6.12.4
-      '@lezer/highlight': 1.2.4
+      '@lezer/highlight': 1.2.5
       '@lezer/lr': 1.4.10
 
   codemirror@6.0.2:
@@ -8846,7 +8839,7 @@ snapshots:
 
   recharts@3.7.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.1.0)(react@19.3.0)(redux@5.0.1):
     dependencies:
-      '@reduxjs/toolkit': 2.12.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)
+      '@reduxjs/toolkit': 2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)
       clsx: 2.1.1
       decimal.js-light: 2.5.1
       es-toolkit: 1.52.0
