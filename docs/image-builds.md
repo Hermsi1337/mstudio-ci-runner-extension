@@ -312,7 +312,7 @@ times slower, so compile in a `$BUILDPLATFORM` stage where the toolchain can cro
 | `docker buildx` without a subcommand | prints its subcommands and exits 0, which is how `docker/build-push-action` probes for buildx |
 | `docker buildx use/stop/rm/prune/du`, `docker context use/create/rm` | does nothing and says so |
 | `docker builder` | the same as `docker buildx` |
-| `docker info` | one line about the shim, enough for the actions that print it |
+| `docker info` | with `DOCKER_HOST` set the real CLI, which reports the docker service. Without it one line about the shim, enough for the actions that print it |
 | `docker buildx imagetools inspect` | `crane manifest` |
 
 ### Why buildx 0.12.1
@@ -338,13 +338,14 @@ arguments to the real docker CLI at `/usr/local/libexec/docker-cli/docker`
 | `container` (every subcommand), `network`, `volume`, `events` | real CLI | refused |
 | `compose` (every subcommand) | real CLI with the compose plugin | refused |
 | `inspect` | image store for a stored image, real CLI otherwise | image store |
-| `build`, `buildx`, `push`, `pull`, `images`, `tag`, `save`, `load`, `login`, `logout`, `manifest`, `version`, `info` | shim, as described above | shim |
+| `info` | real CLI | shim |
+| `build`, `buildx`, `push`, `pull`, `images`, `tag`, `save`, `load`, `login`, `logout`, `manifest`, `version` | shim, as described above | shim |
 
 Builds stay with the builder service because the Docker API builds no images. An image
 built with `docker build` is in the image store only, so push it and run it from the
 registry. After `run`, `create`, `start`, `restart`, `container run|create|start|restart` and
-`compose` the shim wakes `mstudio-port-forward`, which makes the ports the `docker` service
-published reachable on localhost ([runner-image.md](runner-image.md#docker-in-jobs)). The limits of the Docker API (no stdin, no TTY, no read-only mounts, bind
+`compose` the shim wakes `mstudio-port-forward` and returns once the ports the `docker` service
+published are reachable on localhost ([runner-image.md](runner-image.md#docker-in-jobs)). The limits of the Docker API (no stdin, no TTY, no read-only mounts, bind
 mounts on the project file system only) are in [docker-api.md](docker-api.md#limits).
 
 ## What it warns about

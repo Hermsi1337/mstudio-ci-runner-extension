@@ -171,8 +171,13 @@ the host `docker`. Jobs and GitHub `services:` expect it on localhost, so the en
 starts `mstudio-port-forward` in the background when `DOCKER_HOST` is set. Every second it
 lists the published ports with `docker ps` and keeps one `socat` per port that forwards
 `127.0.0.1:<port>` to `docker:<port>` (the host part of `DOCKER_HOST`). After `run`,
-`create`, `start`, `restart` and `compose` the shim wakes it with `SIGUSR1`, so a
-detached container is reachable on localhost as soon as the command returns. A port that
+`create`, `start`, `restart` and `compose` the shim wakes it with `SIGUSR1` and returns
+only after a full round that started after the command, so a detached container is
+reachable on localhost as soon as the command returns. The rounds are counted in
+`/tmp/mstudio-port-forward/started` and `completed`. When no round finishes within 15
+seconds, the shim prints a warning and returns anyway. Whether the service inside the
+container already accepts connections is up to the container, `docker run -d` does not
+wait for it. A port that
 disappears loses its forwarder. A port already taken on localhost is skipped with one line
 in the container log, the container stays reachable at `docker:<port>`. The forwarder
 logs to the container log with the prefix `[port-forward]`, only on changes. UDP ports are

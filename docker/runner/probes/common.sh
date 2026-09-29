@@ -54,6 +54,10 @@ expect_output "docker ps with DOCKER_HOST reaches the real CLI" "127.0.0.1:1" \
     bash -c "! DOCKER_HOST=tcp://127.0.0.1:1 docker ps 2>&1"
 expect_output "docker inspect with DOCKER_HOST forwards unknown references" "127.0.0.1:1" \
     bash -c "! DOCKER_HOST=tcp://127.0.0.1:1 docker inspect probe-container 2>&1"
+expect_output "docker info with DOCKER_HOST reaches the real CLI" "127.0.0.1:1" \
+    bash -c "! DOCKER_HOST=tcp://127.0.0.1:1 docker info 2>&1"
+expect_output "docker info without DOCKER_HOST describes the shim" "docker shim" \
+    bash -c "unset DOCKER_HOST; docker info"
 expect_output "docker build without a builder explains itself" "image builds are turned off" \
     bash -c "cd \$(mktemp -d) && echo FROM alpine > Dockerfile && docker build -t probe:local . 2>&1"
 

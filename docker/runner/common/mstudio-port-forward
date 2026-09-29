@@ -11,11 +11,20 @@
 # 127.0.0.1:<port> to <docker host>:<port>. Ports that disappear lose their
 # socat. A port already taken on localhost is skipped until it disappears.
 #
+# It writes its process id to pid, which the shim signals. Command
+# substitutions fork copies with the same command line, and those die on
+# SIGUSR1, so the shim must not match by name. Every round writes its number
+# to started before it lists the ports and to completed once the forwarders
+# run. The shim reads started after a command, wakes this daemon and waits
+# until completed passes that number, so a round that saw the new containers
+# has finished when `docker run -d` returns.
+#
 # The entrypoints start it when DOCKER_HOST is set. Without DOCKER_HOST it
 # exits right away.
 set -euo pipefail
 
 DOCKER_CLI="/usr/local/libexec/docker-cli/docker"
+ROUND_DIRECTORY="/tmp/mstudio-port-forward"
 
 log() {
     echo "[port-forward] $*" >&2
@@ -45,6 +54,13 @@ declare -A taken=()
 declare -A published=()
 listing_failed=false
 sleeper=""
+round=0
+
+record_round() {
+    local stage="$1"
+    printf '%s\n' "${round}" >"${ROUND_DIRECTORY}/${stage}.tmp"
+    mv -f "${ROUND_DIRECTORY}/${stage}.tmp" "${ROUND_DIRECTORY}/${stage}"
+}
 
 list_published_ports() {
     published=()
@@ -140,11 +156,20 @@ shutdown() {
 
 trap shutdown TERM INT
 # A trapped signal ends `wait` early, so SIGUSR1 starts the next round at once.
-trap ':' USR1
+# A signal that arrives during a round skips the pause after it.
+trap 'woken=true' USR1
 
+rm -rf "${ROUND_DIRECTORY}"
+mkdir -p "${ROUND_DIRECTORY}"
+echo "$$" >"${ROUND_DIRECTORY}/pid"
 log "forwarding ports published by ${docker_host} to localhost"
 while true; do
+    woken=false
+    round=$((round + 1))
+    record_round started
     sync_ports
+    record_round completed
+    [[ "${woken}" == false ]] || continue
     sleep 1 &
     sleeper=$!
     wait "${sleeper}" 2>/dev/null || true
