@@ -60,7 +60,7 @@ versions of the builder image from `docker/builder/versions.json`
 |---|---|---|
 | `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `docker/runner/github/` | must be **public**, mittwald pulls it without credentials |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `docker/runner/gitlab/` | must be **public** |
-| `ghcr.io/hermsi1337/mstudio-ci-runner-forgejo` | `docker/runner/forgejo/` | must be **public**; the package does not exist before the first release that builds it, set it to public after that release |
+| `ghcr.io/hermsi1337/mstudio-ci-runner-forgejo` | `docker/runner/forgejo/` | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-builder` | `docker/builder/` | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-docker-api` | `docker/docker-api/` ([docker-api.md](docker-api.md)) | must be **public** |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `docker/extension/Dockerfile`, build context is the repo root, ignore rules in `docker/extension/Dockerfile.dockerignore` | any |
