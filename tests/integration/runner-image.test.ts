@@ -49,6 +49,9 @@ const images: ImageCase[] = [
         versionCommand: ["cat", "/home/runner/bin/Runner.Listener.deps.json"],
         dataDirectories: ["config", "work"],
         entrypoint: ["/entrypoint.sh"],
+        probeEnvironment: {
+            EXPECTED_NODE_VERSION: runnerVersions.node.version,
+        },
         missingEnv: [
             {
                 name: "GITHUB_URL",

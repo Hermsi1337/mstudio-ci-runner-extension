@@ -60,10 +60,10 @@ for dir in "${MSTUDIO_WORK_ROOT:-}" "${MSTUDIO_EXTERNALS_ROOT:-}"; do
 done
 mkdir -p "${RUNNER_WORKDIR}" "${RUNNER_CONFIG_DIR}"
 
-# Externals are copied once per runner version; a copy that another runner of
-# the stack finished first wins.
+# Externals are copied once per runner and Node version; a copy that another
+# runner of the stack finished first wins.
 if [[ -n "${MSTUDIO_EXTERNALS_ROOT:-}" ]]; then
-    externals="${MSTUDIO_EXTERNALS_ROOT}/$(./config.sh --version)"
+    externals="${MSTUDIO_EXTERNALS_ROOT}/$(./config.sh --version)-node$(externals/node24/bin/node --version)"
     if [[ ! -f "${externals}/.complete" ]]; then
         echo "[entrypoint] copying externals to ${externals}"
         partial="${externals}.partial-$$"

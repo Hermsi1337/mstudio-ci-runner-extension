@@ -30,8 +30,8 @@ together with the SHA-256 checksums of the upstream binaries for amd64 and arm64
 the `crane` version the images ship for pushing built images, the docker CLI version
 under `dockerCli` (checksums of the `.tgz` archives), the docker compose plugin version
 under `dockerCompose` (checksums of the `docker-compose-linux-x86_64` and
-`docker-compose-linux-aarch64` binaries) and the Node version of the Forgejo image under
-`node`. CI builds amd64 only, the
+`docker-compose-linux-aarch64` binaries) and the Node version under `node`, used by the
+Forgejo image and for the bundled Node of the GitHub runner. CI builds amd64 only, the
 arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine:
 
 ```json
@@ -44,9 +44,9 @@ runner version (shown in the UI, `runnerVersion` on the provider). The Dockerfil
 `RUNNER_SHA256_ARM64`, `CRANE_VERSION`, `CRANE_SHA256_AMD64`, `CRANE_SHA256_ARM64`,
 `DOCKER_CLI_VERSION`, `DOCKER_CLI_SHA256_AMD64`, `DOCKER_CLI_SHA256_ARM64`,
 `DOCKER_COMPOSE_VERSION`, `DOCKER_COMPOSE_SHA256_AMD64` and `DOCKER_COMPOSE_SHA256_ARM64` as build args
-without defaults, the Forgejo image also `NODE_VERSION`, `NODE_SHA256_AMD64` and
-`NODE_SHA256_ARM64`. The workflow and `pnpm run runner:build` pass the Node args to every
-image; the GitHub and GitLab Dockerfiles ignore them. Every Dockerfile stops the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
+without defaults, the Forgejo and GitHub images also `NODE_VERSION`, `NODE_SHA256_AMD64`
+and `NODE_SHA256_ARM64`. The workflow and `pnpm run runner:build` pass the Node args to every
+image; the GitLab Dockerfile ignores them. Every Dockerfile stops the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
 
 The extension creates runners from `ghcr.io/hermsi1337/mstudio-ci-runner-<provider>:<EXTENSION_VERSION>`,
 the same release as the extension itself. A runner created by an older release shows an
@@ -73,6 +73,13 @@ The extension only uses `RUNNER_TOKEN`. `GITHUB_TOKEN` and `RUNNER_EPHEMERAL=tru
 in the image for hand-built stacks and for
 [issue #25](https://github.com/Hermsi1337/mstudio-ci-runner-extension/issues/25), but
 put a long-lived credential into a container where every job has sudo.
+
+**Node of JavaScript actions.** The runner bundles its own Node in `externals/` and ships
+Node security releases weeks late. The image replaces `externals/node24` with the Node
+from `versions.json` and points `externals/node20` at it, since Node 20 is end of life.
+The musl builds `node24_alpine` and `node20_alpine` for `container:` jobs stay as
+shipped. With Docker in jobs the entrypoint copies the externals once per runner and
+Node version, so a Node bump reaches `container:` jobs without a runner bump.
 
 | Variable | Meaning | Default |
 |---|---|---|
@@ -160,9 +167,9 @@ model as the other two images.
 | `RUNNER_CAPACITY` | Jobs at once (`runner.capacity`) | `1` |
 | `RUNNER_DATA_DIR` | Persistent state, mount point of the data volume | `/home/runner/data` |
 
-**Node.** This is the only image with Node. The host executor runs JavaScript actions
-such as `actions/checkout` with the `node` it finds in `PATH`; the GitHub runner ships
-its own and `gitlab-runner` needs none. Node comes from the official tarball of
+**Node.** The host executor runs JavaScript actions
+such as `actions/checkout` with the `node` it finds in `PATH`; `gitlab-runner` needs
+none. Node comes from the official tarball of
 nodejs.org into `/usr/local`, version and checksums from `node` in `versions.json`.
 `/usr/local/etc/npmrc` sets the global prefix to `/home/runner/.npm-global`, whose `bin`
 is in `PATH`, so `npm install -g` works as the runner user without sudo. A probe keeps
