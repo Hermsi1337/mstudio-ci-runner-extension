@@ -49,7 +49,7 @@ import {
     getProviderById,
     type RunnerProvider,
 } from "./providers/index.ts";
-import { resolveResources, resourceLimits } from "./resources.ts";
+import { resolveResources, resourceLimits, storedLimits } from "./resources.ts";
 import {
     declareService,
     deleteStackUpstream,
@@ -590,8 +590,7 @@ export async function createRunner(
         ephemeral: prepared.ephemeral,
         tokenType: input.tokenType ?? "registration",
         size: resources.size,
-        cpus: resources.size === "custom" ? resources.cpus : null,
-        memoryMb: resources.size === "custom" ? resources.memoryMb : null,
+        ...storedLimits(resources),
         image: prepared.image,
         runnerVersion: prepared.runnerVersion,
         cache,
@@ -819,10 +818,11 @@ export async function configureRunner(
         ? (input.concurrency ?? row.concurrency)
         : 1;
     const resources = resolveResources(input.size ? input : row);
+    const current = resolveResources(row);
     const resourcesChanged =
-        resources.size !== row.size ||
-        resources.cpus !== resolveResources(row).cpus ||
-        resources.memoryMb !== resolveResources(row).memoryMb;
+        resources.size !== current.size ||
+        resources.cpus !== current.cpus ||
+        resources.memoryMb !== current.memoryMb;
     addLogContext({ runnerId: row.id, stackId: row.stackId });
 
     let updatedService = service;
@@ -968,8 +968,7 @@ export async function configureRunner(
             dockerApi,
             concurrency,
             size: resources.size,
-            cpus: resources.size === "custom" ? resources.cpus : null,
-            memoryMb: resources.size === "custom" ? resources.memoryMb : null,
+            ...storedLimits(resources),
             serviceId: updatedService.id,
             cronjobIds: JSON.stringify(cronjobIds),
         })
