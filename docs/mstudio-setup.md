@@ -1,5 +1,9 @@
 # mStudio setup
 
+Register the extension in mStudio once, for production and for development. Read
+this when you set up your own installation or change scopes, anchors, webhooks or
+tokens.
+
 ## Becoming a contributor
 
 In mStudio under *Organization → Development*, express interest in contributing.

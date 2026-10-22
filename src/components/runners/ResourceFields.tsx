@@ -14,6 +14,7 @@ import type { RunnerSize } from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
 import {
     CPU_RANGE,
+    GIGABYTE_FORMAT,
     MEMORY_GB_RANGE,
     runnerSizes,
     toMemoryGb,
@@ -126,6 +127,7 @@ export function ResourceFields<T extends ResourceFormValues>({
                             minValue={MEMORY_GB_RANGE.min}
                             maxValue={MEMORY_GB_RANGE.max}
                             step={MEMORY_GB_RANGE.step}
+                            formatOptions={GIGABYTE_FORMAT}
                         >
                             <Label>
                                 {t("form.memory.label")}

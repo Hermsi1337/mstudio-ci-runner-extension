@@ -1,7 +1,8 @@
 # Generated code
 
 Principle: contracts live in specs, code is generated from them. Hand-written code is
-limited to domain logic and UI. Generated files are never edited by hand.
+limited to domain logic and UI. Generated files are never edited by hand. Read this
+before you change a spec in `openapi/` or anything under `src/generated/`.
 
 | Source | Generator | Output | Command |
 |---|---|---|---|

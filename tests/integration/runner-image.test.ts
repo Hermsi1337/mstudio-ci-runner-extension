@@ -140,10 +140,14 @@ const images: ImageCase[] = [
     },
 ];
 
+const IMAGE_BUILD_AND_START_TIMEOUT_MS = 600_000;
+
 describe.each(images)("runner image: $provider", (image) => {
     const tag = `mstudio-ci-runner-${image.provider}:test`;
 
-    it("builds and starts the registration flow", async () => {
+    it("builds and starts the registration flow", {
+        timeout: IMAGE_BUILD_AND_START_TIMEOUT_MS,
+    }, async () => {
         const built = await GenericContainer.fromDockerfile(
             "docker/runner",
             `${image.provider}/Dockerfile`,

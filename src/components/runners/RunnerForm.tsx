@@ -1,5 +1,7 @@
 import {
     AccentBox,
+    Accordion,
+    AccordionGroup,
     ActionGroup,
     Button,
     ColumnLayout,
@@ -20,7 +22,7 @@ import {
     typedField,
 } from "@mittwald/flow-remote-react-components/react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import type {
     CreateRunnerRequest,
@@ -59,6 +61,7 @@ const TOKEN_PATTERN = /^\s*[A-Za-z0-9]+\s*$/;
 const FORGEJO_LABEL_FORBIDDEN = /[:?]/;
 const UUID_PATTERN =
     /^\s*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s*$/i;
+const JOB_FEATURES_SECTION = "job-features";
 
 function isHttpsUrl(value: string): boolean {
     try {
@@ -189,6 +192,11 @@ export const RunnerForm = ({
     const instanceUrl = form.watch("instanceUrl");
     const stackId = form.watch("stackId");
     const selectedStack = stacks.find((stack) => stack.id === stackId);
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(
+        new Set(),
+    );
+    const cacheSizeInvalid = Boolean(form.formState.errors.cacheSizeGb);
+    const submitCount = form.formState.submitCount;
     const summaryTarget = (
         provider === "forgejo"
             ? instanceUrl.trim().replace(/\/+$/, "")
@@ -204,6 +212,14 @@ export const RunnerForm = ({
             form.setValue("name", suggestName(provider, parsed.target));
         }
     }, [provider, configCommand, form]);
+
+    useEffect(() => {
+        if (cacheSizeInvalid && submitCount > 0) {
+            setExpandedSections((expanded) =>
+                new Set(expanded).add(JOB_FEATURES_SECTION),
+            );
+        }
+    }, [cacheSizeInvalid, submitCount]);
 
     const [RootError, handleSubmit] = useFormErrorHandling(
         form,
@@ -540,7 +556,20 @@ export const RunnerForm = ({
                     </Section>
 
                     <Section>
-                        <JobFeatureFields form={form} />
+                        <AccordionGroup
+                            expandedKeys={expandedSections}
+                            onExpandedChange={setExpandedSections}
+                            separators={false}
+                        >
+                            <Accordion id={JOB_FEATURES_SECTION}>
+                                <Heading>
+                                    {t("form.section.featuresToggle")}
+                                </Heading>
+                                <Content>
+                                    <JobFeatureFields form={form} />
+                                </Content>
+                            </Accordion>
+                        </AccordionGroup>
                     </Section>
 
                     <RootError />

@@ -1,5 +1,10 @@
 # Architecture
 
+How the extension is put together: building blocks, the path of a runner from the
+form to a container, the data model, webhooks and security. Read this before you add
+a module or change how data flows. The directory layout is in
+[Project structure](#project-structure).
+
 ## Building blocks
 
 | Block | Technology | Location |
@@ -31,7 +36,9 @@ confirmation modals through overlay controllers. A row shows labels and switched
 job features; it expands into the remaining details. Flow's list switches from columns
 to stacked rows by container width, so no separate mobile layout exists. The create
 form and the settings modal share `ResourceFields.tsx` (size cards) and
-`JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards).
+`JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards). The
+create form keeps the job features in a collapsed `Accordion`, the settings modal in a
+tab.
 `src/repository.ts` holds the repository and docs URLs the UI links to.
 
 Release notes come from the GitHub API as GitHub-flavored Markdown.
@@ -263,3 +270,57 @@ into the browser and `new AsyncLocalStorage()` threw at load, so mStudio showed
 live in `src/middleware/error-body.ts`, and `scripts/check-client-bundle.sh`
 (`pnpm run check:bundle`, run by `ci.yml` after the build) greps the built assets for
 markers of server-only modules.
+
+## Project structure
+
+```
+config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts); scripts pass them via --config
+docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
+docker/builder/              image builder service: Dockerfile, loop.sh, sandbox.sh (emulated builds), kaniko and qemu versions, kaniko patches (build context is docker/builder)
+docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
+docker/runner/common/        scripts shared by all runner images (trim-cache.sh, reclaim-workspace.sh, docker-shim, mstudio-build and friends)
+docker/runner/probes/        probe suite run inside the built images by the integration tests
+docker/runner/versions.json  runner software version per provider plus the crane, docker CLI and Node versions, single source for workflow, build and UI
+docker/docker-api/           Docker API adapter for jobs, a Go module (build context is docker/docker-api)
+deploy/mstudio/stack.yaml    container stack of the hosted extension, applied by deploy.yml (dev and production)
+deploy/mstudio/extension.yaml  marketplace entry and fragment properties, applied by deploy.yml
+docs/                        documentation, one topic per file
+src/assets/                  logo (SVG inlined into the UI, PNG for the mStudio registration), fragment icon for the mStudio menu and README banner
+openapi/extension-api.yaml   extension API contract (source for codegen)
+openapi/upstream/            slimmed upstream specs (generated): codegen input and Prism mocks
+scripts/slim-openapi.ts      produces openapi/upstream
+scripts/sync-extension.ts    writes marketplace texts, logo and fragment properties into mStudio
+scripts/build-runner-images.sh  builds all runner images and the builder image locally
+scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
+scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
+scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) reached the browser bundle
+scripts/generate-encryption-secrets.js  prints values for ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
+src/generated/               generated types, zod schemas, GitLab client (do not edit)
+src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
+src/domain/project.ts        capabilities of the mStudio project (Container Hosting available?)
+src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
+src/domain/builder.ts        builder service of a stack: declare it, remove it once no runner builds images
+src/build-queue.ts           mount of the build queue shared by runners and builder (no server dependencies)
+src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
+src/domain/changelog.ts      GitHub releases for the changelog modal, cached in memory
+src/version-compare.ts       semver comparison for the update hint of the changelog
+src/release-notes.ts         cleans GitHub release notes for Flow's Markdown (comments, bare URLs)
+src/repository.ts            repository and docs URLs the UI links to
+src/domain/providers/        one module per CI provider, registry in index.ts
+src/serverFunctions/         TanStack server functions: validation and delegation only
+src/ghosts.ts                server-function clients bundled for the UI (react-ghostmaker)
+src/components/              Flow remote React components (UI inside mStudio)
+src/hooks/                   React hooks: useNotify (toasts), useFormErrorHandling (form-level errors)
+src/routes/                  TanStack Router routes (/ inside mStudio), webhook endpoint
+src/middleware/              session token verification, access token, error handling
+src/server/                  nitro plugin that runs database migrations on startup
+src/logger.ts                logger with scopes, LOG_LEVEL and LOG_FORMAT
+src/runner-sizes.ts          size presets and limits, shared by domain and UI
+src/mittwald/client.ts       factory for the mittwald API client (configurable base URL)
+src/db/                      Drizzle schema, pool, migration runner, generated migrations
+src/i18n/                    message catalogs (en, de), locale resolution, React hooks
+tests/integration/           Testcontainers tests
+tests/helpers/               container starters (PostgreSQL, Prism)
+.github/                     community files (CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, templates, dependabot, release notes)
+.github/workflows/           CI on push/PR, PR title check, image builds on tags only, deployment after image builds
+```

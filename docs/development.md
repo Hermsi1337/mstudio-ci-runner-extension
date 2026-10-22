@@ -1,5 +1,9 @@
 # Local development
 
+Run the extension on your machine against a local PostgreSQL. Start with
+[Start](#start); environment variables, migrations and scripts below are reference
+for when you change them.
+
 ## Prerequisites
 
 - Node 24 (runs `scripts/*.ts` directly), pnpm via `corepack enable`

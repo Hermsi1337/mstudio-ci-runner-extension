@@ -184,6 +184,7 @@ export const de: Messages = {
         "Startet die Container der Jobs als Container dieses Stacks. Ein zusätzlicher Container im Stack, gemeinsam genutzt, dazu einer für jeden Container, den ein Job startet.",
     "form.section.runner": "Runner",
     "form.section.features": "Funktionen für Jobs",
+    "form.section.featuresToggle": "Cache, Docker und Image-Builds",
     "form.section.resources": "Ressourcen",
     "form.configCommand.parsed": "Registriert bei {target}, Token {token}",
     "form.snippet.heading": "In der Pipeline nutzen",
@@ -263,7 +264,7 @@ export const de: Messages = {
     "form.cpus.range": "Gib einen Wert zwischen 0,25 und 8 an",
     "form.cpus.help":
         "Anteil an CPU-Kernen, den der Container nutzen darf. Ein Job mit npm oder Composer lastet eine CPU gut aus, Skripte und Deployments kommen mit weniger aus.",
-    "form.memory.label": "Speicherlimit (GB)",
+    "form.memory.label": "Speicherlimit",
     "form.memory.description": "0,5 bis 16 GB in Schritten von 0,5.",
     "form.memory.required": "Gib ein Speicherlimit an",
     "form.memory.range": "Gib einen Wert zwischen 0,5 und 16 an",
@@ -290,7 +291,7 @@ export const de: Messages = {
     "form.cache.label": "Paketmanager-Cache",
     "form.cache.description":
         "Behält Downloads von npm, pip, Composer und Go für spätere Jobs.",
-    "form.cacheSize.label": "Cache-Limit (GB)",
+    "form.cacheSize.label": "Cache-Limit",
     "form.cacheSize.description":
         "Ein stündlicher Cronjob im Projekt löscht die ältesten Dateien oberhalb dieses Limits.",
     "form.cacheSize.required": "Cache-Limit fehlt",

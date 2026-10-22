@@ -106,6 +106,8 @@ Continue with [docs/development.md](docs/development.md).
 | Generated code and specs | [docs/codegen.md](docs/codegen.md) |
 | Tests | [docs/testing.md](docs/testing.md) |
 | Runner images | [docs/runner-image.md](docs/runner-image.md) |
+| `docker build` in pipelines | [docs/image-builds.md](docs/image-builds.md) |
+| Docker API for jobs (`docker run`, Testcontainers) | [docs/docker-api.md](docs/docker-api.md) |
 | Releases, images, CI, deployment | [docs/operations.md](docs/operations.md) |
 | Languages (English, German) | [docs/i18n.md](docs/i18n.md) |
 | UI style guide | [docs/styleguide.md](docs/styleguide.md) |

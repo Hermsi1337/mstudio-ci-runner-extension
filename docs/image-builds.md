@@ -4,7 +4,8 @@ Pipelines that call `docker build` work on these runners, without a Docker daemo
 without privileges. The build runs in a second container of the same stack, the builder
 service, which executes [kaniko](https://github.com/chainguard-forks/kaniko). The runner
 sends the build context, receives the finished image as a tarball and pushes it with
-[crane](https://github.com/google/go-containerregistry).
+[crane](https://github.com/google/go-containerregistry). Read this when a build fails
+in a pipeline or you change the builder, the docker shim or the build queue.
 
 ## Why it looks like this
 

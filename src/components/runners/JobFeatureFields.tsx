@@ -11,6 +11,7 @@ import { typedField } from "@mittwald/flow-remote-react-components/react-hook-fo
 import type { Path, PathValue, UseFormReturn } from "react-hook-form";
 import { useTranslation } from "@/i18n/react.tsx";
 import { DOCS_URL } from "@/repository.ts";
+import { GIGABYTE_FORMAT } from "@/runner-sizes.ts";
 import { FieldHelp } from "./FieldHelp.tsx";
 
 export interface JobFeatureFormValues {
@@ -93,7 +94,12 @@ export function JobFeatureFields<T extends JobFeatureFormValues>({
                         },
                     }}
                 >
-                    <NumberField minValue={1} maxValue={500} step={1}>
+                    <NumberField
+                        minValue={1}
+                        maxValue={500}
+                        step={1}
+                        formatOptions={GIGABYTE_FORMAT}
+                    >
                         <Label>
                             {t("form.cacheSize.label")}
                             <FieldHelp
