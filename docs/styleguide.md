@@ -207,3 +207,4 @@ replacing the older shot of the same state. The pull request links them.
 |---|---|
 | `create-form-collapsed-<width>.png` | Create form, job features collapsed |
 | `create-form-expanded-1440.png` | Create form, job features open, cache on |
+| `create-form-no-limits-<width>.png` | Create form, custom size without CPU and memory limit, memory warning |
