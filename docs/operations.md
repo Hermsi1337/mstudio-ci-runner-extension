@@ -1,5 +1,9 @@
 # Operations
 
+How a release becomes images and a running extension: git tags, GHCR, CI workflows
+and the deployment to Container Hosting. Read this before you tag a release or touch
+`.github/workflows/` or `deploy/mstudio/`.
+
 ## Release flow
 
 Images are built from git tags only, never from pushes to `main`. `main` is verified

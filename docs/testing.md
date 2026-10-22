@@ -1,5 +1,8 @@
 # Tests
 
+Unit tests run with `pnpm run test`, integration tests start their own containers
+with `pnpm run test:integration`. Read on when you add a test or a container.
+
 ## Setup
 
 Vitest with two projects (`config/vitest.config.ts`):

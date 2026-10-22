@@ -22,6 +22,11 @@ alike and come before personal taste. Writing style for texts is in
 5. **Every state is designed.** Empty, loading, error and success have their own
    element: `IllustratedMessage` for empty and error, `SkeletonText` for loading,
    `Notification` for success and failure of an action.
+6. **Details on demand.** A screen shows what most users need to finish their task.
+   Optional settings, background and rare actions are one step away: an `Accordion`,
+   a `Tab`, a `FieldHelp`, a `ContextMenu` entry or a modal. Required and optional
+   fields never stand side by side with equal weight. This is the UI side of
+   ground rule 13 in [AGENTS.md](../AGENTS.md).
 
 ## Page structure
 
@@ -117,6 +122,13 @@ had slipped out of the layout.
 - The create form and the settings modal share their field components
   (`ResourceFields.tsx`, `JobFeatureFields.tsx`), so both show the same groups in the
   same order.
+- Optional groups sit one step away. In the create form the job features live in a
+  collapsed `Accordion` whose `Heading` names what is inside ("Cache, Docker and
+  image builds"); the summary column still shows what is switched on. The settings
+  modal gives them their own `Tab`. Flow's `Accordion` hides the panel without
+  unmounting it, so react-hook-form keeps the values.
+- Units Intl knows go into `formatOptions` of the `NumberField`
+  (`{ style: "unit", unit: "gigabyte" }`), not into the label.
 
 ## Lists
 
