@@ -193,4 +193,12 @@ had slipped out of the layout.
 ## Checking a change
 
 Take screenshots at 1440, 1024, 768 and 414 px inside mStudio through
-`pnpm run dev:expose` ([development.md](development.md)).
+`pnpm run dev:expose` ([development.md](development.md)) or a pre-release in the
+development installation ([operations.md](operations.md#pre-releases)). Dark theme,
+one PNG per state and width in `docs/screenshots/` (`<screen>-<state>-<width>.png`),
+replacing the older shot of the same state. The pull request links them.
+
+| File | State |
+|---|---|
+| `create-form-collapsed-<width>.png` | Create form, job features collapsed |
+| `create-form-expanded-1440.png` | Create form, job features open, cache on |
