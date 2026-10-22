@@ -25,7 +25,7 @@ import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
-import { toMemoryGb, toMemoryMb } from "@/runner-sizes.ts";
+import { runnerSizes, toMemoryGb } from "@/runner-sizes.ts";
 import {
     ConcurrencyField,
     type ConcurrencyFormValues,
@@ -35,7 +35,11 @@ import {
     JobFeatureFields,
     type JobFeatureFormValues,
 } from "./JobFeatureFields.tsx";
-import { ResourceFields, type ResourceFormValues } from "./ResourceFields.tsx";
+import {
+    ResourceFields,
+    type ResourceFormValues,
+    toResourceRequest,
+} from "./ResourceFields.tsx";
 
 type FormValues = JobFeatureFormValues &
     ConcurrencyFormValues &
@@ -69,8 +73,12 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
             dockerApi: runner.dockerApi,
             concurrency: runner.concurrency,
             size: runner.size,
-            cpus: runner.cpus,
-            memoryGb: toMemoryGb(runner.memoryMb),
+            cpus: runner.cpus ?? runnerSizes.medium.cpus,
+            noCpuLimit: runner.cpus === null,
+            memoryGb: toMemoryGb(
+                runner.memoryMb ?? runnerSizes.medium.memoryMb,
+            ),
+            noMemoryLimit: runner.memoryMb === null,
         },
     });
     const [RootError, handleSubmit] = useFormErrorHandling(
@@ -84,12 +92,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                     imageBuilds: values.imageBuilds,
                     dockerApi: values.dockerApi,
                     concurrency: values.concurrency,
-                    size: values.size,
-                    cpus: values.size === "custom" ? values.cpus : undefined,
-                    memoryMb:
-                        values.size === "custom"
-                            ? toMemoryMb(values.memoryGb)
-                            : undefined,
+                    ...toResourceRequest(values),
                 },
             });
             RunnerClientGhost.listRunners().invalidate(queryClient);

@@ -1,4 +1,5 @@
 import type { RunnerSize } from "@/generated/extension-api";
+import type { Translate } from "@/i18n/index.ts";
 
 /**
  * Limits of the size presets. Shared by the domain (stack declaration) and the
@@ -23,4 +24,24 @@ export function toMemoryMb(memoryGb: number): number {
 
 export function toMemoryGb(memoryMb: number): number {
     return memoryMb / 1024;
+}
+
+/**
+ * A custom runner may lack either limit; the phrase names the missing one
+ * instead of a number.
+ */
+export function formatLimits(
+    t: Translate,
+    key: "form.size.limits" | "form.summary.service.text",
+    { cpus, memoryGb }: { cpus: number | null; memoryGb: number | null },
+): string {
+    if (cpus === null) {
+        return memoryGb === null
+            ? t(`${key}.none`)
+            : t(`${key}.noCpu`, { memory: memoryGb });
+    }
+    if (memoryGb === null) {
+        return t(`${key}.noMemory`, { cpus });
+    }
+    return t(key, { cpus, memory: memoryGb });
 }
