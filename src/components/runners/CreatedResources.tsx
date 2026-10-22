@@ -13,7 +13,8 @@ import {
 import type { ReactNode } from "react";
 import type { Provider, RunnerSize } from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
-import { formatLimits, runnerSizes, toMemoryGb } from "@/runner-sizes.ts";
+import { runnerSizes, toMemoryGb } from "@/runner-sizes.ts";
+import { formatLimits } from "./format-limits.ts";
 
 interface CreatedResourcesProps {
     provider: Provider;

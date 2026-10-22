@@ -163,11 +163,11 @@ export const de: Messages = {
         "Der Runner läuft in diesem Stack und erreicht dessen Services über ihren Namen. Beim Löschen des Runners bleibt der Stack bestehen.",
     "form.summary.service.label": "Container: {service}",
     "form.summary.service.text": "Begrenzt auf {cpus} CPU und {memory} GB RAM.",
-    "form.summary.service.text.noCpu":
+    "form.summary.service.text.noCpuLimit":
         "Begrenzt auf {memory} GB RAM, ohne CPU-Limit.",
-    "form.summary.service.text.noMemory":
+    "form.summary.service.text.noMemoryLimit":
         "Begrenzt auf {cpus} CPU, ohne Speicherlimit.",
-    "form.summary.service.text.none": "Ohne CPU- und Speicherlimit.",
+    "form.summary.service.text.noLimit": "Ohne CPU- und Speicherlimit.",
     "form.summary.dataVolume.label": "Volume: {service}-data",
     "form.summary.dataVolume.text.github":
         "Runner-Registrierung und Arbeitsverzeichnis: Checkouts, geladene Actions, Tool-Cache der setup-Actions.",
@@ -262,9 +262,9 @@ export const de: Messages = {
     "form.size.large": "Groß",
     "form.size.custom": "Individuell",
     "form.size.limits": "{cpus} CPU, {memory} GB RAM",
-    "form.size.limits.noCpu": "kein CPU-Limit, {memory} GB RAM",
-    "form.size.limits.noMemory": "{cpus} CPU, kein Speicherlimit",
-    "form.size.limits.none": "keine Limits",
+    "form.size.limits.noCpuLimit": "kein CPU-Limit, {memory} GB RAM",
+    "form.size.limits.noMemoryLimit": "{cpus} CPU, kein Speicherlimit",
+    "form.size.limits.noLimit": "keine Limits",
     "form.size.custom.text": "CPU und RAM legst du fest",
     "form.cpus.label": "CPU-Limit",
     "form.cpus.description": "0,25 bis 8 CPUs in Schritten von 0,25.",
@@ -272,17 +272,17 @@ export const de: Messages = {
     "form.cpus.range": "Gib einen Wert zwischen 0,25 und 8 an",
     "form.cpus.help":
         "Anteil an CPU-Kernen, den der Container nutzen darf. Ein Job mit npm oder Composer lastet eine CPU gut aus, Skripte und Deployments kommen mit weniger aus.",
-    "form.cpus.unlimited": "Kein CPU-Limit",
+    "form.cpus.noLimit": "Kein CPU-Limit",
     "form.memory.label": "Speicherlimit",
     "form.memory.description": "0,5 bis 16 GB in Schritten von 0,5.",
     "form.memory.required": "Gib ein Speicherlimit an",
     "form.memory.range": "Gib einen Wert zwischen 0,5 und 16 an",
     "form.memory.help":
         "Arbeitsspeicher, den der Container nutzen darf. Ein Job, der mehr braucht, wird beendet. Rechne mit etwa 1 GB pro Job, mehr für Testsuiten mit Browser oder Datenbank.",
-    "form.memory.unlimited": "Kein Speicherlimit",
-    "form.memory.warning.heading":
+    "form.memory.noLimit": "Kein Speicherlimit",
+    "form.memory.noLimit.warning.heading":
         "Unbegrenzter Speicher betrifft das ganze Projekt",
-    "form.memory.warning.text":
+    "form.memory.noLimit.warning.text":
         "Der Runner kann allen anderen Containern dieses Projekts Speicher wegnehmen, und wird der Speicher knapp, stoppt die Plattform Container. Leg ein Speicherlimit fest, wenn weitere Apps in diesem Projekt laufen.",
 
     "help.open": "Hilfe zu {subject}",

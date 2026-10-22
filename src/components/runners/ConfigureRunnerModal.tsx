@@ -25,7 +25,6 @@ import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
-import { runnerSizes, toMemoryGb } from "@/runner-sizes.ts";
 import {
     ConcurrencyField,
     type ConcurrencyFormValues,
@@ -35,11 +34,12 @@ import {
     JobFeatureFields,
     type JobFeatureFormValues,
 } from "./JobFeatureFields.tsx";
+import { ResourceFields } from "./ResourceFields.tsx";
 import {
-    ResourceFields,
     type ResourceFormValues,
+    toResourceFormValues,
     toResourceRequest,
-} from "./ResourceFields.tsx";
+} from "./resource-request.ts";
 
 type FormValues = JobFeatureFormValues &
     ConcurrencyFormValues &
@@ -72,13 +72,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
             imageBuilds: runner.imageBuilds,
             dockerApi: runner.dockerApi,
             concurrency: runner.concurrency,
-            size: runner.size,
-            cpus: runner.cpus ?? runnerSizes.medium.cpus,
-            noCpuLimit: runner.cpus === null,
-            memoryGb: toMemoryGb(
-                runner.memoryMb ?? runnerSizes.medium.memoryMb,
-            ),
-            noMemoryLimit: runner.memoryMb === null,
+            ...toResourceFormValues(runner),
         },
     });
     const [RootError, handleSubmit] = useFormErrorHandling(
