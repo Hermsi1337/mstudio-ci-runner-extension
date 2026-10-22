@@ -29,7 +29,7 @@ and reaches your databases and apps in the same project without a tunnel.
 |---|---|
 | **Three CI systems** | GitHub Actions (repository or organization), GitLab CI (project, group or instance) and Forgejo Actions (repository, organization, user or instance) |
 | **Registration from the setup command** | Paste the `config.sh` or `gitlab-runner register` line from the CI system, or UUID and token of a Forgejo runner. No personal access token is needed |
-| **Sizes and custom limits** | Small, medium, large, or your own CPU and memory limits |
+| **Sizes and custom limits** | Small, medium, large, or your own CPU and memory limits. Either limit can stay open |
 | **Persistent package cache** | Optional volume for npm, pnpm, yarn, pip, Composer and Go with an hourly size trim |
 | **Parallel jobs** | GitLab and Forgejo runners take several jobs at once, sized to the container |
 | **Lifecycle from mStudio** | Logs, restart, settings, update to the runner image of the running extension with the changes listed, delete, all from the extension page |
@@ -49,7 +49,7 @@ flowchart LR
 
 Runners of one repository, organization, GitLab or Forgejo instance share a container stack
 in the project. Every runner is a service in it with the CPU and memory limits of its
-size, a volume for its registration and work directory, and optionally a cache volume
+size (none for a limit that a custom size leaves open), a volume for its registration and work directory, and optionally a cache volume
 plus a cronjob that keeps it below its limit. Deleting a runner removes its service
 and volumes, the last one takes the stack with it, and where a token allows it, the
 registration.

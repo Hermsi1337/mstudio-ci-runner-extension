@@ -26,6 +26,7 @@ import type { Provider, Runner, RunnerStatus } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
 import { toMemoryGb } from "@/runner-sizes.ts";
+import { formatLimits } from "./format-limits.ts";
 import { RunnerActions } from "./RunnerActions.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 
@@ -95,9 +96,10 @@ function useSizeSummary(runner: Runner): string {
     const t = useTranslation();
     const parts = [
         t(`form.size.${runner.size}`),
-        t("form.size.limits", {
+        formatLimits(t, "form.size.limits", {
             cpus: runner.cpus,
-            memory: toMemoryGb(runner.memoryMb),
+            memoryGb:
+                runner.memoryMb === null ? null : toMemoryGb(runner.memoryMb),
         }),
     ];
     if (runner.concurrency > 1) {

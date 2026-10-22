@@ -21,7 +21,7 @@ export const zProvider = z.enum([
 ]);
 
 /**
- * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
+ * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`, a null or missing value there means no limit.
  */
 export const zRunnerSize = z.enum([
     'small',
@@ -31,14 +31,14 @@ export const zRunnerSize = z.enum([
 ]);
 
 /**
- * CPU limit of the runner container. Only used with size custom.
+ * CPU limit of the runner container. Only used with size custom, null means no CPU limit.
  */
-export const zCpus = z.number().gte(0.25).lte(8);
+export const zCpus = z.number().gte(0.25).lte(8).nullable();
 
 /**
- * Memory limit of the runner container in MB. Only used with size custom.
+ * Memory limit of the runner container in MB. Only used with size custom, null means no memory limit.
  */
-export const zMemoryMb = z.int().gte(512).lte(16384);
+export const zMemoryMb = z.int().gte(512).lte(16384).nullable();
 
 /**
  * How the runner authenticated at creation. Decides whether the extension can remove the
@@ -175,8 +175,8 @@ export const zRunner = z.object({
     ephemeral: z.boolean(),
     tokenType: zTokenType,
     size: zRunnerSize,
-    cpus: z.number(),
-    memoryMb: z.int(),
+    cpus: z.number().nullable(),
+    memoryMb: z.int().nullable(),
     cache: z.boolean(),
     cacheSizeGb: z.int(),
     imageBuilds: z.boolean(),

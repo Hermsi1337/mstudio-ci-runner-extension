@@ -105,6 +105,11 @@ had slipped out of the layout.
   masked (`ParsedCommand.tsx`).
 - Presets come with an explicit "custom" option when the underlying value is a
   number the user may reasonably want to set.
+- A limit the user may leave open gets a `Checkbox` under its `NumberField` that
+  names the limit ("No memory limit"). Checked, the field disappears and the form
+  sends null for that value. A choice that can hurt other apps in the project shows an
+  `Alert status="warning"` in the same group with what happens and what to do
+  (unlimited memory in `ResourceFields.tsx`).
 - Choices whose consequence matters are cards: `RadioGroup` with `RadioButton`s for
   one of a few presets (size), `CheckboxGroup` with `CheckboxButton`s for options
   saved with the form (job features). Each card has a `Text` as title and a `Content`
@@ -202,3 +207,4 @@ replacing the older shot of the same state. The pull request links them.
 |---|---|
 | `create-form-collapsed-<width>.png` | Create form, job features collapsed |
 | `create-form-expanded-1440.png` | Create form, job features open, cache on |
+| `create-form-no-limits-<width>.png` | Create form, custom size without CPU and memory limit, memory warning |

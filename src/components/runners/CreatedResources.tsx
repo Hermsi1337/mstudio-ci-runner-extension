@@ -14,14 +14,15 @@ import type { ReactNode } from "react";
 import type { Provider, RunnerSize } from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
 import { runnerSizes, toMemoryGb } from "@/runner-sizes.ts";
+import { formatLimits } from "./format-limits.ts";
 
 interface CreatedResourcesProps {
     provider: Provider;
     name: string;
     target: string;
     size: RunnerSize;
-    cpus: number;
-    memoryGb: number;
+    cpus: number | null;
+    memoryGb: number | null;
     cache: boolean;
     cacheSizeGb: number;
     imageBuilds: boolean;
@@ -84,10 +85,7 @@ export const CreatedResources = ({
             key: "service",
             icon: <IconContainer />,
             label: t("form.summary.service.label", { service: serviceName }),
-            text: t("form.summary.service.text", {
-                cpus: limits.cpus,
-                memory: limits.memoryGb,
-            }),
+            text: formatLimits(t, "form.summary.service.text", limits),
         },
         {
             key: "data",

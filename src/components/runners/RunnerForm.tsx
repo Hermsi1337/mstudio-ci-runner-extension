@@ -24,16 +24,11 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import type {
-    CreateRunnerRequest,
-    Provider,
-    RunnerSize,
-} from "@/generated/extension-api";
+import type { CreateRunnerRequest, Provider } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useFormErrorHandling } from "@/hooks/useFormErrorHandling.tsx";
 import { useNotify } from "@/hooks/useNotify.tsx";
 import { useTranslation } from "@/i18n/react.tsx";
-import { toMemoryMb } from "@/runner-sizes.ts";
 import { ConcurrencyField, concurrentProviders } from "./ConcurrencyField.tsx";
 import { CreatedResources } from "./CreatedResources.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
@@ -42,6 +37,10 @@ import { ParsedCommand } from "./ParsedCommand.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 import { providerLogos } from "./provider-logos.ts";
 import { ResourceFields } from "./ResourceFields.tsx";
+import {
+    type ResourceFormValues,
+    toResourceRequest,
+} from "./resource-request.ts";
 import {
     AUTOMATIC_STACK,
     StackField,
@@ -71,13 +70,10 @@ function isHttpsUrl(value: string): boolean {
     }
 }
 
-interface FormValues {
+interface FormValues extends ResourceFormValues {
     provider: Provider;
     name: string;
     labels: string;
-    size: RunnerSize;
-    cpus: number;
-    memoryGb: number;
     cache: boolean;
     cacheSizeGb: number;
     imageBuilds: boolean;
@@ -97,10 +93,7 @@ function toRequest(values: FormValues): CreateRunnerRequest {
         labels: values.labels,
         stackId:
             values.stackId === AUTOMATIC_STACK ? undefined : values.stackId,
-        size: values.size,
-        cpus: values.size === "custom" ? values.cpus : undefined,
-        memoryMb:
-            values.size === "custom" ? toMemoryMb(values.memoryGb) : undefined,
+        ...toResourceRequest(values),
         cache: values.cache,
         cacheSizeGb: values.cacheSizeGb,
         imageBuilds: values.imageBuilds,
@@ -163,7 +156,9 @@ export const RunnerForm = ({
             labels: "mittwald",
             size: "medium",
             cpus: 1,
+            noCpuLimit: false,
             memoryGb: 2,
+            noMemoryLimit: false,
             cache: false,
             cacheSizeGb: 10,
             imageBuilds: false,
@@ -182,8 +177,10 @@ export const RunnerForm = ({
     const provider = form.watch("provider");
     const name = form.watch("name");
     const size = form.watch("size");
-    const cpus = form.watch("cpus");
-    const memoryGb = form.watch("memoryGb");
+    const cpus = form.watch("noCpuLimit") ? null : form.watch("cpus");
+    const memoryGb = form.watch("noMemoryLimit")
+        ? null
+        : form.watch("memoryGb");
     const cache = form.watch("cache");
     const cacheSizeGb = form.watch("cacheSizeGb");
     const imageBuilds = form.watch("imageBuilds");

@@ -1,7 +1,7 @@
 import { assertStatus } from "@mittwald/api-client";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { CreateRunnerRequest, Runner } from "@/generated/extension-api";
 import {
     zProjectStackList,
@@ -432,6 +432,156 @@ describe("shared stacks", () => {
             .from(schema.runnerStacks)
             .where(eq(schema.runnerStacks.stackId, first.stackId));
         expect(gone).toBeUndefined();
+    });
+});
+
+describe("custom runner without limits", () => {
+    const target = {
+        provider: "github" as const,
+        target: "acme/unlimited",
+        tokenType: "registration" as const,
+        token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+    };
+    let created: Runner;
+    let bothOpen: Runner | undefined;
+
+    const declaredService = async (
+        serviceName: string,
+        declare: () => Promise<Runner>,
+    ) => {
+        const updateStack = vi.spyOn(client.container, "updateStack");
+        try {
+            const result = await declare();
+            const service = updateStack.mock.calls
+                .map(([request]) => request.data?.services?.[serviceName])
+                .find((declared) => declared !== undefined);
+            return { result, service };
+        } finally {
+            updateStack.mockRestore();
+        }
+    };
+
+    const configure = (limits: {
+        size: "large" | "custom";
+        cpus?: number | null;
+        memoryMb?: number | null;
+    }) =>
+        declaredService("runner-unlimited", () =>
+            runner.configureRunner(client, extensionInstanceId, {
+                runnerId: created.id,
+                cache: false,
+                ...limits,
+            }),
+        );
+
+    afterAll(async () => {
+        for (const runnerId of [created.id, bothOpen?.id]) {
+            if (runnerId) {
+                await runner.deleteRunner(
+                    client,
+                    extensionInstanceId,
+                    runnerId,
+                );
+            }
+        }
+    });
+
+    it("declares the service without a memory limit", async () => {
+        const { result, service } = await declaredService(
+            "runner-unlimited",
+            () =>
+                runner.createRunner(
+                    client,
+                    extensionInstanceId,
+                    projectId,
+                    userId,
+                    {
+                        ...target,
+                        name: "Unlimited",
+                        size: "custom",
+                        cpus: 1.5,
+                        memoryMb: null,
+                    },
+                ),
+        );
+        created = result;
+        expect(service?.deploy?.resources?.limits).toStrictEqual({
+            cpus: "1.5",
+        });
+        expect(zRunner.parse(created)).toEqual(created);
+        expect(created).toMatchObject({
+            size: "custom",
+            cpus: 1.5,
+            memoryMb: null,
+        });
+    });
+
+    it("declares no limits once both are dropped", async () => {
+        const { result, service } = await configure({
+            size: "custom",
+            cpus: null,
+            memoryMb: null,
+        });
+        expect(service).toBeDefined();
+        expect(service?.deploy?.resources).toEqual({});
+        expect(result).toMatchObject({
+            size: "custom",
+            cpus: null,
+            memoryMb: null,
+        });
+    });
+
+    it("declares the preset limits when it switches to a preset", async () => {
+        const { result, service } = await configure({ size: "large" });
+        expect(service?.deploy?.resources).toEqual({
+            limits: { cpus: "2", memory: "4096mb" },
+        });
+        expect(result).toMatchObject({
+            size: "large",
+            cpus: 2,
+            memoryMb: 4096,
+        });
+    });
+
+    it("declares no limits when it switches back from a preset", async () => {
+        const { result, service } = await configure({
+            size: "custom",
+            cpus: null,
+            memoryMb: null,
+        });
+        expect(service).toBeDefined();
+        expect(service?.deploy?.resources).toEqual({});
+        expect(result).toMatchObject({
+            size: "custom",
+            cpus: null,
+            memoryMb: null,
+        });
+    });
+
+    it("creates a runner without any limit", async () => {
+        const { result, service } = await declaredService("runner-open", () =>
+            runner.createRunner(
+                client,
+                extensionInstanceId,
+                projectId,
+                userId,
+                {
+                    ...target,
+                    name: "Open",
+                    size: "custom",
+                    cpus: null,
+                    memoryMb: null,
+                },
+            ),
+        );
+        bothOpen = result;
+        expect(service).toBeDefined();
+        expect(service?.deploy?.resources).toEqual({});
+        expect(result).toMatchObject({
+            size: "custom",
+            cpus: null,
+            memoryMb: null,
+        });
     });
 });
 

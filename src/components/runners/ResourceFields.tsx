@@ -1,7 +1,11 @@
 import {
+    Alert,
+    Checkbox,
     ColumnLayout,
     Content,
     FieldDescription,
+    Flex,
+    Heading,
     Label,
     NumberField,
     RadioButton,
@@ -20,19 +24,88 @@ import {
     toMemoryGb,
 } from "@/runner-sizes.ts";
 import { FieldHelp } from "./FieldHelp.tsx";
+import type { ResourceFormValues } from "./resource-request.ts";
 
 const presets = ["small", "medium", "large"] as const;
 
-export interface ResourceFormValues {
-    size: RunnerSize;
-    cpus: number;
-    memoryGb: number;
+const limitFields = {
+    cpus: {
+        value: "cpus",
+        noLimit: "noCpuLimit",
+        range: CPU_RANGE,
+        formatOptions: undefined,
+    },
+    memory: {
+        value: "memoryGb",
+        noLimit: "noMemoryLimit",
+        range: MEMORY_GB_RANGE,
+        formatOptions: GIGABYTE_FORMAT,
+    },
+} as const;
+
+/**
+ * One limit of the custom size: its field, hidden while "No limit" is
+ * checked, and the checkbox below it.
+ */
+function LimitField<T extends ResourceFormValues>({
+    form,
+    limit,
+}: {
+    form: UseFormReturn<T>;
+    limit: keyof typeof limitFields;
+}) {
+    const t = useTranslation();
+    const Field = typedField(form);
+    const field = limitFields[limit];
+    const noLimit = form.watch(field.noLimit as Path<T>) as boolean;
+
+    return (
+        <Flex direction="column" gap="s">
+            {!noLimit && (
+                <Field
+                    name={field.value as Path<T>}
+                    rules={{
+                        required: t(`form.${limit}.required`),
+                        min: {
+                            value: field.range.min,
+                            message: t(`form.${limit}.range`),
+                        },
+                        max: {
+                            value: field.range.max,
+                            message: t(`form.${limit}.range`),
+                        },
+                    }}
+                >
+                    <NumberField
+                        minValue={field.range.min}
+                        maxValue={field.range.max}
+                        step={field.range.step}
+                        formatOptions={field.formatOptions}
+                    >
+                        <Label>
+                            {t(`form.${limit}.label`)}
+                            <FieldHelp
+                                subject={t(`form.${limit}.label`)}
+                                text={t(`form.${limit}.help`)}
+                            />
+                        </Label>
+                        <FieldDescription>
+                            {t(`form.${limit}.description`)}
+                        </FieldDescription>
+                    </NumberField>
+                </Field>
+            )}
+            <Field name={field.noLimit as Path<T>}>
+                <Checkbox>{t(`form.${limit}.noLimit`)}</Checkbox>
+            </Field>
+        </Flex>
+    );
 }
 
 /**
  * Shared by the create form and the settings modal. The presets keep their
  * limits in the domain and show them on their card, custom exposes CPU and
- * memory as two fields.
+ * memory as two fields, each of which can be left without a limit.
  */
 export function ResourceFields<T extends ResourceFormValues>({
     form,
@@ -44,6 +117,7 @@ export function ResourceFields<T extends ResourceFormValues>({
     const t = useTranslation();
     const Field = typedField(form);
     const size = form.watch("size" as Path<T>) as RunnerSize;
+    const noMemoryLimit = form.watch("noMemoryLimit" as Path<T>) as boolean;
 
     return (
         <>
@@ -77,71 +151,20 @@ export function ResourceFields<T extends ResourceFormValues>({
                 </RadioGroup>
             </Field>
             {size === "custom" && (
-                <ColumnLayout s={[1]} m={[1, 1]}>
-                    <Field
-                        name={"cpus" as Path<T>}
-                        rules={{
-                            required: t("form.cpus.required"),
-                            min: {
-                                value: CPU_RANGE.min,
-                                message: t("form.cpus.range"),
-                            },
-                            max: {
-                                value: CPU_RANGE.max,
-                                message: t("form.cpus.range"),
-                            },
-                        }}
-                    >
-                        <NumberField
-                            minValue={CPU_RANGE.min}
-                            maxValue={CPU_RANGE.max}
-                            step={CPU_RANGE.step}
-                        >
-                            <Label>
-                                {t("form.cpus.label")}
-                                <FieldHelp
-                                    subject={t("form.cpus.label")}
-                                    text={t("form.cpus.help")}
-                                />
-                            </Label>
-                            <FieldDescription>
-                                {t("form.cpus.description")}
-                            </FieldDescription>
-                        </NumberField>
-                    </Field>
-                    <Field
-                        name={"memoryGb" as Path<T>}
-                        rules={{
-                            required: t("form.memory.required"),
-                            min: {
-                                value: MEMORY_GB_RANGE.min,
-                                message: t("form.memory.range"),
-                            },
-                            max: {
-                                value: MEMORY_GB_RANGE.max,
-                                message: t("form.memory.range"),
-                            },
-                        }}
-                    >
-                        <NumberField
-                            minValue={MEMORY_GB_RANGE.min}
-                            maxValue={MEMORY_GB_RANGE.max}
-                            step={MEMORY_GB_RANGE.step}
-                            formatOptions={GIGABYTE_FORMAT}
-                        >
-                            <Label>
-                                {t("form.memory.label")}
-                                <FieldHelp
-                                    subject={t("form.memory.label")}
-                                    text={t("form.memory.help")}
-                                />
-                            </Label>
-                            <FieldDescription>
-                                {t("form.memory.description")}
-                            </FieldDescription>
-                        </NumberField>
-                    </Field>
-                </ColumnLayout>
+                <>
+                    <ColumnLayout s={[1]} m={[1, 1]}>
+                        <LimitField form={form} limit="cpus" />
+                        <LimitField form={form} limit="memory" />
+                    </ColumnLayout>
+                    {noMemoryLimit && (
+                        <Alert status="warning">
+                            <Heading>
+                                {t("form.memory.noLimit.warning.heading")}
+                            </Heading>
+                            <Text>{t("form.memory.noLimit.warning.text")}</Text>
+                        </Alert>
+                    )}
+                </>
             )}
         </>
     );

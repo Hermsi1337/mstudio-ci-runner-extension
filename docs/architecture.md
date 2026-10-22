@@ -35,7 +35,8 @@ screen are in [styleguide.md](styleguide.md). The runners are grouped by registr
 confirmation modals through overlay controllers. A row shows labels and switched on
 job features; it expands into the remaining details. Flow's list switches from columns
 to stacked rows by container width, so no separate mobile layout exists. The create
-form and the settings modal share `ResourceFields.tsx` (size cards) and
+form and the settings modal share `ResourceFields.tsx` (size cards, and for the custom
+size a "No limit" checkbox per limit plus a warning while memory is unlimited) and
 `JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards). The
 create form keeps the job features in a collapsed `Accordion`, the settings modal in a
 tab.
@@ -47,7 +48,9 @@ URLs before `ChangelogModal.tsx` renders them.
 
 Size presets (`small`, `medium`, `large`) and their limits live in
 `src/runner-sizes.ts`, imported by the domain for the stack declaration and by the UI
-for the summary. `custom` carries `cpus` and `memoryMb` in the request and the row.
+for the summary. `custom` carries `cpus` and `memoryMb` in the request and the row;
+null means no limit for that resource. `src/domain/resources.ts` turns size and
+values into the limits of the service declaration.
 
 Two Flow rules shape the components:
 
@@ -96,7 +99,8 @@ Two Flow rules shape the components:
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
    runners of the stack stay untouched) with `restartPolicy: always` and the resource
    limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
-   `custom`). Volumes carry the service name as prefix (`runner-<slug>-data`, `runner-<slug>-cache`).
+   `custom`, a missing limit is left out of `deploy.resources.limits`, so only the
+   project quota applies). Volumes carry the service name as prefix (`runner-<slug>-data`, `runner-<slug>-cache`).
 7. A row in `runners` links extension instance, provider, stack and service. The API
    derives `studioUrl` from them, the detail page of the container in mStudio, linked
    from the runner name in the list.
@@ -115,7 +119,9 @@ and then call `container.recreateService`. A declaration alone only changes the
 until it is recreated. The per-service action recreates only this runner, unlike
 the `recreate` query parameter of `updateStack`, which would recreate every runner
 that shares the stack. The extension skips the recreate only when mittwald reports
-`requiresRecreate: false` for the declared service. A recreate cancels the job that
+`requiresRecreate: false` for the declared service. Dropping a limit redeclares
+`deploy.resources` without it, and mittwald replaces `deploy` as a whole on PATCH
+(`{ resources: {} }` clears the limits, leaving `deploy` out keeps the old ones). A recreate cancels the job that
 runs in the container; neither GitHub, GitLab nor Forgejo retries it automatically. The
 runner row is written after the recreate succeeded, so a failed recreate leaves the
 update on offer and the next attempt declares the same state again.
@@ -142,7 +148,7 @@ Tables in `src/db/schema.ts`:
   from a runner, it names the runner's image version and the update target and
   shows the releases between them.
   `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb`, `imageBuilds`, `dockerApi` and `concurrency` hold the settings
-  (`cpus` and `memoryMb` only for `size = custom`), `tokenType` records how the runner
+  (`cpus` and `memoryMb` only for `size = custom`, null there means no limit), `tokenType` records how the runner
   authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald
   cronjobs created for the runner (cache cleanup).
 - `runner_stacks`: one row per stack the extension created, unique per
@@ -297,6 +303,7 @@ scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) re
 scripts/generate-encryption-secrets.js  prints values for ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
 src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
+src/domain/resources.ts      resource limits of a runner: preset or custom values, declared limits
 src/domain/project.ts        capabilities of the mStudio project (Container Hosting available?)
 src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
 src/domain/builder.ts        builder service of a stack: declare it, remove it once no runner builds images
