@@ -25,7 +25,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { Provider, Runner, RunnerStatus } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
 import { useTranslation } from "@/i18n/react.tsx";
-import { formatLimits, toMemoryGb } from "@/runner-sizes.ts";
+import { toMemoryGb } from "@/runner-sizes.ts";
+import { formatLimits } from "./format-limits.ts";
 import { RunnerActions } from "./RunnerActions.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 

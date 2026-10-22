@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { translator } from "@/i18n/index.ts";
-import { formatLimits } from "@/runner-sizes.ts";
+import { formatLimits } from "./format-limits.ts";
 
 describe("formatLimits", () => {
     it.each([

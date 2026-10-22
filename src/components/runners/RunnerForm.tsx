@@ -36,11 +36,11 @@ import { JobFeatureFields } from "./JobFeatureFields.tsx";
 import { ParsedCommand } from "./ParsedCommand.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 import { providerLogos } from "./provider-logos.ts";
+import { ResourceFields } from "./ResourceFields.tsx";
 import {
-    ResourceFields,
     type ResourceFormValues,
     toResourceRequest,
-} from "./ResourceFields.tsx";
+} from "./resource-request.ts";
 import {
     AUTOMATIC_STACK,
     StackField,
