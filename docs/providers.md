@@ -112,8 +112,10 @@ minting of registration tokens, tracked in
    version and binary checksums in `docker/runner/versions.json`.
 5. Image under `docker/runner/<name>/` ([runner-image.md](runner-image.md)), probes in
    `docker/runner/probes/<name>.sh`, matrix entry in `.github/workflows/runner-image.yml`,
-   provider list in `scripts/build-runner-images.sh`, image row in the release notes of
-   `.github/workflows/release.yml`, directory in `.github/dependabot.yml`.
+   provider list in `scripts/build-runner-images.sh` and `scripts/image-build-args.sh`,
+   entry in `tests/helpers/images.ts`, build step in `.github/actions/test-images/action.yml`,
+   image row in the release notes of `.github/workflows/release.yml`, directory in
+   `.github/dependabot.yml`.
 6. Form fields in `src/components/runners/RunnerForm.tsx`, initials and filter value in
    `RunnerList.tsx`, logo in `provider-logos.ts`, entry in `CreateRunnerModal.tsx`,
    `concurrentProviders` in `ConcurrencyField.tsx` when it sets `concurrencyVariable`,

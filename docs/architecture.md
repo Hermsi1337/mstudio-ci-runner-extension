@@ -297,6 +297,7 @@ openapi/upstream/            slimmed upstream specs (generated): codegen input a
 scripts/slim-openapi.ts      produces openapi/upstream
 scripts/sync-extension.ts    writes marketplace texts, logo and fragment properties into mStudio
 scripts/build-runner-images.sh  builds all runner images and the builder image locally
+scripts/image-build-args.sh  build args of a runner image or the builder image from the versions files
 scripts/dev-db.sh            local PostgreSQL for development (docker run, no compose)
 scripts/dev.sh               PostgreSQL plus dev server in one command, both stop on exit
 scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) reached the browser bundle
@@ -327,7 +328,8 @@ src/mittwald/client.ts       factory for the mittwald API client (configurable b
 src/db/                      Drizzle schema, pool, migration runner, generated migrations
 src/i18n/                    message catalogs (en, de), locale resolution, React hooks
 tests/integration/           Testcontainers tests
-tests/helpers/               container starters (PostgreSQL, Prism)
+tests/helpers/               container starters (PostgreSQL, Prism), builds of the repository images
 .github/                     community files (CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, templates, dependabot, release notes)
 .github/workflows/           CI on push/PR, PR title check, image builds on tags only, deployment after image builds
+.github/actions/test-images/ builds the images the integration tests use, with a layer cache
 ```

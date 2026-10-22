@@ -26,7 +26,10 @@ updates:
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
-    directory: /
+    # "/" covers .github/workflows only, composite actions need their own entry.
+    directories:
+      - /
+      - /.github/actions/test-images
     schedule:
       interval: weekly
     commit-message:

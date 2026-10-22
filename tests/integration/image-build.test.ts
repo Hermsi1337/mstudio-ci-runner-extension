@@ -18,8 +18,10 @@ import {
     Wait,
 } from "testcontainers";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import builderVersions from "../../docker/builder/versions.json";
-import runnerVersions from "../../docker/runner/versions.json";
+import {
+    provideRepositoryImage,
+    repositoryImageTag,
+} from "../helpers/images.ts";
 
 /**
  * The runner has no Docker daemon: `docker build` in a pipeline goes to the
@@ -40,8 +42,8 @@ const authRegistryHost = `${authRegistryAlias}:${registryPort}`;
 // bcrypt of "ci-password", made with `htpasswd -Bbn ci ci-password`.
 const authRegistryUsers =
     "ci:$2y$05$BFXZmLpWq7cgAl/.I3CEb.YQlM.ituQPAE8dEb9idS24fEAGb5l/S\n";
-const builderTag = "mstudio-ci-builder:test";
-const runnerTag = "mstudio-ci-runner-github:test";
+const builderTag = repositoryImageTag("builder");
+const runnerTag = repositoryImageTag("github");
 
 const native = process.arch === "arm64" ? "arm64" : "amd64";
 const foreign = native === "arm64" ? "amd64" : "arm64";
@@ -309,36 +311,8 @@ async function writeContext(
 }
 
 beforeAll(async () => {
-    await GenericContainer.fromDockerfile("docker/builder")
-        .withBuildkit()
-        .withBuildArgs({
-            GO_VERSION: builderVersions.kaniko.go,
-            KANIKO_VERSION: builderVersions.kaniko.version,
-            KANIKO_REPOSITORY: builderVersions.kaniko.repository,
-            QEMU_VERSION: builderVersions.qemu.version,
-            QEMU_SNAPSHOT: builderVersions.qemu.snapshot,
-            QEMU_SHA256_AMD64: builderVersions.qemu.sha256.amd64,
-            QEMU_SHA256_ARM64: builderVersions.qemu.sha256.arm64,
-        })
-        .build(builderTag, { deleteOnExit: false });
-    await GenericContainer.fromDockerfile("docker/runner", "github/Dockerfile")
-        .withBuildArgs({
-            RUNNER_VERSION: runnerVersions.github.version,
-            RUNNER_SHA256_AMD64: runnerVersions.github.sha256.amd64,
-            RUNNER_SHA256_ARM64: runnerVersions.github.sha256.arm64,
-            CRANE_VERSION: runnerVersions.crane.version,
-            CRANE_SHA256_AMD64: runnerVersions.crane.sha256.amd64,
-            CRANE_SHA256_ARM64: runnerVersions.crane.sha256.arm64,
-            DOCKER_CLI_VERSION: runnerVersions.dockerCli.version,
-            DOCKER_CLI_SHA256_AMD64: runnerVersions.dockerCli.sha256.amd64,
-            DOCKER_CLI_SHA256_ARM64: runnerVersions.dockerCli.sha256.arm64,
-            DOCKER_COMPOSE_VERSION: runnerVersions.dockerCompose.version,
-            DOCKER_COMPOSE_SHA256_AMD64:
-                runnerVersions.dockerCompose.sha256.amd64,
-            DOCKER_COMPOSE_SHA256_ARM64:
-                runnerVersions.dockerCompose.sha256.arm64,
-        })
-        .build(runnerTag, { deleteOnExit: false });
+    await provideRepositoryImage("builder");
+    await provideRepositoryImage("github");
 
     network = await new Network().start();
     registry = await new GenericContainer("registry:2")

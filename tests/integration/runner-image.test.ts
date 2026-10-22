@@ -6,6 +6,10 @@ import {
 } from "testcontainers";
 import { describe, expect, it } from "vitest";
 import runnerVersions from "../../docker/runner/versions.json";
+import {
+    provideRepositoryImage,
+    repositoryImageTag,
+} from "../helpers/images.ts";
 
 /**
  * Registration itself is expected to fail because the CI server URLs point to
@@ -143,40 +147,15 @@ const images: ImageCase[] = [
 const IMAGE_BUILD_AND_START_TIMEOUT_MS = 600_000;
 
 describe.each(images)("runner image: $provider", (image) => {
-    const tag = `mstudio-ci-runner-${image.provider}:test`;
+    const tag = repositoryImageTag(image.provider);
 
     it("builds and starts the registration flow", {
         timeout: IMAGE_BUILD_AND_START_TIMEOUT_MS,
     }, async () => {
-        const built = await GenericContainer.fromDockerfile(
-            "docker/runner",
-            `${image.provider}/Dockerfile`,
-        )
-            .withBuildArgs({
-                RUNNER_VERSION: runnerVersions[image.provider].version,
-                RUNNER_SHA256_AMD64:
-                    runnerVersions[image.provider].sha256.amd64,
-                RUNNER_SHA256_ARM64:
-                    runnerVersions[image.provider].sha256.arm64,
-                CRANE_VERSION: runnerVersions.crane.version,
-                CRANE_SHA256_AMD64: runnerVersions.crane.sha256.amd64,
-                CRANE_SHA256_ARM64: runnerVersions.crane.sha256.arm64,
-                DOCKER_CLI_VERSION: runnerVersions.dockerCli.version,
-                DOCKER_CLI_SHA256_AMD64: runnerVersions.dockerCli.sha256.amd64,
-                DOCKER_CLI_SHA256_ARM64: runnerVersions.dockerCli.sha256.arm64,
-                DOCKER_COMPOSE_VERSION: runnerVersions.dockerCompose.version,
-                DOCKER_COMPOSE_SHA256_AMD64:
-                    runnerVersions.dockerCompose.sha256.amd64,
-                DOCKER_COMPOSE_SHA256_ARM64:
-                    runnerVersions.dockerCompose.sha256.arm64,
-                NODE_VERSION: runnerVersions.node.version,
-                NODE_SHA256_AMD64: runnerVersions.node.sha256.amd64,
-                NODE_SHA256_ARM64: runnerVersions.node.sha256.arm64,
-            })
-            .build(tag, { deleteOnExit: false });
-
         const logs: string[] = [];
-        const container = await built
+        const container = await new GenericContainer(
+            await provideRepositoryImage(image.provider),
+        )
             .withEnvironment(image.environment)
             .withLogConsumer((stream) => {
                 stream.on("data", (line: string) => logs.push(line));

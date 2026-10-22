@@ -23,8 +23,8 @@ order.
 |---|---|---|
 | `tests/helpers/postgres.ts` | `postgres:16-alpine` | Sets `POSTGRES_*`, applies migrations from `src/db/migrations/` |
 | `tests/helpers/prism.ts` | `stoplight/prism:5.14.2` | Mock server from `openapi/upstream/<name>.json` (mittwald, GitHub, GitLab); validates every request against the spec and answers with spec-conformant example data |
-| `tests/integration/runner-image.test.ts` | builds `docker/runner/<provider>/` | Images `mstudio-ci-runner-<provider>:test` |
-| `tests/integration/image-build.test.ts` | builds `docker/builder/` and the GitHub runner, plus two `registry:2` (one open, one with an htpasswd login) | Image builds end to end: runner, builder and a registry on one network, the queue directory as a bind mount |
+| `tests/helpers/images.ts` | builds `docker/runner/<provider>/` and `docker/builder/` | Images `mstudio-ci-runner-<provider>:test` and `mstudio-ci-builder:test`, used by `runner-image.test.ts` and `image-build.test.ts` ([Repository images](#repository-images)) |
+| `tests/integration/image-build.test.ts` | the builder and the GitHub runner from `tests/helpers/images.ts`, plus two `registry:2` (one open, one with an htpasswd login) | Image builds end to end: runner, builder and a registry on one network, the queue directory as a bind mount |
 
 The probe suite in `docker/runner/probes/` runs inside the built images.
 `probe.sh` provides `expect` and `expect_output`, `common.sh` holds the checks every
@@ -53,6 +53,25 @@ with `EMULATION` other than `namespace`.
 `tests/helpers/env.ts` sets the extension environment. Defaults only fill missing
 variables, overrides always win. Modules such as `src/db/schema.ts` read the environment
 on import, so tests import them after the containers started via `await import(...)`.
+
+## Repository images
+
+`tests/helpers/images.ts` builds the runner images and the builder image under their
+`:test` tags, with the build arguments that `scripts/image-build-args.sh` prints from
+`docker/runner/versions.json` and `docker/builder/versions.json`. Locally every run of
+`pnpm run test:integration` builds them, served from the local layer cache after the
+first run.
+
+CI builds them beforehand: the composite action `.github/actions/test-images` runs
+`docker/build-push-action` per image with a layer cache in the GitHub Actions cache
+(scope `<image>-<amd64|arm64>`), and the tests run with `PREBUILT_IMAGES=1`. With it set
+the helper only checks that the tag exists and fails if it does not. The same path
+works locally:
+
+```bash
+pnpm run runner:build test
+PREBUILT_IMAGES=1 pnpm run test:integration
+```
 
 ## Test files
 

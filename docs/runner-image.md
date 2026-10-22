@@ -38,9 +38,9 @@ arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine
 { "github": { "version": "2.337.0", "sha256": { "amd64": "...", "arm64": "..." } } }
 ```
 
-It is the only place to bump them: the workflow, `pnpm run runner:build`, the image test
-and the extension (shown as runner version in the UI, `runnerVersion` on the provider)
-read it. The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64`,
+It is the only place to bump them: the workflow, `pnpm run runner:build` and the image
+tests read the build args through `scripts/image-build-args.sh`, the extension reads the
+runner version (shown in the UI, `runnerVersion` on the provider). The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64`,
 `RUNNER_SHA256_ARM64`, `CRANE_VERSION`, `CRANE_SHA256_AMD64`, `CRANE_SHA256_ARM64`,
 `DOCKER_CLI_VERSION`, `DOCKER_CLI_SHA256_AMD64`, `DOCKER_CLI_SHA256_ARM64`,
 `DOCKER_COMPOSE_VERSION`, `DOCKER_COMPOSE_SHA256_AMD64` and `DOCKER_COMPOSE_SHA256_ARM64` as build args
@@ -209,7 +209,7 @@ on or off works for them as well.
 ## Building and testing
 
 ```bash
-pnpm run runner:build     # all runner images as mstudio-ci-runner-<provider>:local, plus mstudio-ci-builder:local
+pnpm run runner:build     # all runner images as mstudio-ci-runner-<provider>:local, plus mstudio-ci-builder:local; `pnpm run runner:build test` tags them :test
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e RUNNER_TOKEN=AEBI... mstudio-ci-runner-github:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e GITHUB_TOKEN=github_pat_... mstudio-ci-runner-github:local
 docker run --rm -e CI_SERVER_URL=https://gitlab.com -e CI_SERVER_TOKEN=glrt-... mstudio-ci-runner-gitlab:local
