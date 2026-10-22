@@ -33,7 +33,6 @@ jobs:
         run: pnpm run check:bundle
 
   integration:
-    # Testcontainers needs a Docker daemon, which the mittwald runner has not.
     # Container Hosting runs amd64. arm64 covers the platform checks of the
     # runner images and local development on arm64 machines.
     strategy:
