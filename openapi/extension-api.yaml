@@ -68,21 +68,21 @@ components:
     RunnerSize:
       type: string
       enum: [small, medium, large, custom]
-      description: Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
+      description: Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`, a null or missing value there means no limit.
       example: medium
     Cpus:
-      type: number
+      type: [number, 'null']
       minimum: 0.25
       maximum: 8
       multipleOf: 0.25
-      description: CPU limit of the runner container. Only used with size custom.
+      description: CPU limit of the runner container. Only used with size custom, null means no CPU limit.
       example: 1.5
     MemoryMb:
-      type: integer
+      type: [integer, 'null']
       minimum: 512
       maximum: 16384
       multipleOf: 256
-      description: Memory limit of the runner container in MB. Only used with size custom.
+      description: Memory limit of the runner container in MB. Only used with size custom, null means no memory limit.
       example: 3072
     TokenType:
       type: string
@@ -351,12 +351,12 @@ components:
         size:
           $ref: '#/components/schemas/RunnerSize'
         cpus:
-          type: number
-          description: Effective CPU limit, from the preset or the custom value.
+          type: [number, 'null']
+          description: Effective CPU limit, from the preset or the custom value. Null when a custom runner has no CPU limit.
           example: 1
         memoryMb:
-          type: integer
-          description: Effective memory limit in MB, from the preset or the custom value.
+          type: [integer, 'null']
+          description: Effective memory limit in MB, from the preset or the custom value. Null when a custom runner has no memory limit.
           example: 2048
         cache:
           type: boolean

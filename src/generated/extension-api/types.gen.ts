@@ -31,7 +31,7 @@ export const Provider = {
 export type Provider = typeof Provider[keyof typeof Provider];
 
 /**
- * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
+ * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`, a null or missing value there means no limit.
  */
 export const RunnerSize = {
     SMALL: 'small',
@@ -41,19 +41,19 @@ export const RunnerSize = {
 } as const;
 
 /**
- * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`.
+ * Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`, a null or missing value there means no limit.
  */
 export type RunnerSize = typeof RunnerSize[keyof typeof RunnerSize];
 
 /**
- * CPU limit of the runner container. Only used with size custom.
+ * CPU limit of the runner container. Only used with size custom, null means no CPU limit.
  */
-export type Cpus = number;
+export type Cpus = number | null;
 
 /**
- * Memory limit of the runner container in MB. Only used with size custom.
+ * Memory limit of the runner container in MB. Only used with size custom, null means no memory limit.
  */
-export type MemoryMb = number;
+export type MemoryMb = number | null;
 
 /**
  * How the runner authenticated at creation. Decides whether the extension can remove the
@@ -250,13 +250,13 @@ export type Runner = {
     tokenType: TokenType;
     size: RunnerSize;
     /**
-     * Effective CPU limit, from the preset or the custom value.
+     * Effective CPU limit, from the preset or the custom value. Null when a custom runner has no CPU limit.
      */
-    cpus: number;
+    cpus: number | null;
     /**
-     * Effective memory limit in MB, from the preset or the custom value.
+     * Effective memory limit in MB, from the preset or the custom value. Null when a custom runner has no memory limit.
      */
-    memoryMb: number;
+    memoryMb: number | null;
     cache: boolean;
     /**
      * Cache limit in GB. Carries the last configured value even while cache is false.

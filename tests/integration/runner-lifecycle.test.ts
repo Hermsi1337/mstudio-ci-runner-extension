@@ -1,7 +1,7 @@
 import { assertStatus } from "@mittwald/api-client";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { CreateRunnerRequest, Runner } from "@/generated/extension-api";
 import {
     zProjectStackList,
@@ -432,6 +432,81 @@ describe("shared stacks", () => {
             .from(schema.runnerStacks)
             .where(eq(schema.runnerStacks.stackId, first.stackId));
         expect(gone).toBeUndefined();
+    });
+});
+
+describe("custom runner without limits", () => {
+    let created: Runner;
+
+    const declaredService = async (declare: () => Promise<Runner>) => {
+        const updateStack = vi.spyOn(client.container, "updateStack");
+        try {
+            const result = await declare();
+            const [, service] =
+                updateStack.mock.calls
+                    .flatMap(([request]) =>
+                        Object.entries(request.data?.services ?? {}),
+                    )
+                    .find(([name]) => name.startsWith("runner-unlimited")) ??
+                [];
+            return { result, service };
+        } finally {
+            updateStack.mockRestore();
+        }
+    };
+
+    afterAll(async () => {
+        await runner.deleteRunner(client, extensionInstanceId, created.id);
+    });
+
+    it("declares the service without a memory limit", async () => {
+        const { result, service } = await declaredService(() =>
+            runner.createRunner(
+                client,
+                extensionInstanceId,
+                projectId,
+                userId,
+                {
+                    provider: "github",
+                    name: "Unlimited",
+                    target: "acme/unlimited",
+                    tokenType: "registration",
+                    token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+                    size: "custom",
+                    cpus: 1.5,
+                    memoryMb: null,
+                },
+            ),
+        );
+        created = result;
+        expect(service?.deploy?.resources?.limits).toStrictEqual({
+            cpus: "1.5",
+        });
+        expect(zRunner.parse(created)).toEqual(created);
+        expect(created).toMatchObject({
+            size: "custom",
+            cpus: 1.5,
+            memoryMb: null,
+        });
+    });
+
+    it("declares no limits once both are dropped", async () => {
+        const { result, service } = await declaredService(() =>
+            runner.configureRunner(client, extensionInstanceId, {
+                runnerId: created.id,
+                cache: false,
+                size: "custom",
+                cpus: null,
+                memoryMb: null,
+            }),
+        );
+        expect(service).toBeDefined();
+        expect(service?.deploy?.resources?.limits).toBeUndefined();
+        expect(result).toMatchObject({
+            size: "custom",
+            cpus: null,
+            memoryMb: null,
+        });
     });
 });
 

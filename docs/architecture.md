@@ -47,7 +47,9 @@ URLs before `ChangelogModal.tsx` renders them.
 
 Size presets (`small`, `medium`, `large`) and their limits live in
 `src/runner-sizes.ts`, imported by the domain for the stack declaration and by the UI
-for the summary. `custom` carries `cpus` and `memoryMb` in the request and the row.
+for the summary. `custom` carries `cpus` and `memoryMb` in the request and the row;
+null means no limit for that resource. `src/domain/resources.ts` turns size and
+values into the limits of the service declaration.
 
 Two Flow rules shape the components:
 
@@ -96,7 +98,8 @@ Two Flow rules shape the components:
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
    runners of the stack stay untouched) with `restartPolicy: always` and the resource
    limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
-   `custom`). Volumes carry the service name as prefix (`runner-<slug>-data`, `runner-<slug>-cache`).
+   `custom`, a missing limit is left out of `deploy.resources.limits`, so only the
+   project quota applies). Volumes carry the service name as prefix (`runner-<slug>-data`, `runner-<slug>-cache`).
 7. A row in `runners` links extension instance, provider, stack and service. The API
    derives `studioUrl` from them, the detail page of the container in mStudio, linked
    from the runner name in the list.
@@ -142,7 +145,7 @@ Tables in `src/db/schema.ts`:
   from a runner, it names the runner's image version and the update target and
   shows the releases between them.
   `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb`, `imageBuilds`, `dockerApi` and `concurrency` hold the settings
-  (`cpus` and `memoryMb` only for `size = custom`), `tokenType` records how the runner
+  (`cpus` and `memoryMb` only for `size = custom`, null there means no limit), `tokenType` records how the runner
   authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald
   cronjobs created for the runner (cache cleanup).
 - `runner_stacks`: one row per stack the extension created, unique per
@@ -297,6 +300,7 @@ scripts/check-client-bundle.sh  fails when server-only code (logger, env, db) re
 scripts/generate-encryption-secrets.js  prints values for ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT
 src/generated/               generated types, zod schemas, GitLab client (do not edit)
 src/domain/runner.ts         provider-neutral domain logic (runner lifecycle)
+src/domain/resources.ts      resource limits of a runner: preset or custom values, declared limits
 src/domain/project.ts        capabilities of the mStudio project (Container Hosting available?)
 src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
 src/domain/builder.ts        builder service of a stack: declare it, remove it once no runner builds images

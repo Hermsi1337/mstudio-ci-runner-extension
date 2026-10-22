@@ -158,6 +158,11 @@ export const en = {
         "The runner joins this stack and reaches its services by name. Deleting the runner leaves the stack untouched.",
     "form.summary.service.label": "Container: {service}",
     "form.summary.service.text": "Limited to {cpus} CPU and {memory} GB RAM.",
+    "form.summary.service.text.noCpu":
+        "Limited to {memory} GB RAM, no CPU limit.",
+    "form.summary.service.text.noMemory":
+        "Limited to {cpus} CPU, no memory limit.",
+    "form.summary.service.text.none": "No CPU or memory limit.",
     "form.summary.dataVolume.label": "Volume: {service}-data",
     "form.summary.dataVolume.text.github":
         "Runner registration and work directory: checkouts, downloaded actions, tool cache of the setup actions.",
@@ -251,6 +256,9 @@ export const en = {
     "form.size.large": "Large",
     "form.size.custom": "Custom",
     "form.size.limits": "{cpus} CPU, {memory} GB RAM",
+    "form.size.limits.noCpu": "no CPU limit, {memory} GB RAM",
+    "form.size.limits.noMemory": "{cpus} CPU, no memory limit",
+    "form.size.limits.none": "no limits",
     "form.size.custom.text": "You set CPU and memory",
     "form.cpus.label": "CPU limit",
     "form.cpus.description": "0.25 to 8 CPUs in steps of 0.25.",
@@ -258,12 +266,17 @@ export const en = {
     "form.cpus.range": "Enter a value between 0.25 and 8",
     "form.cpus.help":
         "Share of CPU cores the container may use. One job with npm or Composer uses one CPU well; scripts and deployments get by with less.",
+    "form.cpus.unlimited": "No CPU limit",
     "form.memory.label": "Memory limit",
     "form.memory.description": "0.5 to 16 GB in steps of 0.5.",
     "form.memory.required": "Enter a memory limit",
     "form.memory.range": "Enter a value between 0.5 and 16",
     "form.memory.help":
         "Memory the container may use. A job that exceeds it is killed. Plan about 1 GB per job, more for test suites with a browser or a database.",
+    "form.memory.unlimited": "No memory limit",
+    "form.memory.warning.heading": "Unlimited memory affects the whole project",
+    "form.memory.warning.text":
+        "The runner can take memory from every other container in this project, and when memory runs short the platform stops containers. Set a memory limit if other apps share this project.",
 
     "help.open": "Help for {subject}",
     "form.name.help":
