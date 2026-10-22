@@ -19,8 +19,8 @@
 #   MSTUDIO_WORK_ROOT set by Docker in jobs: a directory of the project file system, mounted
 #                     at its own path; the work directory moves there, so containers of a
 #                     job can bind-mount the workspace
-#   MSTUDIO_EXTERNALS_ROOT  set by Docker in jobs: where the externals of each runner version
-#                     are copied for `container:` jobs
+#   MSTUDIO_EXTERNALS_ROOT  set by Docker in jobs: where the externals of each runner and
+#                     Node version are copied for `container:` jobs
 #
 # Flow: a persisted registration from RUNNER_CONFIG_DIR is restored and reused.
 # Without one, the runner registers with RUNNER_TOKEN or a token fetched via
@@ -60,10 +60,10 @@ for dir in "${MSTUDIO_WORK_ROOT:-}" "${MSTUDIO_EXTERNALS_ROOT:-}"; do
 done
 mkdir -p "${RUNNER_WORKDIR}" "${RUNNER_CONFIG_DIR}"
 
-# Externals are copied once per runner version; a copy that another runner of
-# the stack finished first wins.
+# Externals are copied once per runner and Node version; a copy that another
+# runner of the stack finished first wins.
 if [[ -n "${MSTUDIO_EXTERNALS_ROOT:-}" ]]; then
-    externals="${MSTUDIO_EXTERNALS_ROOT}/$(./config.sh --version)"
+    externals="${MSTUDIO_EXTERNALS_ROOT}/$(./config.sh --version)-node$(externals/node24/bin/node --version)"
     if [[ ! -f "${externals}/.complete" ]]; then
         echo "[entrypoint] copying externals to ${externals}"
         partial="${externals}.partial-$$"

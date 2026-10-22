@@ -30,23 +30,23 @@ together with the SHA-256 checksums of the upstream binaries for amd64 and arm64
 the `crane` version the images ship for pushing built images, the docker CLI version
 under `dockerCli` (checksums of the `.tgz` archives), the docker compose plugin version
 under `dockerCompose` (checksums of the `docker-compose-linux-x86_64` and
-`docker-compose-linux-aarch64` binaries) and the Node version of the Forgejo image under
-`node`. CI builds amd64 only, the
+`docker-compose-linux-aarch64` binaries) and the Node version under `node`, used by the
+Forgejo image and for the bundled Node of the GitHub runner. CI builds amd64 only, the
 arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine:
 
 ```json
-{ "github": { "version": "2.337.0", "sha256": { "amd64": "...", "arm64": "..." } } }
+{ "github": { "version": "2.338.0", "sha256": { "amd64": "...", "arm64": "..." } } }
 ```
 
-It is the only place to bump them: the workflow, `pnpm run runner:build`, the image test
-and the extension (shown as runner version in the UI, `runnerVersion` on the provider)
-read it. The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64`,
+It is the only place to bump them: the workflow, `pnpm run runner:build` and the image
+tests read the build args through `scripts/image-build-args.sh`, the extension reads the
+runner version (shown in the UI, `runnerVersion` on the provider). The Dockerfiles take `RUNNER_VERSION`, `RUNNER_SHA256_AMD64`,
 `RUNNER_SHA256_ARM64`, `CRANE_VERSION`, `CRANE_SHA256_AMD64`, `CRANE_SHA256_ARM64`,
 `DOCKER_CLI_VERSION`, `DOCKER_CLI_SHA256_AMD64`, `DOCKER_CLI_SHA256_ARM64`,
 `DOCKER_COMPOSE_VERSION`, `DOCKER_COMPOSE_SHA256_AMD64` and `DOCKER_COMPOSE_SHA256_ARM64` as build args
-without defaults, the Forgejo image also `NODE_VERSION`, `NODE_SHA256_AMD64` and
-`NODE_SHA256_ARM64`. The workflow and `pnpm run runner:build` pass the Node args to every
-image; the GitHub and GitLab Dockerfiles ignore them. Every Dockerfile stops the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
+without defaults, the Forgejo and GitHub images also `NODE_VERSION`, `NODE_SHA256_AMD64`
+and `NODE_SHA256_ARM64`. The workflow and `pnpm run runner:build` pass the Node args to every
+image; the GitLab Dockerfile ignores them. Every Dockerfile stops the build when a downloaded binary does not match ([operations.md](operations.md#bumping-the-runner-version)).
 
 The extension creates runners from `ghcr.io/hermsi1337/mstudio-ci-runner-<provider>:<EXTENSION_VERSION>`,
 the same release as the extension itself. A runner created by an older release shows an
@@ -73,6 +73,13 @@ The extension only uses `RUNNER_TOKEN`. `GITHUB_TOKEN` and `RUNNER_EPHEMERAL=tru
 in the image for hand-built stacks and for
 [issue #25](https://github.com/Hermsi1337/mstudio-ci-runner-extension/issues/25), but
 put a long-lived credential into a container where every job has sudo.
+
+**Node of JavaScript actions.** The runner bundles its own Node in `externals/` and ships
+Node security releases weeks late. The image replaces `externals/node24` with the Node
+from `versions.json` and points `externals/node20` at it, since Node 20 is end of life.
+The musl builds `node24_alpine` and `node20_alpine` for `container:` jobs stay as
+shipped. With Docker in jobs the entrypoint copies the externals once per runner and
+Node version, so a Node bump reaches `container:` jobs without a runner bump.
 
 | Variable | Meaning | Default |
 |---|---|---|
@@ -160,9 +167,9 @@ model as the other two images.
 | `RUNNER_CAPACITY` | Jobs at once (`runner.capacity`) | `1` |
 | `RUNNER_DATA_DIR` | Persistent state, mount point of the data volume | `/home/runner/data` |
 
-**Node.** This is the only image with Node. The host executor runs JavaScript actions
-such as `actions/checkout` with the `node` it finds in `PATH`; the GitHub runner ships
-its own and `gitlab-runner` needs none. Node comes from the official tarball of
+**Node.** The host executor runs JavaScript actions
+such as `actions/checkout` with the `node` it finds in `PATH`; `gitlab-runner` needs
+none. Node comes from the official tarball of
 nodejs.org into `/usr/local`, version and checksums from `node` in `versions.json`.
 `/usr/local/etc/npmrc` sets the global prefix to `/home/runner/.npm-global`, whose `bin`
 is in `PATH`, so `npm install -g` works as the runner user without sudo. A probe keeps
@@ -209,7 +216,7 @@ on or off works for them as well.
 ## Building and testing
 
 ```bash
-pnpm run runner:build     # all runner images as mstudio-ci-runner-<provider>:local, plus mstudio-ci-builder:local
+pnpm run runner:build     # all runner images as mstudio-ci-runner-<provider>:local, plus mstudio-ci-builder:local; `pnpm run runner:build test` tags them :test
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e RUNNER_TOKEN=AEBI... mstudio-ci-runner-github:local
 docker run --rm -e GITHUB_URL=https://github.com/owner/repo -e GITHUB_TOKEN=github_pat_... mstudio-ci-runner-github:local
 docker run --rm -e CI_SERVER_URL=https://gitlab.com -e CI_SERVER_TOKEN=glrt-... mstudio-ci-runner-gitlab:local
@@ -231,7 +238,7 @@ read `DOCKER_HOST` talk to it directly.
 |---|---|---|
 | `DOCKER_HOST` | Docker API for container commands. Set by the extension when Docker in jobs is on. The shim forwards `docker run`, `exec`, `ps`, `compose` and the other container commands to the real CLI only when it is set, and the entrypoint starts `mstudio-port-forward` | unset |
 | `MSTUDIO_WORK_ROOT` | Directory on the project file system for this runner, mounted at its own path. Set by the extension with Docker in jobs. GitHub moves its work directory to `<root>/work` (also for a restored registration), GitLab its `builds_dir` to `<root>/builds`, Forgejo its `host.workdir_parent` to `<root>/work`. Every job starts with `reclaim-workspace.sh`, which gives files that containers wrote as root back to the runner user (GitHub: `ACTIONS_RUNNER_HOOK_JOB_STARTED` unless already set, GitLab: `pre_get_sources_script`). Forgejo has no such hook, its entrypoint runs the script on every container start | unset |
-| `MSTUDIO_EXTERNALS_ROOT` | GitHub only: where the entrypoint copies the externals once per runner version. It exports `MSTUDIO_EXTERNALS` with the copy, and the shim rewrites mounts of `/home/runner/externals` to it, so `container:` jobs find node | unset |
+| `MSTUDIO_EXTERNALS_ROOT` | GitHub only: where the entrypoint copies the externals once per runner and Node version. It exports `MSTUDIO_EXTERNALS` with the copy, and the shim rewrites mounts of `/home/runner/externals` to it, so `container:` jobs find node | unset |
 
 The `docker` service publishes container ports on itself: `docker run -p 5432:5432 postgres`
 listens on `docker:5432`, and `docker port` prints `0.0.0.0:<port>` meaning that port on

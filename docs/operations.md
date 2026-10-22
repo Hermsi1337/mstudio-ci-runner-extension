@@ -43,7 +43,7 @@ succeeded. Both image workflows use `docker/metadata-action` and tag:
 | Image | Tags for `v1.2.3` |
 |---|---|
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `1.2.3`, `1.2`, `latest` |
-| `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.337.0`) |
+| `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.338.0`) |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-19.3.1`) |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-forgejo` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-13.2.0`) |
 
@@ -79,9 +79,9 @@ Package visibility is independent of the repository and can only be changed on t
 
 | Workflow | Trigger | Content |
 |---|---|---|
-| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests, the images built under qemu on native hardware, `gofmt`, `go vet` and `go test` of `docker/docker-api` |
+| `ci.yml` | Push to `main`, pull requests | Codegen drift, Biome, `tsc`, build, integration tests on images built beforehand with a layer cache (`.github/actions/test-images`), the images built under qemu on native hardware, `gofmt`, `go vet` and `go test` of `docker/docker-api` |
 | `extension-image.yml` | Called by `release.yml`, manual | Extension image |
-| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)) and the Docker API image ([docker-api.md](docker-api.md)), `linux/amd64` |
+| `runner-image.yml` | Called by `release.yml`, manual | Matrix over all providers plus the builder image ([image-builds.md](image-builds.md)) and the Docker API image ([docker-api.md](docker-api.md)), `linux/amd64`. Runner and builder images share the cache scopes `<image>-amd64` with `.github/actions/test-images`, so a release reuses the layers its `verify` job built |
 | `deploy.yml` | Called by the two workflows below | Stack update on mittwald Container Hosting, one installation per call |
 | `deploy-dev.yml` | After `release.yml` on a tag, manual | Deploys into the development installation |
 | `deploy-production.yml` | Manual | Deploys into the production installation |
@@ -98,9 +98,9 @@ resources, which is not what building and releasing this repository needs.
 | Job | Runner | Why |
 |---|---|---|
 | `ci.yml` `check` | `ubuntu-latest` | Node |
-| `ci.yml` `integration` | `ubuntu-latest`, `ubuntu-24.04-arm` | Testcontainers needs a Docker daemon. arm64 runs the platform checks on a foreign architecture and covers arm64 development machines. Both allow user namespaces for unconfined processes, which the emulated builds need, and upload the image they built under qemu ([testing.md](testing.md)) |
+| `ci.yml` `integration` | `ubuntu-latest`, `ubuntu-24.04-arm` | Testcontainers needs a Docker daemon. arm64 runs the platform checks on a foreign architecture and covers arm64 development machines. Both build the runner and builder images with Buildx and a layer cache in the GitHub Actions cache (scope `<image>-<amd64\|arm64>`) before the tests, allow user namespaces for unconfined processes, which the emulated builds need, and upload the image they built under qemu ([testing.md](testing.md#repository-images)) |
 | `ci.yml` `native-hardware` | `ubuntu-24.04-arm`, `ubuntu-latest` | Runs the image the other leg of `integration` built under qemu on a CPU of its architecture ([testing.md](testing.md#emulated-images-on-native-hardware)) |
-| `release.yml` `verify` | `ubuntu-latest` | Integration tests, with user namespaces allowed like in `ci.yml` |
+| `release.yml` `verify` | `ubuntu-latest` | Integration tests on images built with the layer cache, with user namespaces allowed like in `ci.yml` |
 | `release.yml` `release`, `bump-version` | `ubuntu-latest` | `jq`, `git`, Node |
 | `extension-image.yml`, `runner-image.yml` | `ubuntu-latest` | Buildx |
 | `deploy.yml` `deploy`, `metadata` | `ubuntu-latest` | `mittwald/deploy-container-action` is a Docker container action |
@@ -272,12 +272,15 @@ computed with `sha256sum` after downloading), `dockerCompose.version` and the ch
 the two binaries from the [compose releases](https://github.com/docker/compose/releases)
 (`docker-compose-linux-<x86_64|aarch64>`, each with a `.sha256` file next to it), and
 `node.version` and the checksums of the `linux-x64` and `linux-arm64` `.tar.xz` files
-(`https://nodejs.org/dist/v${VERSION}/SHASUMS256.txt`, stay on an LTS line). Only the
-Forgejo image installs Node; its probe checks the version and that `npm install -g` still
+(`https://nodejs.org/dist/v${VERSION}/SHASUMS256.txt`, stay on an LTS line). The
+Forgejo image installs Node into `/usr/local`, the GitHub image replaces the runner's
+bundled `externals/node24` with it and points `node20` there. Both probes check the
+version; the Forgejo probe also checks that `npm install -g` still
 works as the runner user. `kaniko.version` and the Go version that compiles it live in
 `docker/builder/versions.json`
-([releases](https://github.com/chainguard-forks/kaniko/releases)). All of them are read by the
-workflow, by `pnpm run runner:build` and by the integration tests; a bump needs a tag
+([releases](https://github.com/chainguard-forks/kaniko/releases)). All of them are read through
+`scripts/image-build-args.sh` by the workflows, by `pnpm run runner:build` and by the
+integration tests; a bump needs a tag
 like any other change. The builder applies the patches in `docker/builder/patches/` to
 kaniko before it compiles it, so a kaniko bump fails the image build when a patch no
 longer applies.

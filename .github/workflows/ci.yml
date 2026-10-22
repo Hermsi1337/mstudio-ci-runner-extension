@@ -33,13 +33,16 @@ jobs:
         run: pnpm run check:bundle
 
   integration:
-    # Testcontainers needs a Docker daemon, which the mittwald runner has not.
     # Container Hosting runs amd64. arm64 covers the platform checks of the
     # runner images and local development on arm64 machines.
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
     name: integration (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
     steps:
@@ -60,9 +63,13 @@ jobs:
       # Container Hosting has no such restriction.
       - name: Allow user namespaces for unconfined processes
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - uses: ./.github/actions/test-images
+        with:
+          arch: ${{ matrix.arch }}
       - name: Integration tests (testcontainers)
         run: pnpm run test:integration
         env:
+          PREBUILT_IMAGES: "1"
           IMAGE_EXPORT_DIR: ${{ runner.temp }}/images
       - name: Keep the image built under qemu for the hardware check
         uses: actions/upload-artifact@v7

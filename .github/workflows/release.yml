@@ -33,8 +33,13 @@ jobs:
       # capabilities in a user namespace, which Ubuntu 24.04 takes away.
       - name: Allow user namespaces for unconfined processes
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - uses: ./.github/actions/test-images
+        with:
+          arch: amd64
       - name: Integration tests (testcontainers)
         run: pnpm run test:integration
+        env:
+          PREBUILT_IMAGES: "1"
 
   extension-image:
     uses: ./.github/workflows/extension-image.yml

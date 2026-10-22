@@ -287,9 +287,11 @@ stack, so bind mounts of the workspace, relative mounts in compose files and
 GitHub `container:` jobs work without translation.
 
 - GitHub: the work directory is `.../<service>/work`. The runner copies its
-  externals (node for actions) once per runner version to
-  `.ci-work/<stack ID>/externals/<version>`, and the `docker` shim rewrites
-  mounts of `/home/runner/externals` to that path.
+  externals (node for actions) once per runner and Node version to
+  `.ci-work/<stack ID>/externals/<runner version>-node<node version>` (e.g.
+  `2.338.0-nodev24.22.1`), and the `docker` shim rewrites mounts of
+  `/home/runner/externals` to that path. Older copies stay, a runner of the stack
+  that still runs the previous image may use them.
 - GitLab: `builds_dir` is `.../<service>/builds`.
 - Forgejo: `host.workdir_parent` is `.../<service>/work`.
 - Containers often run as root, and the files they write into the workspace

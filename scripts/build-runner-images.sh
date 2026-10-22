@@ -1,66 +1,48 @@
 #!/usr/bin/env bash
 # Builds the runner images, the builder image and the Docker API image locally,
-# with the versions and checksums from docker/runner/versions.json and
-# docker/builder/versions.json. Images are tagged mstudio-ci-runner-<provider>:local,
-# mstudio-ci-builder:local and mstudio-ci-docker-api:local.
+# with the build arguments from scripts/image-build-args.sh. Images are tagged
+# mstudio-ci-runner-<provider>:<tag>, mstudio-ci-builder:<tag> and
+# mstudio-ci-docker-api:<tag>, the tag defaults to "local". The tag "test" is the
+# one the integration tests use with PREBUILT_IMAGES=1 (docs/testing.md).
+#
+# Usage: scripts/build-runner-images.sh [tag]
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-runner_versions="docker/runner/versions.json"
-builder_versions="docker/builder/versions.json"
+tag="${1:-local}"
 
-crane_version="$(jq -r .crane.version "${runner_versions}")"
-crane_sha256_amd64="$(jq -r .crane.sha256.amd64 "${runner_versions}")"
-crane_sha256_arm64="$(jq -r .crane.sha256.arm64 "${runner_versions}")"
-docker_cli_version="$(jq -r .dockerCli.version "${runner_versions}")"
-docker_cli_sha256_amd64="$(jq -r .dockerCli.sha256.amd64 "${runner_versions}")"
-docker_cli_sha256_arm64="$(jq -r .dockerCli.sha256.arm64 "${runner_versions}")"
-docker_compose_version="$(jq -r .dockerCompose.version "${runner_versions}")"
-docker_compose_sha256_amd64="$(jq -r .dockerCompose.sha256.amd64 "${runner_versions}")"
-docker_compose_sha256_arm64="$(jq -r .dockerCompose.sha256.arm64 "${runner_versions}")"
-node_version="$(jq -r .node.version "${runner_versions}")"
-node_sha256_amd64="$(jq -r .node.sha256.amd64 "${runner_versions}")"
-node_sha256_arm64="$(jq -r .node.sha256.arm64 "${runner_versions}")"
+# Fills the array args with --build-arg flags. A command substitution instead of
+# a process substitution, so a failing scripts/image-build-args.sh stops the script.
+build_args() {
+    local lines line
+    lines="$(scripts/image-build-args.sh "$1")"
+    args=()
+    while IFS= read -r line; do
+        args+=(--build-arg "${line}")
+    done <<<"${lines}"
+}
 
 for provider in github gitlab forgejo; do
-    echo "building mstudio-ci-runner-${provider}:local"
+    echo "building mstudio-ci-runner-${provider}:${tag}"
+    build_args "${provider}"
     docker build \
         -f "docker/runner/${provider}/Dockerfile" \
-        --build-arg "RUNNER_VERSION=$(jq -r ".${provider}.version" "${runner_versions}")" \
-        --build-arg "RUNNER_SHA256_AMD64=$(jq -r ".${provider}.sha256.amd64" "${runner_versions}")" \
-        --build-arg "RUNNER_SHA256_ARM64=$(jq -r ".${provider}.sha256.arm64" "${runner_versions}")" \
-        --build-arg "CRANE_VERSION=${crane_version}" \
-        --build-arg "CRANE_SHA256_AMD64=${crane_sha256_amd64}" \
-        --build-arg "CRANE_SHA256_ARM64=${crane_sha256_arm64}" \
-        --build-arg "DOCKER_CLI_VERSION=${docker_cli_version}" \
-        --build-arg "DOCKER_CLI_SHA256_AMD64=${docker_cli_sha256_amd64}" \
-        --build-arg "DOCKER_CLI_SHA256_ARM64=${docker_cli_sha256_arm64}" \
-        --build-arg "DOCKER_COMPOSE_VERSION=${docker_compose_version}" \
-        --build-arg "DOCKER_COMPOSE_SHA256_AMD64=${docker_compose_sha256_amd64}" \
-        --build-arg "DOCKER_COMPOSE_SHA256_ARM64=${docker_compose_sha256_arm64}" \
-        --build-arg "NODE_VERSION=${node_version}" \
-        --build-arg "NODE_SHA256_AMD64=${node_sha256_amd64}" \
-        --build-arg "NODE_SHA256_ARM64=${node_sha256_arm64}" \
-        -t "mstudio-ci-runner-${provider}:local" \
+        "${args[@]}" \
+        -t "mstudio-ci-runner-${provider}:${tag}" \
         docker/runner
 done
 
-echo "building mstudio-ci-builder:local"
+echo "building mstudio-ci-builder:${tag}"
+build_args builder
 docker build \
     -f docker/builder/Dockerfile \
-    --build-arg "GO_VERSION=$(jq -r .kaniko.go "${builder_versions}")" \
-    --build-arg "KANIKO_VERSION=$(jq -r .kaniko.version "${builder_versions}")" \
-    --build-arg "KANIKO_REPOSITORY=$(jq -r .kaniko.repository "${builder_versions}")" \
-    --build-arg "QEMU_VERSION=$(jq -r .qemu.version "${builder_versions}")" \
-    --build-arg "QEMU_SNAPSHOT=$(jq -r .qemu.snapshot "${builder_versions}")" \
-    --build-arg "QEMU_SHA256_AMD64=$(jq -r .qemu.sha256.amd64 "${builder_versions}")" \
-    --build-arg "QEMU_SHA256_ARM64=$(jq -r .qemu.sha256.arm64 "${builder_versions}")" \
-    -t mstudio-ci-builder:local \
+    "${args[@]}" \
+    -t "mstudio-ci-builder:${tag}" \
     docker/builder
 
-echo "building mstudio-ci-docker-api:local"
+echo "building mstudio-ci-docker-api:${tag}"
 docker build \
     -f docker/docker-api/Dockerfile \
-    -t mstudio-ci-docker-api:local \
+    -t "mstudio-ci-docker-api:${tag}" \
     docker/docker-api

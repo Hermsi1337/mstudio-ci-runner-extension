@@ -1,0 +1,68 @@
+name: Test images
+description: >
+  Builds the runner images and the builder image under the tags the integration
+  tests use, with a layer cache in the GitHub Actions cache. The tests then run
+  with PREBUILT_IMAGES=1 and skip their own builds (docs/testing.md).
+
+inputs:
+  arch:
+    description: Architecture of the runner (amd64 or arm64), part of the cache scope
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Read the build args from the versions files
+      id: args
+      shell: bash
+      run: |
+        for image in github gitlab forgejo builder; do
+          {
+            echo "${image}<<BUILD_ARGS"
+            scripts/image-build-args.sh "${image}"
+            echo "BUILD_ARGS"
+          } >> "$GITHUB_OUTPUT"
+        done
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+    # runner-image.yml uses the same scopes, so the images of a release reuse the
+    # layers its verify job built.
+    - name: Build mstudio-ci-runner-github:test
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      with:
+        context: docker/runner
+        file: docker/runner/github/Dockerfile
+        load: true
+        tags: mstudio-ci-runner-github:test
+        build-args: ${{ steps.args.outputs.github }}
+        cache-from: type=gha,scope=github-${{ inputs.arch }}
+        cache-to: type=gha,mode=max,scope=github-${{ inputs.arch }}
+    - name: Build mstudio-ci-runner-gitlab:test
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      with:
+        context: docker/runner
+        file: docker/runner/gitlab/Dockerfile
+        load: true
+        tags: mstudio-ci-runner-gitlab:test
+        build-args: ${{ steps.args.outputs.gitlab }}
+        cache-from: type=gha,scope=gitlab-${{ inputs.arch }}
+        cache-to: type=gha,mode=max,scope=gitlab-${{ inputs.arch }}
+    - name: Build mstudio-ci-runner-forgejo:test
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      with:
+        context: docker/runner
+        file: docker/runner/forgejo/Dockerfile
+        load: true
+        tags: mstudio-ci-runner-forgejo:test
+        build-args: ${{ steps.args.outputs.forgejo }}
+        cache-from: type=gha,scope=forgejo-${{ inputs.arch }}
+        cache-to: type=gha,mode=max,scope=forgejo-${{ inputs.arch }}
+    - name: Build mstudio-ci-builder:test
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      with:
+        context: docker/builder
+        file: docker/builder/Dockerfile
+        load: true
+        tags: mstudio-ci-builder:test
+        build-args: ${{ steps.args.outputs.builder }}
+        cache-from: type=gha,scope=builder-${{ inputs.arch }}
+        cache-to: type=gha,mode=max,scope=builder-${{ inputs.arch }}

@@ -43,6 +43,30 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && mkdir -p ${RUNNER_HOME}/data/work ${RUNNER_HOME}/data/config \
     && chown -R runner:runner ${RUNNER_HOME}
 
+ARG NODE_VERSION
+ARG NODE_SHA256_AMD64
+ARG NODE_SHA256_ARM64
+
+# The runner bundles its own Node for JavaScript actions and lags behind Node
+# security releases. Its glibc externals get the Node from versions.json;
+# node20 points at it too because Node 20 is end of life. The *_alpine
+# variants are musl builds for container jobs and stay as shipped.
+RUN case "${TARGETARCH:-$(uname -m)}" in \
+        amd64|x86_64) NODE_ARCH=x64; NODE_SHA256="${NODE_SHA256_AMD64:?NODE_SHA256_AMD64 is required}" ;; \
+        arm64|aarch64) NODE_ARCH=arm64; NODE_SHA256="${NODE_SHA256_ARM64:?NODE_SHA256_ARM64 is required}" ;; \
+        *) echo "unsupported arch ${TARGETARCH:-$(uname -m)}" && exit 1 ;; \
+    esac \
+    && curl -fsSL -o node.tar.xz \
+        "https://nodejs.org/dist/v${NODE_VERSION:?NODE_VERSION is required}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
+    && echo "${NODE_SHA256}  node.tar.xz" | sha256sum -c - \
+    && test -x externals/node24/bin/node \
+    && rm -rf externals/node24 externals/node20 \
+    && mkdir externals/node24 \
+    && tar xJf node.tar.xz -C externals/node24 --strip-components=1 --no-same-owner \
+    && ln -s node24 externals/node20 \
+    && rm node.tar.xz \
+    && chown -R runner:runner externals
+
 ARG CRANE_VERSION
 ARG CRANE_SHA256_AMD64
 ARG CRANE_SHA256_ARM64
