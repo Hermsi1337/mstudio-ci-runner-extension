@@ -1,5 +1,8 @@
 # Marketplace listing
 
+Where the marketplace entry, its logo and its screenshots come from. Read this when you
+change the listing texts or a screen that appears in the screenshots.
+
 The published entry:
 [CI Runner in the mStudio Marketplace](https://studio.mittwald.de/marketplace/extensions/af91e32f-4596-4cbc-8d30-efc1c04b131f).
 
@@ -23,5 +26,5 @@ dark theme, viewport 1440 × 830 px; `logo.png` is a copy of `src/assets/logo.pn
 | `overview.png` | Runner list with an expanded GitHub runner: labels, job features, details |
 | `jobs.png` | "What jobs can run", one column per job feature |
 | `create-choice.png` | Create flow, CI system choice |
-| `create-form.png` | Create flow, size and job feature cards with the resource summary |
+| `create-form.png` | Create flow, size cards and the expanded job features with the resource summary |
 | `settings.png` | Runner settings, tab "Job features" |

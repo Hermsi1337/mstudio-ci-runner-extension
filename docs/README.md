@@ -1,8 +1,11 @@
 # Documentation
 
+One file per topic. Start with the [README](../README.md) for what the extension does,
+then open the file for the part you work on.
+
 | File | Topic |
 |---|---|
-| [architecture.md](architecture.md) | Building blocks, data flow, data model, webhooks, security |
+| [architecture.md](architecture.md) | Building blocks, data flow, data model, webhooks, security, project structure |
 | [providers.md](providers.md) | Provider interface, GitHub, GitLab and Forgejo, adding a provider |
 | [mstudio-setup.md](mstudio-setup.md) | Contributor status, extension registration, scopes, anchors, tokens |
 | [development.md](development.md) | Local development, environment variables, migrations, scripts |

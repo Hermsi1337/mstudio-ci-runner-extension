@@ -2,7 +2,8 @@
 
 The extension is provider-neutral. A provider encapsulates everything a CI system
 needs so the container can register itself. Everything else (stack, status, logs,
-deletion) is shared.
+deletion) is shared. Read this when you change how a CI system registers or add a new
+one.
 
 ## Interface
 

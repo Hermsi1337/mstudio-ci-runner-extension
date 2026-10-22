@@ -3,7 +3,7 @@
 Rules for everything a user sees inside mStudio. They apply to humans and agents
 alike and come before personal taste. Writing style for texts is in
 [AGENTS.md](../AGENTS.md#writing-style), the mechanics of the catalogs in
-[i18n.md](i18n.md).
+[i18n.md](i18n.md). Read this before you build or review a screen, modal or form.
 
 ## Principles
 
@@ -113,7 +113,7 @@ had slipped out of the layout.
 - Cards in one group sit side by side and their descriptions have about the same
   length in both languages. Flow's `ColumnLayout` does not stretch cards to one
   height, and a `CheckboxButton` that is wider than its text centers the text
-  (Flow 1.1.48 lacks `grid-template-columns: auto 1fr` there, which `RadioButton`
+  (Flow 1.5.33 lacks `grid-template-columns: auto 1fr` there, which `RadioButton`
   has, [mittwald/flow#3299](https://github.com/mittwald/flow/issues/3299)).
 - Background that does not fit one sentence goes into the `FieldHelp` of the group
   label, at most a few short paragraphs, with a link into the documentation. No help
@@ -126,9 +126,11 @@ had slipped out of the layout.
   collapsed `Accordion` whose `Heading` names what is inside ("Cache, Docker and
   image builds"); the summary column still shows what is switched on. The settings
   modal gives them their own `Tab`. Flow's `Accordion` hides the panel without
-  unmounting it, so react-hook-form keeps the values.
-- Units Intl knows go into `formatOptions` of the `NumberField`
-  (`{ style: "unit", unit: "gigabyte" }`), not into the label.
+  unmounting it, so react-hook-form keeps the values. A collapsed panel must not hide
+  an error: the create form controls its `AccordionGroup` and opens the job features
+  when a submit leaves `cacheSizeGb` invalid.
+- Units Intl knows go into `formatOptions` of the `NumberField` (`GIGABYTE_FORMAT`
+  from `src/runner-sizes.ts`), not into the label.
 
 ## Lists
 

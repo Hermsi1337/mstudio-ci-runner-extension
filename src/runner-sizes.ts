@@ -15,6 +15,7 @@ export const runnerSizes: Record<
 
 export const CPU_RANGE = { min: 0.25, max: 8, step: 0.25 };
 export const MEMORY_GB_RANGE = { min: 0.5, max: 16, step: 0.5 };
+export const GIGABYTE_FORMAT = { style: "unit", unit: "gigabyte" } as const;
 
 export function toMemoryMb(memoryGb: number): number {
     return Math.round(memoryGb * 1024);

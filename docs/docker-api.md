@@ -4,7 +4,8 @@
 Hosting. Docker clients in a job (the `docker` CLI, Testcontainers, dockerode)
 create, run, exec into and remove containers, and each container becomes a
 service of the stack the runner lives in. It started as a rework of
-`mittwald/mstudio-docker-adapter`.
+`mittwald/mstudio-docker-adapter`. Read this when a job uses `docker run`, Compose or
+Testcontainers, or when you change `docker/docker-api/` or `mstudio-init`.
 
 Turn on *Docker in jobs* when creating a runner or later in its settings. The
 extension then sets `DOCKER_HOST=tcp://docker:2375` in the runner and adds the

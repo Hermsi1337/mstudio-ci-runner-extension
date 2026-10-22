@@ -47,9 +47,8 @@ the [README](README.md), details in [docs/](docs/README.md).
     layout for every width, no text without a container, tested inside mStudio.
 13. **Progressive disclosure.** UI, docs and agent-facing text show what most readers
     need first and keep details, edge cases and background one step away.
-    UI: optional and advanced options sit behind an `Accordion`, `Tabs`, `FieldHelp`
-    or a modal, never next to required fields
-    ([docs/styleguide.md](docs/styleguide.md#principles)). Docs: every file opens with
+    UI: optional and advanced options sit one step away from required fields;
+    [docs/styleguide.md](docs/styleguide.md#principles) says how. Docs: every file opens with
     a lead of two or three sentences that says what it covers and when to read it. The
     README is an entry point that links instead of explaining. Agent-facing files: this
     file keeps only rules that apply to every change; topic details live in `docs/` and
@@ -108,8 +107,8 @@ Checklist before every commit:
   mechanism changes.
 - New or changed screen, modal or component pattern: `docs/styleguide.md`, screenshots
   at 1440, 1024, 768 and 414 px inside mStudio.
-- New UI, docs or agent text: essentials first, details behind a step (`Accordion`,
-  `Tabs`, `FieldHelp`, link).
+- New UI, docs or agent text: essentials first, details one step away (UI per
+  [docs/styleguide.md](docs/styleguide.md#principles), docs via a lead and links).
 - Change to specs or generators: `docs/codegen.md`.
 - New test or new container in tests: `docs/testing.md`.
 - New directory or moved module: `docs/architecture.md` and its project structure.

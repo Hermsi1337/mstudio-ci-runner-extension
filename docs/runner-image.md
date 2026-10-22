@@ -1,5 +1,8 @@
 # Runner images
 
+What runs inside a runner container and how the images are built. Read this when you
+change `docker/runner/`, bump a runner version or debug a job inside the container.
+
 One image per provider under `docker/runner/<provider>/`, built by
 `.github/workflows/runner-image.yml` (matrix, `linux/amd64` only because Container
 Hosting runs on amd64, called by
