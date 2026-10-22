@@ -49,7 +49,7 @@ flowchart LR
 
 Runners of one repository, organization, GitLab or Forgejo instance share a container stack
 in the project. Every runner is a service in it with the CPU and memory limits of its
-size, a volume for its registration and work directory, and optionally a cache volume
+size (none for a limit that a custom size leaves open), a volume for its registration and work directory, and optionally a cache volume
 plus a cronjob that keeps it below its limit. Deleting a runner removes its service
 and volumes, the last one takes the stack with it, and where a token allows it, the
 registration.

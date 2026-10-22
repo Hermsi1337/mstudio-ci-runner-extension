@@ -106,8 +106,8 @@ had slipped out of the layout.
 - Presets come with an explicit "custom" option when the underlying value is a
   number the user may reasonably want to set.
 - A limit the user may leave open gets a `Checkbox` under its `NumberField` that
-  names the limit ("No memory limit"). Checked, the field disappears and the value is
-  not sent. A choice that can hurt other apps in the project shows an
+  names the limit ("No memory limit"). Checked, the field disappears and the form
+  sends null for that value. A choice that can hurt other apps in the project shows an
   `Alert status="warning"` in the same group with what happens and what to do
   (unlimited memory in `ResourceFields.tsx`).
 - Choices whose consequence matters are cards: `RadioGroup` with `RadioButton`s for

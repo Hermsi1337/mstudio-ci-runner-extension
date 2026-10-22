@@ -35,7 +35,8 @@ screen are in [styleguide.md](styleguide.md). The runners are grouped by registr
 confirmation modals through overlay controllers. A row shows labels and switched on
 job features; it expands into the remaining details. Flow's list switches from columns
 to stacked rows by container width, so no separate mobile layout exists. The create
-form and the settings modal share `ResourceFields.tsx` (size cards) and
+form and the settings modal share `ResourceFields.tsx` (size cards, and for the custom
+size a "No limit" checkbox per limit plus a warning while memory is unlimited) and
 `JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards). The
 create form keeps the job features in a collapsed `Accordion`, the settings modal in a
 tab.
@@ -118,7 +119,9 @@ and then call `container.recreateService`. A declaration alone only changes the
 until it is recreated. The per-service action recreates only this runner, unlike
 the `recreate` query parameter of `updateStack`, which would recreate every runner
 that shares the stack. The extension skips the recreate only when mittwald reports
-`requiresRecreate: false` for the declared service. A recreate cancels the job that
+`requiresRecreate: false` for the declared service. Dropping a limit redeclares
+`deploy.resources` without it, and mittwald replaces `deploy` as a whole on PATCH
+(`{ resources: {} }` clears the limits, leaving `deploy` out keeps the old ones). A recreate cancels the job that
 runs in the container; neither GitHub, GitLab nor Forgejo retries it automatically. The
 runner row is written after the recreate succeeded, so a failed recreate leaves the
 update on offer and the next attempt declares the same state again.

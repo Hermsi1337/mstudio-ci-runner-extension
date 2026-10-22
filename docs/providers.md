@@ -41,7 +41,7 @@ the container, stores its id in `runners.cronjobIds` and deletes it with the run
 
 `configureRunner` changes cache, concurrency and resources after creation
 (`ConfigureRunnerRequest`: `cache`, `cacheSizeGb`, `concurrency`, `size`, `cpus`,
-`memoryMb`, the last two null for no limit). `withCache` and `withoutCache` add or strip the cache mount and
+`memoryMb`, the last two null for no limit with size `custom`). `withCache` and `withoutCache` add or strip the cache mount and
 variables from the service state mittwald reports, the stack is redeclared and the
 service recreated (`container.recreateService`, see
 [architecture.md](architecture.md#data-flow-create-runner)). Turning the cache on creates the cronjob, changing the limit
