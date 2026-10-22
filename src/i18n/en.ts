@@ -179,6 +179,7 @@ export const en = {
         "Starts the containers of jobs as services of this stack. One more container in the stack, shared, plus one per container a job starts.",
     "form.section.runner": "Runner",
     "form.section.features": "Job features",
+    "form.section.featuresToggle": "Cache, Docker and image builds",
     "form.section.resources": "Resources",
     "form.configCommand.parsed": "Registers at {target}, token {token}",
     "form.snippet.heading": "Use in your pipeline",
@@ -257,7 +258,7 @@ export const en = {
     "form.cpus.range": "Enter a value between 0.25 and 8",
     "form.cpus.help":
         "Share of CPU cores the container may use. One job with npm or Composer uses one CPU well; scripts and deployments get by with less.",
-    "form.memory.label": "Memory limit (GB)",
+    "form.memory.label": "Memory limit",
     "form.memory.description": "0.5 to 16 GB in steps of 0.5.",
     "form.memory.required": "Enter a memory limit",
     "form.memory.range": "Enter a value between 0.5 and 16",
@@ -284,7 +285,7 @@ export const en = {
     "form.cache.label": "Package manager cache",
     "form.cache.description":
         "Keeps downloads of npm, pip, Composer and Go for later jobs.",
-    "form.cacheSize.label": "Cache limit (GB)",
+    "form.cacheSize.label": "Cache limit",
     "form.cacheSize.description":
         "An hourly cronjob in the project deletes the oldest files above this limit.",
     "form.cacheSize.required": "Cache limit is required",

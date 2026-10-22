@@ -126,6 +126,7 @@ export function ResourceFields<T extends ResourceFormValues>({
                             minValue={MEMORY_GB_RANGE.min}
                             maxValue={MEMORY_GB_RANGE.max}
                             step={MEMORY_GB_RANGE.step}
+                            formatOptions={{ style: "unit", unit: "gigabyte" }}
                         >
                             <Label>
                                 {t("form.memory.label")}

@@ -1,5 +1,6 @@
 import {
     AccentBox,
+    Accordion,
     ActionGroup,
     Button,
     ColumnLayout,
@@ -539,9 +540,12 @@ export const RunnerForm = ({
                         )}
                     </Section>
 
-                    <Section>
-                        <JobFeatureFields form={form} />
-                    </Section>
+                    <Accordion>
+                        <Heading>{t("form.section.featuresToggle")}</Heading>
+                        <Content>
+                            <JobFeatureFields form={form} />
+                        </Content>
+                    </Accordion>
 
                     <RootError />
                 </Content>

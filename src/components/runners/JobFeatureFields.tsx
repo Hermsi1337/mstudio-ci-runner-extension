@@ -93,7 +93,12 @@ export function JobFeatureFields<T extends JobFeatureFormValues>({
                         },
                     }}
                 >
-                    <NumberField minValue={1} maxValue={500} step={1}>
+                    <NumberField
+                        minValue={1}
+                        maxValue={500}
+                        step={1}
+                        formatOptions={{ style: "unit", unit: "gigabyte" }}
+                    >
                         <Label>
                             {t("form.cacheSize.label")}
                             <FieldHelp
