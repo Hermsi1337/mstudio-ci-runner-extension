@@ -19,8 +19,8 @@
 #   MSTUDIO_WORK_ROOT set by Docker in jobs: a directory of the project file system, mounted
 #                     at its own path; the work directory moves there, so containers of a
 #                     job can bind-mount the workspace
-#   MSTUDIO_EXTERNALS_ROOT  set by Docker in jobs: where the externals of each runner version
-#                     are copied for `container:` jobs
+#   MSTUDIO_EXTERNALS_ROOT  set by Docker in jobs: where the externals of each runner and
+#                     Node version are copied for `container:` jobs
 #
 # Flow: a persisted registration from RUNNER_CONFIG_DIR is restored and reused.
 # Without one, the runner registers with RUNNER_TOKEN or a token fetched via

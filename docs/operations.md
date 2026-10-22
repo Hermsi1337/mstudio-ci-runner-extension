@@ -43,7 +43,7 @@ succeeded. Both image workflows use `docker/metadata-action` and tag:
 | Image | Tags for `v1.2.3` |
 |---|---|
 | `ghcr.io/hermsi1337/mstudio-ci-runner-extension` | `1.2.3`, `1.2`, `latest` |
-| `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.337.0`) |
+| `ghcr.io/hermsi1337/mstudio-ci-runner-github` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-2.338.0`) |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-gitlab` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-19.3.1`) |
 | `ghcr.io/hermsi1337/mstudio-ci-runner-forgejo` | `1.2.3`, `1.2`, `latest`, `runner-<RUNNER_VERSION>` (e.g. `runner-13.2.0`) |
 
@@ -272,8 +272,10 @@ computed with `sha256sum` after downloading), `dockerCompose.version` and the ch
 the two binaries from the [compose releases](https://github.com/docker/compose/releases)
 (`docker-compose-linux-<x86_64|aarch64>`, each with a `.sha256` file next to it), and
 `node.version` and the checksums of the `linux-x64` and `linux-arm64` `.tar.xz` files
-(`https://nodejs.org/dist/v${VERSION}/SHASUMS256.txt`, stay on an LTS line). Only the
-Forgejo image installs Node; its probe checks the version and that `npm install -g` still
+(`https://nodejs.org/dist/v${VERSION}/SHASUMS256.txt`, stay on an LTS line). The
+Forgejo image installs Node into `/usr/local`, the GitHub image replaces the runner's
+bundled `externals/node24` with it and points `node20` there. Both probes check the
+version; the Forgejo probe also checks that `npm install -g` still
 works as the runner user. `kaniko.version` and the Go version that compiles it live in
 `docker/builder/versions.json`
 ([releases](https://github.com/chainguard-forks/kaniko/releases)). All of them are read through

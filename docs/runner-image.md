@@ -35,7 +35,7 @@ Forgejo image and for the bundled Node of the GitHub runner. CI builds amd64 onl
 arm64 checksum is what `pnpm run runner:build` needs on an Apple Silicon machine:
 
 ```json
-{ "github": { "version": "2.337.0", "sha256": { "amd64": "...", "arm64": "..." } } }
+{ "github": { "version": "2.338.0", "sha256": { "amd64": "...", "arm64": "..." } } }
 ```
 
 It is the only place to bump them: the workflow, `pnpm run runner:build` and the image
@@ -238,7 +238,7 @@ read `DOCKER_HOST` talk to it directly.
 |---|---|---|
 | `DOCKER_HOST` | Docker API for container commands. Set by the extension when Docker in jobs is on. The shim forwards `docker run`, `exec`, `ps`, `compose` and the other container commands to the real CLI only when it is set, and the entrypoint starts `mstudio-port-forward` | unset |
 | `MSTUDIO_WORK_ROOT` | Directory on the project file system for this runner, mounted at its own path. Set by the extension with Docker in jobs. GitHub moves its work directory to `<root>/work` (also for a restored registration), GitLab its `builds_dir` to `<root>/builds`, Forgejo its `host.workdir_parent` to `<root>/work`. Every job starts with `reclaim-workspace.sh`, which gives files that containers wrote as root back to the runner user (GitHub: `ACTIONS_RUNNER_HOOK_JOB_STARTED` unless already set, GitLab: `pre_get_sources_script`). Forgejo has no such hook, its entrypoint runs the script on every container start | unset |
-| `MSTUDIO_EXTERNALS_ROOT` | GitHub only: where the entrypoint copies the externals once per runner version. It exports `MSTUDIO_EXTERNALS` with the copy, and the shim rewrites mounts of `/home/runner/externals` to it, so `container:` jobs find node | unset |
+| `MSTUDIO_EXTERNALS_ROOT` | GitHub only: where the entrypoint copies the externals once per runner and Node version. It exports `MSTUDIO_EXTERNALS` with the copy, and the shim rewrites mounts of `/home/runner/externals` to it, so `container:` jobs find node | unset |
 
 The `docker` service publishes container ports on itself: `docker run -p 5432:5432 postgres`
 listens on `docker:5432`, and `docker port` prints `0.0.0.0:<port>` meaning that port on

@@ -59,6 +59,7 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     && curl -fsSL -o node.tar.xz \
         "https://nodejs.org/dist/v${NODE_VERSION:?NODE_VERSION is required}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
     && echo "${NODE_SHA256}  node.tar.xz" | sha256sum -c - \
+    && test -x externals/node24/bin/node \
     && rm -rf externals/node24 externals/node20 \
     && mkdir externals/node24 \
     && tar xJf node.tar.xz -C externals/node24 --strip-components=1 --no-same-owner \
