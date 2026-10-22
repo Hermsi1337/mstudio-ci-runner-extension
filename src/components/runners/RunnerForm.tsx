@@ -540,12 +540,16 @@ export const RunnerForm = ({
                         )}
                     </Section>
 
-                    <Accordion>
-                        <Heading>{t("form.section.featuresToggle")}</Heading>
-                        <Content>
-                            <JobFeatureFields form={form} />
-                        </Content>
-                    </Accordion>
+                    <Section>
+                        <Accordion>
+                            <Heading>
+                                {t("form.section.featuresToggle")}
+                            </Heading>
+                            <Content>
+                                <JobFeatureFields form={form} />
+                            </Content>
+                        </Accordion>
+                    </Section>
 
                     <RootError />
                 </Content>
