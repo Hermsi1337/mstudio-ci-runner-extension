@@ -35,7 +35,7 @@
     "check:bundle": "bash scripts/check-client-bundle.sh"
   },
   "dependencies": {
-    "@mittwald/api-client": "^4.490.0",
+    "@mittwald/api-client": "^4.503.0",
     "@mittwald/ext-bridge": "1.5.33",
     "@mittwald/flow-react-components": "1.5.33",
     "@mittwald/flow-remote-react-components": "1.5.33",
