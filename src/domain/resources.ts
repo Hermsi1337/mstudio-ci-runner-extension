@@ -31,8 +31,8 @@ export function resolveResources(input: {
 }
 
 /**
- * A missing key leaves that resource unlimited: mittwald sets no default limit,
- * only the project quota applies.
+ * An absent key clears that limit: mittwald replaces `deploy` as a whole on
+ * PATCH and sets no default limit, only the project quota applies.
  */
 export function resourceLimits(
     resources: RunnerResources,
@@ -40,10 +40,22 @@ export function resourceLimits(
     if (resources.cpus === null && resources.memoryMb === null) {
         return undefined;
     }
-    return {
-        ...(resources.cpus !== null && { cpus: String(resources.cpus) }),
-        ...(resources.memoryMb !== null && {
-            memory: `${resources.memoryMb}mb`,
-        }),
-    };
+    const limits: { cpus?: string; memory?: string } = {};
+    if (resources.cpus !== null) {
+        limits.cpus = String(resources.cpus);
+    }
+    if (resources.memoryMb !== null) {
+        limits.memory = `${resources.memoryMb}mb`;
+    }
+    return limits;
+}
+
+export function storedLimits(resources: RunnerResources): {
+    cpus: number | null;
+    memoryMb: number | null;
+} {
+    if (resources.size !== "custom") {
+        return { cpus: null, memoryMb: null };
+    }
+    return { cpus: resources.cpus, memoryMb: resources.memoryMb };
 }

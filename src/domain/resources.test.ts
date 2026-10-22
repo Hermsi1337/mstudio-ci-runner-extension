@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveResources, resourceLimits } from "@/domain/resources.ts";
+import {
+    resolveResources,
+    resourceLimits,
+    storedLimits,
+} from "@/domain/resources.ts";
 
 describe("resolveResources", () => {
     it("takes the limits of a preset", () => {
@@ -55,4 +59,18 @@ describe("resourceLimits", () => {
             );
         },
     );
+});
+
+describe("storedLimits", () => {
+    it("stores no values for a preset", () => {
+        expect(
+            storedLimits({ size: "large", cpus: 2, memoryMb: 4096 }),
+        ).toEqual({ cpus: null, memoryMb: null });
+    });
+
+    it("stores the custom values, null included", () => {
+        expect(
+            storedLimits({ size: "custom", cpus: null, memoryMb: 3072 }),
+        ).toEqual({ cpus: null, memoryMb: 3072 });
+    });
 });
