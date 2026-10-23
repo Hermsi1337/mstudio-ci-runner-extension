@@ -22,7 +22,9 @@ Every provider returns `DATA_VOLUME_MOUNT` (`data:/home/runner/data`) as its onl
 volume; the images keep all persistent state below that directory
 ([runner-image.md](runner-image.md#volumes)). The domain prefixes volume names with
 the service name before declaring them (`runner-<slug>-data`), so runners sharing a
-stack keep separate volumes.
+stack keep separate volumes. Project directories are bind mounts the domain adds after
+the prefixed volumes for every provider; providers never see them
+([runner-image.md](runner-image.md#project-directories)).
 
 `updateRunner` in `src/domain/runner.ts` redeclares the service with `currentImage()` and
 the service state mittwald reports, so providers need no update hook. GitHub runners
@@ -40,9 +42,10 @@ involved. `runner.ts` then creates a mittwald service cronjob (stack, service, c
 from `cacheTrimCronjob(sizeGb)` that runs `/usr/local/bin/trim-cache.sh` hourly inside
 the container, stores its id in `runners.cronjobIds` and deletes it with the runner.
 
-`configureRunner` changes name, cache, concurrency and resources after creation
-(`ConfigureRunnerRequest`: `name`, `cache`, `cacheSizeGb`, `concurrency`, `size`, `cpus`,
-`memoryMb`, the last two null for no limit with size `custom`). `withCache` and `withoutCache` add or strip the cache mount and
+`configureRunner` changes name, cache, concurrency, resources and project directories
+after creation (`ConfigureRunnerRequest`: `name`, `cache`, `cacheSizeGb`, `concurrency`,
+`size`, `cpus`, `memoryMb`, the last two null for no limit with size `custom`,
+`projectDirectories`, kept as they are when missing). `withCache` and `withoutCache` add or strip the cache mount and
 variables from the service state mittwald reports, the stack is redeclared and the
 service recreated (`container.recreateService`, see
 [architecture.md](architecture.md#data-flow-create-runner)). Turning the cache on creates the cronjob, changing the limit

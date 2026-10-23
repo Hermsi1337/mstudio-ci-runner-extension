@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parsePublicError, UpstreamError } from "@/global-errors.ts";
+import {
+    ProjectDirectoryError,
+    parsePublicError,
+    UpstreamError,
+} from "@/global-errors.ts";
 import { classifyError, toErrorBody } from "./error-body.ts";
 
 /**
@@ -39,6 +43,34 @@ describe("error body contract", () => {
         const parsed = roundTrip(new Error(zodIssues));
         expect(parsed?.message).toBe("Invalid URL");
         expect(parsed?.details.affectedField).toBe("instanceUrl");
+    });
+
+    it("keeps the full path of an issue inside a list", () => {
+        const zodIssues = JSON.stringify([
+            {
+                path: ["projectDirectories", 1, "source"],
+                message: "Too small",
+            },
+        ]);
+        const parsed = roundTrip(new Error(zodIssues));
+        expect(parsed?.details.affectedField).toBe(
+            "projectDirectories.1.source",
+        );
+    });
+
+    it("round-trips a project directory error with its row and field", () => {
+        const parsed = roundTrip(
+            new ProjectDirectoryError(
+                "error.projectDirectory.targetReserved",
+                { path: "/builds" },
+                "projectDirectories.0.target",
+            ),
+        );
+        expect(parsed?.type).toBe("ProjectDirectoryError");
+        expect(parsed?.message).toContain("/builds");
+        expect(parsed?.details.affectedField).toBe(
+            "projectDirectories.0.target",
+        );
     });
 
     it("leaves the affected field out when no issue has a path", () => {

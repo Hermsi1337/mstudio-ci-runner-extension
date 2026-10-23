@@ -27,6 +27,10 @@ import {
 } from "@/global-errors.ts";
 import { addLogContext, createLogger } from "@/logger.ts";
 import {
+    sameProjectDirectories,
+    withProjectDirectories,
+} from "@/project-directories.ts";
+import {
     buildQueueMount,
     ensureBuilder,
     removeBuilderIfUnused,
@@ -46,6 +50,7 @@ import {
     removeDockerApiIfUnused,
 } from "./docker-api.ts";
 import { getProjectCapabilities, getProjectDirectory } from "./project.ts";
+import { checkedProjectDirectories } from "./project-directories.ts";
 import {
     getProvider,
     getProviderById,
@@ -118,6 +123,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         imageBuilds: row.imageBuilds,
         dockerApi: row.dockerApi,
         concurrency: row.concurrency,
+        projectDirectories: row.projectDirectories,
         stackId: row.stackId,
         serviceId,
         studioUrl: studioUrl(row, serviceId),
@@ -446,6 +452,15 @@ export async function createRunner(
     if (input.dockerApi) {
         assertDockerApiAvailable();
     }
+    const requestedDirectories = input.projectDirectories ?? [];
+    const projectDirectory =
+        requestedDirectories.length > 0 || input.dockerApi
+            ? await getProjectDirectory(client, projectId)
+            : "";
+    const projectDirectories = checkedProjectDirectories(
+        requestedDirectories,
+        projectDirectory,
+    );
     const provider = getProvider(input);
     const resources = resolveResources(input);
     const labels = (input.labels ?? "mittwald")
@@ -462,6 +477,7 @@ export async function createRunner(
         size: resources.size,
         cpus: resources.cpus,
         memoryMb: resources.memoryMb,
+        projectDirectories: projectDirectories.length,
     });
     const prepared = await provider.prepare({ ...input, labels }, runnerName);
     if (provider.uniqueNamePerTarget) {
@@ -584,7 +600,7 @@ export async function createRunner(
     if (dockerApi) {
         ({ environment, mounts } = withDockerApi(
             { environment, mounts },
-            ciWorkRoot(await getProjectDirectory(client, projectId), stackId),
+            ciWorkRoot(projectDirectory, stackId),
             serviceName,
         ));
     }
@@ -605,14 +621,20 @@ export async function createRunner(
             {
                 description: serviceDescription(provider, input.name),
                 image: prepared.image,
-                environment: withConcurrency(
-                    provider,
-                    environment,
-                    concurrency,
-                ),
                 restartPolicy: "always",
                 deploy: { resources: { limits: resourceLimits(resources) } },
-                volumes: prefixMounts(serviceName, mountsWithQueue),
+                ...withProjectDirectories(
+                    {
+                        environment: withConcurrency(
+                            provider,
+                            environment,
+                            concurrency,
+                        ),
+                        volumes: prefixMounts(serviceName, mountsWithQueue),
+                    },
+                    projectDirectory,
+                    projectDirectories,
+                ),
             },
         );
         // After the runner, never before: a sibling that turns image builds off
@@ -673,6 +695,7 @@ export async function createRunner(
         imageBuilds,
         dockerApi,
         concurrency,
+        projectDirectories,
         cronjobIds: JSON.stringify(cronjobIds),
         createdBy: userId,
     };
@@ -848,8 +871,8 @@ async function recreateIfRequired(
 }
 
 /**
- * Changes the name, cache, image builds, Docker in jobs, concurrency and
- * resources after creation.
+ * Changes the name, cache, image builds, Docker in jobs, concurrency,
+ * resources and project directories after creation.
  * Switching the cache adds or removes the cache volume and environment on the
  * service state mittwald reports, image builds add or remove the build queue
  * mount and the builder service of the stack, concurrency changes an
@@ -860,6 +883,9 @@ async function recreateIfRequired(
  * same way. A new name changes the descriptions of the service and the cache
  * cronjob; serviceName and runnerName stay, so the volumes and the registration
  * in the CI system keep theirs.
+ * Every redeclaration mounts the project directories of the row anew. A mount
+ * someone added by hand stays, unless it sits at the path of a project
+ * directory, old or new.
  */
 export async function configureRunner(
     client: MittwaldAPIV2Client,
@@ -890,6 +916,19 @@ export async function configureRunner(
         resources.cpus !== current.cpus ||
         resources.memoryMb !== current.memoryMb;
     const name = input.name ?? row.name;
+    const projectDirectory = input.projectDirectories?.length
+        ? await getProjectDirectory(client, row.projectId)
+        : undefined;
+    const projectDirectories = input.projectDirectories
+        ? checkedProjectDirectories(
+              input.projectDirectories,
+              projectDirectory ?? "",
+          )
+        : row.projectDirectories;
+    const directoriesChanged = !sameProjectDirectories(
+        projectDirectories,
+        row.projectDirectories,
+    );
     const renamed = name !== row.name;
     const description = renamed
         ? serviceDescription(provider, name)
@@ -904,8 +943,14 @@ export async function configureRunner(
         imageBuilds !== row.imageBuilds ||
         dockerApi !== row.dockerApi ||
         concurrency !== row.concurrency ||
-        resourcesChanged
+        resourcesChanged ||
+        directoriesChanged
     ) {
+        const home =
+            projectDirectory ??
+            (dockerApi || projectDirectories.length > 0
+                ? await getProjectDirectory(client, row.projectId)
+                : "");
         const plainMounts = unprefixMounts(
             row.serviceName,
             declared.volumes ?? [],
@@ -916,10 +961,7 @@ export async function configureRunner(
         const { environment, mounts } = dockerApi
             ? withDockerApi(
                   cached,
-                  ciWorkRoot(
-                      await getProjectDirectory(client, row.projectId),
-                      row.stackId,
-                  ),
+                  ciWorkRoot(home, row.stackId),
                   row.serviceName,
               )
             : withoutDockerApi(cached);
@@ -942,16 +984,26 @@ export async function configureRunner(
                 {
                     ...declared,
                     description,
-                    environment: withConcurrency(
-                        provider,
-                        environment,
-                        concurrency,
-                    ),
                     deploy: {
                         ...declared.deploy,
                         resources: { limits: resourceLimits(resources) },
                     },
-                    volumes: prefixMounts(row.serviceName, mountsWithQueue),
+                    ...withProjectDirectories(
+                        {
+                            environment: withConcurrency(
+                                provider,
+                                environment,
+                                concurrency,
+                            ),
+                            volumes: prefixMounts(
+                                row.serviceName,
+                                mountsWithQueue,
+                            ),
+                        },
+                        home,
+                        projectDirectories,
+                        row.projectDirectories,
+                    ),
                 },
             )) ?? service;
         // The builder comes after the runner, so a sibling that turns image
@@ -1047,6 +1099,7 @@ export async function configureRunner(
             imageBuilds,
             dockerApi,
             concurrency,
+            projectDirectories,
             size: resources.size,
             ...storedLimits(resources),
             serviceId: updatedService.id,
@@ -1074,6 +1127,8 @@ export async function configureRunner(
         dockerApi,
         previousDockerApi: row.dockerApi,
         previousConcurrency: row.concurrency,
+        projectDirectories: projectDirectories.length,
+        previousProjectDirectories: row.projectDirectories.length,
     });
     return toView(updated, updatedService);
 }

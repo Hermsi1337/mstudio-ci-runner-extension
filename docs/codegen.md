@@ -31,6 +31,11 @@ paths, because TanStack server functions have no HTTP routing in the OpenAPI sen
   `zProjectCapabilities.parse`.
 - `RunnerSize`, `RunnerStatus`, `Provider`: enums, available in the UI as types and
   constants.
+- `ProjectDirectory`, `ProjectDirectories`: the mounted project directories, part of
+  `RunnerBase`, `ConfigureRunnerRequest` and `Runner`. The schema limits length and
+  count only. The path rules live in `src/project-directories.ts`, shared by the domain
+  and the forms: zod messages are English only, and one rule depends on the project
+  directory, which only the server knows.
 
 Workflow for changes:
 

@@ -1,10 +1,11 @@
 import { Alert, Text } from "@mittwald/flow-remote-react-components";
 import { type FC, useEffect } from "react";
-import type {
-    FieldPath,
-    FieldValues,
-    SubmitHandler,
-    UseFormReturn,
+import {
+    type FieldPath,
+    type FieldValues,
+    get,
+    type SubmitHandler,
+    type UseFormReturn,
 } from "react-hook-form";
 import { parsePublicError } from "@/global-errors.ts";
 import { useTranslation } from "@/i18n/react.tsx";
@@ -34,8 +35,12 @@ export function useFormErrorHandling<TFormValues extends FieldValues>(
                 ? publicError.message
                 : t("error.generic");
             const affectedField = publicError?.details.affectedField;
+            // A list itself has no field to show the message, its rows do.
+            const value = affectedField
+                ? get(form.getValues(), affectedField)
+                : undefined;
             const target =
-                affectedField && affectedField in form.getValues()
+                affectedField && value !== undefined && !Array.isArray(value)
                     ? affectedField
                     : "root";
 

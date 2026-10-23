@@ -66,7 +66,8 @@ function parseZodValidationError(error: unknown): ZodIssue[] | null {
 
 /**
  * A union schema reports its failure as one issue without a path, so the
- * affected field comes from the first issue that names one, if any.
+ * affected field comes from the first issue that names one, if any. The
+ * dotted path reaches into lists (`projectDirectories.0.source`).
  */
 function buildValidationError(validationIssues: ZodIssue[]): ErrorBody {
     const issue =
@@ -79,7 +80,7 @@ function buildValidationError(validationIssues: ZodIssue[]): ErrorBody {
         isRetryable: false,
         details:
             issue.path.length > 0
-                ? { affectedField: String(issue.path[0]) }
+                ? { affectedField: issue.path.join(".") }
                 : {},
     };
 }

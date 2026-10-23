@@ -54,11 +54,13 @@ export const en = {
     "runners.column.dockerApi": "Docker in jobs",
     "runners.column.version": "Version",
     "runners.column.features": "Features",
+    "runners.column.directories": "Project directories",
     "runners.column.auth": "Token",
     "runners.feature.cache": "Cache",
     "runners.feature.imageBuilds": "Image builds",
     "runners.feature.dockerApi": "Docker in jobs",
     "runners.feature.none": "None",
+    "runners.feature.directories": "Directories",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Restart",
     "runners.action.update": "Update",
@@ -77,6 +79,9 @@ export const en = {
     "runners.imageBuilds.off": "Off",
     "runners.dockerApi.on": "On",
     "runners.dockerApi.off": "Off",
+    "runners.directories.none": "None",
+    "runners.directories.entry": "{source} → {target}",
+    "runners.directories.entryReadOnly": "{source} → {target} (read only)",
     "runners.notice.created": "Runner {name} created",
     "runners.notice.createdText":
         "The container starts now and registers within a minute.",
@@ -182,9 +187,14 @@ export const en = {
     "form.summary.dockerApi.label": "Container: docker",
     "form.summary.dockerApi.text":
         "Starts the containers of jobs as services of this stack. One more container in the stack, shared, plus one per container a job starts.",
+    "form.summary.directory.label": "Directory: {source} → {target}",
+    "form.summary.directory.text.readOnly": "Jobs can read the files.",
+    "form.summary.directory.text.writable":
+        "Every job on this runner can write here, with mstudio-sync.",
     "form.section.runner": "Runner",
     "form.section.features": "Job features",
-    "form.section.featuresToggle": "Cache, Docker and image builds",
+    "form.section.featuresToggle": "Optional features",
+    "form.section.directories": "Directories",
     "form.section.resources": "Resources",
     "form.configCommand.parsed": "Registers at {target}, token {token}",
     "form.snippet.heading": "Use in your pipeline",
@@ -319,6 +329,17 @@ export const en = {
     "form.features.help":
         "**Package manager cache:** a volume at `/home/runner/.cache` that survives jobs, restarts and updates. `XDG_CACHE_HOME` and the variables of each tool point at it. Turning the cache off deletes the volume.\n**Image builds:** a `builder` container in the stack builds with kaniko, the runner pushes with the credentials from `docker login`. There is no layer cache. `RUN --mount`, `--secret`, `--ssh` and builds for another architecture stop with a message.\n**Docker in jobs:** a `docker` container in the stack starts every container of a job as a container of the stack. Containers take a few seconds to start and run without TTY and privileges. Bind mounts must lie in the project file system, where the workspace of the runner lives. Every container counts against the resources of the project.",
     "form.features.docs": "Documentation on GitHub",
+    "form.directories.label": "Project directories",
+    "form.directories.help":
+        "The runner mounts each directory of the project file system at the path you give. Enter it relative to the project directory, for example `html/my-app` for `/home/p-xxxxxx/html/my-app`.\nJobs run as the user `runner`, who does not own the project files. `mstudio-sync <src> <dest>` copies as the owner of the target directory, so the files stay with the project user and SFTP and your app keep access. `--delete` removes files the source lacks.\nEvery job on this runner can write into a directory that is not read only. Changing the list recreates the container.",
+    "form.directories.description":
+        "Write into a directory with `mstudio-sync <src> <dest>`, so the files keep the owner of the project. [How mstudio-sync works]({url})",
+    "form.directories.docs": "How mstudio-sync works",
+    "form.directories.add": "Add directory",
+    "form.directories.remove": "Remove directory {number}",
+    "form.directories.source.label": "Directory in the project",
+    "form.directories.target.label": "Path in the runner",
+    "form.directories.readOnly": "Read only",
     "form.concurrency.label": "Jobs at once",
     "form.concurrency.required": "Enter how many jobs run at once",
     "form.concurrency.range": "Enter a value between 1 and 8",
@@ -393,4 +414,28 @@ export const en = {
         "The Forgejo URL must be an https address without user, query or fragment, for example https://forgejo.example.com.",
     "error.forgejo.labelsInvalid":
         "Forgejo labels must not contain : or ?. Enter plain names such as mittwald; the extension appends :host itself.",
+    "error.projectDirectory.sourceRequired":
+        "Enter a directory of the project, for example html/my-app.",
+    "error.projectDirectory.sourceAbsolute":
+        "Enter the directory relative to the project directory, without a leading /, for example html/my-app.",
+    "error.projectDirectory.sourceOutside":
+        "The directory must lie inside the project directory. Remove the .. that leads out of it.",
+    "error.projectDirectory.sourceProjectRoot":
+        "Enter a directory below the project directory, for example html/my-app.",
+    "error.projectDirectory.colon":
+        "Remove the colon. Mount paths cannot contain one.",
+    "error.projectDirectory.targetRequired":
+        "Enter the path in the runner, for example /deploy/my-app.",
+    "error.projectDirectory.targetRelative":
+        "Enter an absolute path that starts with /, for example /deploy/my-app.",
+    "error.projectDirectory.targetRoot":
+        "The runner cannot mount a directory at /. Enter a path such as /deploy/my-app.",
+    "error.projectDirectory.targetReserved":
+        "The runner uses {path} itself. Pick a path outside of it, for example /deploy/my-app.",
+    "error.projectDirectory.targetDuplicate":
+        "Another directory already uses this path. Pick a different one.",
+    "error.projectDirectory.targetNested":
+        "This path contains the path of another directory or lies inside it. Pick paths next to each other.",
+    "error.projectDirectory.tooMany":
+        "A runner takes {max} directories at most. Remove this one.",
 } as const;

@@ -104,6 +104,7 @@ export type RunnerBase = {
     size?: RunnerSize;
     cpus?: Cpus;
     memoryMb?: MemoryMb;
+    projectDirectories?: ProjectDirectories;
     /**
      * Container stack the runner is declared in. Without it the extension uses the
      * stack of the registration target and creates it when it does not exist yet. With
@@ -138,6 +139,29 @@ export type DockerApi = boolean;
  * Size limit of the cache volume in GB. An hourly mittwald cronjob deletes the least recently modified files above it. Only used with cache true.
  */
 export type CacheSizeGb = number;
+
+/**
+ * A directory of the project file system, bind-mounted into the runner container.
+ */
+export type ProjectDirectory = {
+    /**
+     * Directory relative to the project directory, for example `html/my-app`. Must stay inside the project directory. Stored normalized.
+     */
+    source: string;
+    /**
+     * Absolute path in the runner container. Must not be `/`, must not overlap `/home/runner/data`, `/home/runner/.cache`, `/builds`, the Docker API work directory or another entry. Stored normalized.
+     */
+    target: string;
+    /**
+     * Mounts the directory read only.
+     */
+    readOnly: boolean;
+};
+
+/**
+ * Project directories mounted into the runner. Jobs write into a writable one with `mstudio-sync` (docs/runner-image.md).
+ */
+export type ProjectDirectories = Array<ProjectDirectory>;
 
 /**
  * GitHub organisation (`owner`) or repository (`owner/repo`), optionally as full URL.
@@ -230,6 +254,7 @@ export type ConfigureRunnerRequest = {
     size?: RunnerSize;
     cpus?: Cpus;
     memoryMb?: MemoryMb;
+    projectDirectories?: ProjectDirectories;
 };
 
 export type RunnerLogsRequest = {
@@ -275,6 +300,7 @@ export type Runner = {
      */
     dockerApi: boolean;
     concurrency: number;
+    projectDirectories: ProjectDirectories;
     stackId: string;
     serviceId: string | null;
     /**

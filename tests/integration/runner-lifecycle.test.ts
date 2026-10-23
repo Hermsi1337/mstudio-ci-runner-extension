@@ -874,6 +874,349 @@ describe("custom runner without limits", () => {
 });
 
 /**
+ * The project directory is the Home of the Prism example project. Prism
+ * answers getStack with its example service state, so the configure tests put
+ * the state a runner with these directories has in its place: data and cache
+ * volumes, project mounts and mounts added by hand.
+ */
+describe("project directories", () => {
+    const home = "/home/p-4e7tz3";
+    const data = "runner-deploy-data:/home/runner/data";
+    const cacheVolume = "runner-deploy-cache:/home/runner/.cache";
+    const handMade = `${home}/manual:/manual`;
+    const handMadeAtNewTarget = "/home/p-XXXXX/html:/var/www";
+    const target = {
+        provider: "github" as const,
+        target: "acme/deploy",
+        tokenType: "registration" as const,
+        token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+    };
+    let created: Runner;
+
+    interface ReportedState {
+        volumes: string[];
+        envs: Record<string, string>;
+    }
+
+    const reportState = (state: ReportedState) => {
+        const getStack = client.container.getStack.bind(client.container);
+        return vi
+            .spyOn(client.container, "getStack")
+            .mockImplementation(async (request) => {
+                const response = await getStack(request);
+                if (response.status === 200) {
+                    for (const service of response.data.services ?? []) {
+                        service.deployedState = {
+                            ...service.deployedState,
+                            ...state,
+                        };
+                        service.pendingState = service.pendingState && {
+                            ...service.pendingState,
+                            ...state,
+                        };
+                    }
+                }
+                return response;
+            });
+    };
+
+    const declare = async <T>(
+        action: () => Promise<T>,
+        state?: ReportedState,
+    ) => {
+        const getStack = state ? reportState(state) : undefined;
+        const createStack = vi.spyOn(client.container, "createStack");
+        const updateStack = vi.spyOn(client.container, "updateStack");
+        const recreateService = vi.spyOn(client.container, "recreateService");
+        try {
+            const result = await action().catch((error: unknown) => error);
+            const service = updateStack.mock.calls
+                .map(([request]) => request.data?.services?.["runner-deploy"])
+                .find((declared) => declared !== undefined);
+            return {
+                result,
+                service,
+                created: createStack.mock.calls.length,
+                declared: updateStack.mock.calls.length,
+                recreated: recreateService.mock.calls.length,
+            };
+        } finally {
+            getStack?.mockRestore();
+            createStack.mockRestore();
+            updateStack.mockRestore();
+            recreateService.mockRestore();
+        }
+    };
+
+    const configure = (
+        settings: Omit<
+            Parameters<typeof runner.configureRunner>[2],
+            "runnerId"
+        >,
+        state?: ReportedState,
+    ) =>
+        declare(
+            () =>
+                runner.configureRunner(client, extensionInstanceId, {
+                    runnerId: created.id,
+                    ...settings,
+                }),
+            state,
+        );
+
+    afterAll(async () => {
+        if (created) {
+            await runner.deleteRunner(client, extensionInstanceId, created.id);
+        }
+    });
+
+    it("mounts two directories unprefixed next to the prefixed volumes", async () => {
+        const { result, service } = await declare(() =>
+            runner.createRunner(
+                client,
+                extensionInstanceId,
+                projectId,
+                userId,
+                {
+                    ...target,
+                    name: "Deploy",
+                    projectDirectories: [
+                        {
+                            source: "./html/a/",
+                            target: "/deploy/a",
+                            readOnly: false,
+                        },
+                        {
+                            source: "html/b",
+                            target: "/deploy//b/",
+                            readOnly: true,
+                        },
+                    ],
+                },
+            ),
+        );
+        created = zRunner.parse(result);
+        expect(created.projectDirectories).toEqual([
+            { source: "html/a", target: "/deploy/a", readOnly: false },
+            { source: "html/b", target: "/deploy/b", readOnly: true },
+        ]);
+        expect(service?.volumes).toEqual([
+            data,
+            `${home}/html/a:/deploy/a`,
+            `${home}/html/b:/deploy/b:ro`,
+        ]);
+        expect(service?.environment?.MSTUDIO_PROJECT_DIRECTORIES).toBe(
+            "/deploy/a:/deploy/b",
+        );
+    });
+
+    it("declares nothing when the list only changes its spelling", async () => {
+        const { result, declared, recreated } = await configure({
+            cache: false,
+            projectDirectories: [
+                { source: "html/a/", target: "/deploy/a/", readOnly: false },
+                { source: "./html/b", target: "/deploy/b", readOnly: true },
+            ],
+        });
+        expect(result).toMatchObject({
+            projectDirectories: created.projectDirectories,
+        });
+        expect(declared).toBe(0);
+        expect(recreated).toBe(0);
+    });
+
+    it("keeps the directories and a mount added by hand when the cache is turned on", async () => {
+        const { result, service } = await configure(
+            { cache: true },
+            {
+                volumes: [
+                    data,
+                    `${home}/html/a:/deploy/a`,
+                    `${home}/html/b:/deploy/b:ro`,
+                    handMade,
+                ],
+                envs: {
+                    OTHER: "1",
+                    MSTUDIO_PROJECT_DIRECTORIES: "/deploy/a:/deploy/b",
+                },
+            },
+        );
+        expect(result).toMatchObject({
+            projectDirectories: created.projectDirectories,
+        });
+        expect(service?.volumes).toEqual([
+            data,
+            handMade,
+            cacheVolume,
+            `${home}/html/a:/deploy/a`,
+            `${home}/html/b:/deploy/b:ro`,
+        ]);
+        expect(service?.environment).toMatchObject({
+            OTHER: "1",
+            MSTUDIO_PROJECT_DIRECTORIES: "/deploy/a:/deploy/b",
+        });
+    });
+
+    it("recreates the container when only the read only flag changes", async () => {
+        const { service, declared, recreated } = await configure(
+            {
+                cache: true,
+                projectDirectories: [
+                    { source: "html/a", target: "/deploy/a", readOnly: true },
+                    { source: "html/b", target: "/deploy/b", readOnly: true },
+                ],
+            },
+            {
+                volumes: [
+                    data,
+                    handMade,
+                    cacheVolume,
+                    `${home}/html/a:/deploy/a`,
+                    `${home}/html/b:/deploy/b:ro`,
+                ],
+                envs: { MSTUDIO_PROJECT_DIRECTORIES: "/deploy/a:/deploy/b" },
+            },
+        );
+        expect(declared).toBe(1);
+        expect(recreated).toBe(1);
+        expect(service?.volumes).toEqual([
+            data,
+            handMade,
+            cacheVolume,
+            `${home}/html/a:/deploy/a:ro`,
+            `${home}/html/b:/deploy/b:ro`,
+        ]);
+    });
+
+    it("drops removed and moved mounts and replaces a mount added by hand at a new target", async () => {
+        const { result, service, recreated } = await configure(
+            {
+                cache: true,
+                projectDirectories: [
+                    { source: "html/b", target: "/deploy/b2", readOnly: false },
+                    { source: "html/www", target: "/var/www", readOnly: true },
+                ],
+            },
+            {
+                volumes: [
+                    data,
+                    handMade,
+                    handMadeAtNewTarget,
+                    cacheVolume,
+                    `${home}/html/a:/deploy/a:ro`,
+                    `${home}/html/b:/deploy/b:ro`,
+                ],
+                envs: { MSTUDIO_PROJECT_DIRECTORIES: "/deploy/a:/deploy/b" },
+            },
+        );
+        expect(result).toMatchObject({
+            projectDirectories: [
+                { source: "html/b", target: "/deploy/b2", readOnly: false },
+                { source: "html/www", target: "/var/www", readOnly: true },
+            ],
+        });
+        expect(service?.volumes).toEqual([
+            data,
+            handMade,
+            cacheVolume,
+            `${home}/html/b:/deploy/b2`,
+            `${home}/html/www:/var/www:ro`,
+        ]);
+        expect(service?.environment?.MSTUDIO_PROJECT_DIRECTORIES).toBe(
+            "/deploy/b2:/var/www",
+        );
+        expect(recreated).toBe(1);
+    });
+
+    it("removes the mounts and the variable with the last directory", async () => {
+        const { result, service } = await configure(
+            { cache: true, projectDirectories: [] },
+            {
+                volumes: [
+                    data,
+                    handMade,
+                    cacheVolume,
+                    `${home}/html/b:/deploy/b2`,
+                    `${home}/html/www:/var/www:ro`,
+                ],
+                envs: {
+                    OTHER: "1",
+                    MSTUDIO_PROJECT_DIRECTORIES: "/deploy/b2:/var/www",
+                },
+            },
+        );
+        expect(result).toMatchObject({ projectDirectories: [] });
+        expect(service?.volumes).toEqual([data, handMade, cacheVolume]);
+        expect(service?.environment).toEqual(
+            expect.objectContaining({ OTHER: "1" }),
+        );
+        expect(service?.environment).not.toHaveProperty(
+            "MSTUDIO_PROJECT_DIRECTORIES",
+        );
+    });
+
+    it("rejects the work directory of Docker in jobs with the field of the row", async () => {
+        const { result, declared } = await configure({
+            cache: true,
+            projectDirectories: [
+                { source: "html/a", target: "/deploy/a", readOnly: false },
+                {
+                    source: "html/b",
+                    target: `${home}/.ci-work/stack`,
+                    readOnly: false,
+                },
+            ],
+        });
+        expect(result).toMatchObject({
+            messageKey: "error.projectDirectory.targetReserved",
+            details: { affectedField: "projectDirectories.1.target" },
+        });
+        expect(declared).toBe(0);
+    });
+
+    it.each(["/home/runner/.cache/npm", `${home}/.ci-work/stack`])(
+        "rejects a create with the target %s before anything exists",
+        async (reserved) => {
+            const {
+                result,
+                created: stacks,
+                declared,
+            } = await declare(() =>
+                runner.createRunner(
+                    client,
+                    extensionInstanceId,
+                    projectId,
+                    userId,
+                    {
+                        ...target,
+                        target: "acme/reserved",
+                        name: "Reserved",
+                        projectDirectories: [
+                            {
+                                source: "html/a",
+                                target: reserved,
+                                readOnly: false,
+                            },
+                        ],
+                    },
+                ),
+            );
+            expect(result).toMatchObject({
+                messageKey: "error.projectDirectory.targetReserved",
+                details: { affectedField: "projectDirectories.0.target" },
+            });
+            expect(stacks).toBe(0);
+            expect(declared).toBe(0);
+            const rows = await db
+                .select()
+                .from(schema.runners)
+                .where(eq(schema.runners.name, "Reserved"));
+            expect(rows).toEqual([]);
+        },
+    );
+});
+
+/**
  * Prism generates the ids of a stack, so the test reads the stack it is going
  * to select and uses the project id that comes with it.
  */

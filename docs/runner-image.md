@@ -10,8 +10,8 @@ Hosting runs on amd64, called by
 image also gets `docker/runner/common/`: `trim-cache.sh`, the cache cleanup called by the
 cronjob (see [providers.md](providers.md)), `reclaim-workspace.sh` for Docker in jobs, and the tools for image builds, `docker-shim`
 plus `mstudio-build`, `mstudio-image-store`, `mstudio-crane`, `mstudio-dockerfile-check`
-and `mstudio-platform-check` ([image-builds.md](image-builds.md)), and `mstudio-port-forward`
-([Docker in jobs](#docker-in-jobs)). Every image also ships
+and `mstudio-platform-check` ([image-builds.md](image-builds.md)), `mstudio-port-forward`
+([Docker in jobs](#docker-in-jobs)) and `mstudio-sync` ([Project directories](#project-directories)). Every image also ships
 the static docker CLI from download.docker.com at `/usr/local/libexec/docker-cli/docker`,
 the docker compose plugin from the [docker/compose](https://github.com/docker/compose)
 releases at `/usr/local/lib/docker/cli-plugins/docker-compose` and `socat`.
@@ -213,6 +213,55 @@ entrypoints detect those mounts (`/home/runner/_config`, `/home/runner/builds`) 
 using them, so an image update does not lose the GitHub registration. Turning the cache
 on or off works for them as well.
 
+## Project directories
+
+A runner can mount directories of the project file system, for example the document
+root of an app it deploys. Each entry has a source relative to the project directory
+(`html/my-app`), a target in the container (`/deploy/my-app`) and a read only flag. The
+extension declares `<project directory>/<source>:<target>[:ro]` next to the volumes and
+sets one variable:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `MSTUDIO_PROJECT_DIRECTORIES` | Colon separated targets of the project directories, read by `mstudio-sync`. Set by the extension, absent without a directory | unset |
+
+The files belong to the project user, not to `runner`, so a plain write fails with
+`Permission denied`, and a write with `sudo` leaves files owned by root that SFTP and the
+app cannot change. `mstudio-sync [--delete] SRC DEST` writes as the owner of `DEST`, or
+of its nearest existing parent:
+
+1. As root it resolves `DEST` (`..` and symlinks) and refuses it outside the targets.
+   The target must be a mount point (`findmnt`) whose options it can read and that is
+   not read only.
+2. As root it reads the owner `uid:gid` of the nearest existing directory and refuses
+   one that belongs to root.
+3. It stages `SRC` in a private temporary directory and hands it to that owner.
+4. As the owner (`setpriv --reuid --regid --clear-groups`) it creates the missing
+   directories up to `DEST` (mode 755) and runs
+   `rsync -rltp --chmod=D755,F644 [--delete]` from the stage into `DEST`.
+
+Root never writes into the project directory, so a symlink someone swaps in after the
+check reaches only what the owner may write anyway, and rsync replaces symlinks in
+`DEST` instead of following them. Every directory and file it copies gets mode 755 and
+644, existing files included; files in `DEST` that `SRC` lacks keep theirs. A file the
+owner may not write makes rsync fail. As with rsync, `SRC/` copies the contents and
+gives `DEST` itself mode 755, `SRC` without the slash copies the directory. `--delete`
+removes files in `DEST` that `SRC` lacks. `--` ends the options, for a `SRC` that
+starts with a dash.
+
+Every job on the runner can write into a writable directory with `sudo` as well, so
+give a runner only the directories its pipelines deploy to.
+
+Rules for the list, checked by the form and the server (`src/project-directories.ts`):
+at most 10 entries, no colon in a path, the source stays inside the project directory
+and is not the project directory itself, the target is absolute, not `/`, and neither
+contains nor lies below `/home/runner/data`, `/home/runner/.cache`, `/builds` (build
+queue), `<project directory>/.ci-work` (Docker in jobs) or another target.
+
+A mount someone added in mStudio with a leading slash stays through every settings
+change and update, unless it sits at the target of a project directory: then the
+project directory replaces it.
+
 ## Building and testing
 
 ```bash
@@ -329,4 +378,15 @@ jobs:
       - run: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=test postgres:17
       - run: pg_isready -h localhost -p 5432   # forwarded by mstudio-port-forward
       - run: npm ci && npm test   # Testcontainers reads DOCKER_HOST
+```
+
+```yaml
+# GitHub Actions deploying into the project directory html/my-app, mounted at /deploy/my-app
+jobs:
+  deploy:
+    runs-on: [self-hosted, mittwald]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci && npm run build
+      - run: mstudio-sync --delete dist/ /deploy/my-app/public
 ```

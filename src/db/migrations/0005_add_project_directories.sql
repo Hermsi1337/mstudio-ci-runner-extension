@@ -1,0 +1,1 @@
+ALTER TABLE "runners" ADD COLUMN "projectDirectories" jsonb DEFAULT '[]'::jsonb NOT NULL;

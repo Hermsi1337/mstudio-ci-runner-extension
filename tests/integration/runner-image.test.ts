@@ -211,6 +211,12 @@ describe.each(images)("runner image: $provider", (image) => {
             .withCopyDirectoriesToContainer([
                 { source: "docker/runner/probes", target: "/probes" },
             ])
+            // Project directories for the mstudio-sync probes, owned by a
+            // project user the runner is not.
+            .withTmpFs({
+                "/deploy/probe": "rw,mode=0751,uid=4242,gid=4343",
+                "/deploy/probe-ro": "ro,mode=0755,uid=4242,gid=4343",
+            })
             .start();
         try {
             const probe = await container.exec(
