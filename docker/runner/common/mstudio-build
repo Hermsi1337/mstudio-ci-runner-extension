@@ -10,7 +10,8 @@
 #   mstudio-build [options] [CONTEXT]
 #
 #   -t, --tag NAME[:TAG]     image reference, repeatable
-#   -f, --dockerfile PATH    Dockerfile inside the context (default: Dockerfile)
+#   -f, --dockerfile PATH    Dockerfile relative to the working directory, - reads
+#                            it from stdin (default: CONTEXT/Dockerfile)
 #       --build-arg K=V      build argument, repeatable
 #       --build-context NAME=VALUE
 #                            extra context for FROM NAME and COPY --from=NAME,
@@ -33,7 +34,9 @@ set -euo pipefail
 
 queue_dir="${BUILD_QUEUE_DIR:-/builds}"
 context="."
-dockerfile="Dockerfile"
+dockerfile=""
+dockerfile_source=""
+dockerfile_from_stdin=false
 target=""
 # The builder stops a build after BUILD_TIMEOUT (3600s by default) and writes a
 # result, so the runner waits a little longer than that and never gives up on a
@@ -68,7 +71,40 @@ fail() {
 }
 
 usage() {
-    sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+# Prints the path of a file relative to the context, or returns 1 when the file
+# lies outside of it. Inside or outside follows the resolved symlinks, because
+# the copy of the context keeps them and a link to the outside breaks in the
+# builder. The printed path stays the one -f names where it can, so kaniko
+# looks for the same <Dockerfile>.dockerignore as Docker does. A link with an
+# absolute target on that path breaks in the copy as well, then the resolved
+# path goes instead.
+path_in_context() {
+    local root file lexical_root lexical_file prefix part
+    root="$(realpath -e -- "${context}")"
+    root="${root%/}"
+    file="$(realpath -e -- "$1")"
+    [[ "${file}" == "${root}/"* ]] || return 1
+    lexical_root="$(realpath -s -- "${context}")"
+    lexical_root="${lexical_root%/}"
+    lexical_file="$(realpath -s -- "$1")"
+    if [[ "${lexical_file}" != "${lexical_root}/"* ]]; then
+        echo "${file#"${root}/"}"
+        return 0
+    fi
+    prefix="${lexical_root}"
+    local -a parts=()
+    IFS=/ read -r -a parts <<<"${lexical_file#"${lexical_root}/"}"
+    for part in "${parts[@]}"; do
+        prefix+="/${part}"
+        if [[ -L "${prefix}" && "$(readlink -- "${prefix}")" == /* ]]; then
+            echo "${file#"${root}/"}"
+            return 0
+        fi
+    done
+    echo "${lexical_file#"${lexical_root}/"}"
 }
 
 # BuildKit takes a named context from a directory, an image, another target, an
@@ -303,16 +339,22 @@ write_context_dockerfile() {
 }
 
 # kaniko reads one ignore file for the whole context: the one next to the
-# Dockerfile, or else the one at the root. The patterns of an extra context are
-# anchored at its root, so under its prefix they keep their meaning. They come
-# after the patterns of the main context, which an allowlist like "*" would
-# otherwise apply to the extra contexts as well.
+# Dockerfile, or else the one at the root. Docker looks for the first one next
+# to the Dockerfile the job names, which may lie outside the context. The
+# patterns of an extra context are anchored at its root, so under its prefix
+# they keep their meaning. They come after the patterns of the main context,
+# which an allowlist like "*" would otherwise apply to the extra contexts as
+# well.
 write_context_dockerignore() {
-    local main_ignore="${context}/${dockerfile}.dockerignore" name pattern negation
+    local main_ignore="${dockerfile_source}.dockerignore" name pattern negation
     [[ -f "${main_ignore}" ]] || main_ignore="${context}/.dockerignore"
     if [[ -f "${main_ignore}" ]]; then
         cat "${main_ignore}"
         echo
+    fi
+    if [[ ${#context_names[@]} -eq 0 ]]; then
+        echo "${contexts_dir}"
+        return 0
     fi
     printf '!%s\n!%s/**\n' "${contexts_dir}" "${contexts_dir}"
     for name in "${context_names[@]}"; do
@@ -377,7 +419,14 @@ if [[ ! -w "${queue_dir}/queue" ]]; then
     fail "${queue_dir}/queue is not writable by $(id -un), check whether the builder service of this stack is running."
 fi
 [[ -d "${context}" ]] || fail "build context ${context} does not exist"
-[[ -f "${context}/${dockerfile}" ]] || fail "${context}/${dockerfile} does not exist"
+if [[ -z "${dockerfile}" ]]; then
+    dockerfile="${context%/}/Dockerfile"
+    [[ -f "${dockerfile}" ]] || fail "${dockerfile} does not exist"
+elif [[ "${dockerfile}" == /* && ! -f "${dockerfile}" ]]; then
+    fail "${dockerfile} does not exist"
+elif [[ "${dockerfile}" != - && ! -f "${dockerfile}" ]]; then
+    fail "${dockerfile} does not exist in ${PWD}. Like docker build, -f takes a path relative to the working directory, not to the context."
+fi
 
 # The builder claims a job by renaming its request, so the same rename takes
 # back a job that no builder claimed yet. A claimed job is only removed once
@@ -402,20 +451,45 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Docker reads -f relative to the working directory, kaniko reads the
+# Dockerfile from inside the context. One from elsewhere or from stdin travels
+# as .mstudio-contexts/Dockerfile, like the rewritten one for extra contexts.
+dockerfile_source="${dockerfile}"
+dockerfile_in_context=""
+if [[ "${dockerfile}" == - ]]; then
+    staging="$(mktemp -d -t mstudio-build-XXXXXX)"
+    dockerfile=stdin
+    dockerfile_source="${staging}/stdin"
+    dockerfile_from_stdin=true
+    cat >"${dockerfile_source}"
+    [[ -s "${dockerfile_source}" ]] || fail "-f - found no Dockerfile on stdin"
+else
+    dockerfile_in_context="$(path_in_context "${dockerfile}")" || true
+fi
+
 # The builder takes one context and one Dockerfile per job. Extra contexts
 # travel inside the main context, next to a rewritten Dockerfile that turns
 # each of them into a stage.
-if [[ ${#context_names[@]} -gt 0 ]]; then
-    [[ ! -e "${context}/${contexts_dir}" ]] || fail "${context}/${contexts_dir} already exists, but --build-context needs that path for the extra contexts. Rename it."
-    staging="$(mktemp -d -t mstudio-build-XXXXXX)"
+if [[ ${#context_names[@]} -gt 0 || -z "${dockerfile_in_context}" ]]; then
+    [[ ! -e "${context}/${contexts_dir}" ]] || fail "${context}/${contexts_dir} already exists, but mstudio-build needs that path for --build-context and for a Dockerfile outside the context. Rename it."
+    staging="${staging:-$(mktemp -d -t mstudio-build-XXXXXX)}"
     mkdir "${staging}/${contexts_dir}"
-    write_context_dockerfile "${context}/${dockerfile}" >"${staging}/${contexts_dir}/Dockerfile"
+    if [[ ${#context_names[@]} -gt 0 ]]; then
+        write_context_dockerfile "${dockerfile_source}" >"${staging}/${contexts_dir}/Dockerfile"
+    else
+        cp "${dockerfile_source}" "${staging}/${contexts_dir}/Dockerfile"
+    fi
     write_context_dockerignore >"${staging}/${contexts_dir}/Dockerfile.dockerignore"
-    (cd "${staging}" && mstudio-dockerfile-check "${contexts_dir}/Dockerfile")
     request_dockerfile="${contexts_dir}/Dockerfile"
 else
-    mstudio-dockerfile-check "${context}/${dockerfile}"
-    request_dockerfile="${dockerfile}"
+    request_dockerfile="${dockerfile_in_context}"
+fi
+if [[ ${#context_names[@]} -gt 0 ]]; then
+    (cd "${staging}" && mstudio-dockerfile-check "${contexts_dir}/Dockerfile")
+elif [[ "${dockerfile_from_stdin}" == true ]]; then
+    (cd "${staging}" && mstudio-dockerfile-check stdin)
+else
+    mstudio-dockerfile-check "${dockerfile}"
 fi
 if [[ ${#platforms[@]} -eq 0 ]]; then
     platforms=("")

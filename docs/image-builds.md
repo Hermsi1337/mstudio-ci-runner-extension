@@ -69,7 +69,7 @@ Protocol, one directory per job:
 
 | Path | Written by | Content |
 |---|---|---|
-| `queue/<job>/context/` | runner | build context. With `--build-context` it also holds `.mstudio-contexts/` with every local extra context, the rewritten `Dockerfile` and its `Dockerfile.dockerignore` |
+| `queue/<job>/context/` | runner | build context. With `--build-context`, or with a Dockerfile outside the context, it also holds `.mstudio-contexts/` with the Dockerfile the builder reads, its `Dockerfile.dockerignore` and every local extra context |
 | `queue/<job>/build-args`, `labels` | runner | one `KEY=VALUE` per line |
 | `queue/<job>/request` | runner | job parameters (`DOCKERFILE`, `DESTINATION`, `TARGET`, `PLATFORM`), written last, offers the job |
 | `queue/<job>/request.claimed` | builder | the same file renamed, which is how one builder takes a job |
@@ -206,6 +206,19 @@ build:
 mstudio-build --push -t ghcr.io/me/app:1 --build-arg VERSION=1 .
 ```
 
+`-f` is relative to the working directory, like with the docker CLI; without it the
+Dockerfile is `<CONTEXT>/Dockerfile`. A Dockerfile inside the context goes to the builder
+as the path in the context that `-f` names. A symlink counts as inside only when its
+target lies inside the context. When a link on that path has an absolute target, which
+the copied context cannot resolve, the resolved path goes instead. kaniko reads no
+Dockerfile from outside the context, so one from elsewhere, or from stdin with `-f -`,
+travels as `.mstudio-contexts/Dockerfile`
+together with `.mstudio-contexts/Dockerfile.dockerignore`. That ignore file holds the
+patterns of `<Dockerfile>.dockerignore` next to the original Dockerfile, or else of the
+`.dockerignore` of the context, plus `.mstudio-contexts` itself, so `COPY . /app` takes
+nothing of it into the image. The builder log shows `dockerfile=.mstudio-contexts/Dockerfile`
+for such a build. A context that already contains `.mstudio-contexts` is refused.
+
 ## Builds for the other architecture
 
 Container Hosting runs amd64. The builder builds `linux/amd64` and `linux/arm64`, and an
@@ -336,13 +349,15 @@ kaniko has no named contexts, and the builder receives one context per job. Befo
    whose `..` segments lead outside the named context is refused. Here-document bodies
    stay as they are.
 4. kaniko reads only one ignore file, `.mstudio-contexts/Dockerfile.dockerignore`. It
-   holds the patterns of the main context (from `<Dockerfile>.dockerignore` or
-   `.dockerignore`), then `!.mstudio-contexts` and `!.mstudio-contexts/**` so an
-   allowlist (`*` followed by `!path`) keeps the extra contexts, then the `.dockerignore`
-   of each extra context with `.mstudio-contexts/<NAME>/` in front of every pattern.
-   The rewritten Dockerfile and the ignore file themselves are excluded.
+   holds the patterns of the main context (from `<Dockerfile>.dockerignore` next to the
+   Dockerfile `-f` names, or `.dockerignore` of the context), then `!.mstudio-contexts`
+   and `!.mstudio-contexts/**` so an allowlist (`*` followed by `!path`) keeps the extra
+   contexts, then the `.dockerignore` of each extra context with
+   `.mstudio-contexts/<NAME>/` in front of every pattern. The rewritten Dockerfile and
+   the ignore file themselves are excluded.
 5. `mstudio-dockerfile-check` runs on the rewritten Dockerfile, so the line numbers in
-   its messages refer to `.mstudio-contexts/Dockerfile`.
+   its messages refer to `.mstudio-contexts/Dockerfile`. The source is the Dockerfile
+   `-f` names, inside or outside the main context.
 
 The build queue protocol and the builder stay as they are. The builder log shows
 `dockerfile=.mstudio-contexts/Dockerfile` for such a build.
@@ -382,6 +397,7 @@ that leads outside the context with `..`.
 | `docker save`, `docker load` | copies the tarball in and out of the store. `docker load` needs `-i <file>`, it does not read from a pipe |
 | `docker login`, `docker logout` | `crane auth login`, writes the usual `~/.docker/config.json` |
 | `docker buildx create/inspect/ls`, `docker context inspect/ls` | answer with one fixed builder, so `setup-buildx-action` runs through. Its platforms are those in `builder.env` |
+| `-f`, `--file` | relative to the working directory. A Dockerfile outside the context and `-f -` (stdin) travel inside the job context, see [Using it](#using-it) |
 | `--build-context` | a local directory or `docker-image://REF`, folded into the main context, see [Extra build contexts](#extra-build-contexts) |
 | `--platform` | one or both of `linux/amd64` and `linux/arm64`, see [above](#builds-for-the-other-architecture) |
 | `docker run` of a `binfmt` or `qemu-user-static` image | does nothing, prints the platforms of the builder as JSON, which is what `docker/setup-qemu-action` parses |

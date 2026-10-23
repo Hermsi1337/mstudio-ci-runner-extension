@@ -545,6 +545,52 @@ describe("image builds", () => {
         }
     }, 600_000);
 
+    // Docker reads -f relative to the working directory. kaniko only reads a
+    // Dockerfile inside the context, so mstudio-build sends this one along
+    // with the ignore file next to it, which wins over the one of the context.
+    it("builds with a Dockerfile outside the context", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            const prepared = await runner.exec([
+                "bash",
+                "-c",
+                [
+                    "mkdir -p /home/runner/ci /home/runner/app && cd /home/runner",
+                    "printf 'FROM alpine:3.20\\nCOPY . /src/\\n' > ci/Dockerfile",
+                    "echo secret.txt > ci/Dockerfile.dockerignore",
+                    "echo app.txt > app/.dockerignore",
+                    "echo main > app/app.txt",
+                    "echo hidden > app/secret.txt",
+                ].join(" && "),
+            ]);
+            expect(prepared.exitCode).toBe(0);
+
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                `cd /home/runner && docker build --push -t ${registryHost}/file:1 -f ci/Dockerfile app 2>&1`,
+            ]);
+            expect(build.exitCode).toBe(0);
+
+            const reference = `${registryHost}/file:1`;
+            expect(await readFromImage(runner, reference, "src/app.txt")).toBe(
+                "main",
+            );
+            const files = await runner.exec([
+                "bash",
+                "-c",
+                `crane export --insecure ${reference} - | tar -t`,
+            ]);
+            expect(files.exitCode).toBe(0);
+            expect(files.output).not.toContain("secret.txt");
+            expect(files.output).not.toContain(".mstudio-contexts");
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
+
     // In the sandbox root owns the user namespace, so the unpack keeps the
     // capability. The patched warning only shows on the path without emulation.
     it("builds on a base image with file capabilities and warns without emulation", async () => {
