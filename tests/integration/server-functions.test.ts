@@ -9,7 +9,7 @@ import {
     zRunner,
     zRunnerList,
 } from "@/generated/extension-api/zod.gen";
-import { parsePublicError } from "@/global-errors";
+import { type PublicErrorDetails, parsePublicError } from "@/global-errors";
 import { translate } from "@/i18n/index.ts";
 import { setTestEnvironment } from "../helpers/env.ts";
 import { startPostgres } from "../helpers/postgres.ts";
@@ -121,15 +121,16 @@ function headers(instance: typeof own): Record<string, string> {
 async function expectValidationError(
     fn: ServerFunction,
     data: unknown,
-    affectedField: unknown = expect.any(String),
+    details: PublicErrorDetails,
 ): Promise<void> {
     const response = await server.call(fn, { headers: headers(own), data });
 
     expect(response.result).toBeUndefined();
-    expect(parsePublicError(response.error)).toMatchObject({
+    expect(parsePublicError(response.error)).toEqual({
         type: "ValidationError",
+        message: expect.any(String),
         isRetryable: false,
-        details: { affectedField },
+        details,
     });
 }
 
@@ -261,11 +262,12 @@ describe("project", () => {
 });
 
 describe("createRunner", () => {
-    it("rejects a body that violates the schema", () =>
-        expectValidationError(functions.createRunner, {
-            provider: "forgejo",
-            name: "Forgejo Runner",
-        }));
+    it("rejects a body that matches no provider without naming a field", () =>
+        expectValidationError(
+            functions.createRunner,
+            { provider: "forgejo", name: "Forgejo Runner" },
+            {},
+        ));
 
     it("creates a runner for the instance and project of the session token", async () => {
         const response = await server.call(functions.createRunner, {
@@ -317,7 +319,7 @@ describe("getRunnerLogs", () => {
         expectValidationError(
             functions.getRunnerLogs,
             { runnerId, tail: 5 },
-            "tail",
+            { affectedField: "tail" },
         ));
 
     it("returns the logs", async () => {
@@ -336,7 +338,7 @@ describe("restartRunner", () => {
         expectValidationError(
             functions.restartRunner,
             { runnerId: "runner" },
-            "runnerId",
+            { affectedField: "runnerId" },
         ));
 
     it("refuses a runner of another instance", async () => {
@@ -368,7 +370,7 @@ describe("configureRunner", () => {
         expectValidationError(
             functions.configureRunner,
             { runnerId, cache: true, cacheSizeGb: 0 },
-            "cacheSizeGb",
+            { affectedField: "cacheSizeGb" },
         ));
 
     it("changes the settings", async () => {
@@ -390,7 +392,7 @@ describe("updateRunner", () => {
         expectValidationError(
             functions.updateRunner,
             { runnerId: "runner" },
-            "runnerId",
+            { affectedField: "runnerId" },
         ));
 
     it("updates a runner that runs an older image", async () => {
@@ -417,7 +419,7 @@ describe("deleteRunner", () => {
         expectValidationError(
             functions.deleteRunner,
             { runnerId: "runner" },
-            "runnerId",
+            { affectedField: "runnerId" },
         ));
 
     it("deletes the runner", async () => {

@@ -64,16 +64,23 @@ function parseZodValidationError(error: unknown): ZodIssue[] | null {
     }
 }
 
+/**
+ * A union schema reports its failure as one issue without a path, so the
+ * affected field comes from the first issue that names one, if any.
+ */
 function buildValidationError(validationIssues: ZodIssue[]): ErrorBody {
-    const firstIssue = validationIssues[0];
+    const issue =
+        validationIssues.find(({ path }) => path.length > 0) ??
+        validationIssues[0];
 
     return {
         type: "ValidationError",
-        message: firstIssue.message,
+        message: issue.message,
         isRetryable: false,
-        details: {
-            affectedField: String(firstIssue.path[0]),
-        },
+        details:
+            issue.path.length > 0
+                ? { affectedField: String(issue.path[0]) }
+                : {},
     };
 }
 
