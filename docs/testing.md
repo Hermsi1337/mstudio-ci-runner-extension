@@ -24,6 +24,8 @@ order.
 | `tests/helpers/postgres.ts` | `postgres:16-alpine` | Sets `POSTGRES_*`, applies migrations from `src/db/migrations/` |
 | `tests/helpers/prism.ts` | `stoplight/prism:5.14.2` | Mock server from `openapi/upstream/<name>.json` (mittwald, GitHub, GitLab); validates every request against the spec and answers with spec-conformant example data |
 | `tests/helpers/images.ts` | builds `docker/runner/<provider>/` and `docker/builder/` | Images `mstudio-ci-runner-<provider>:test` and `mstudio-ci-builder:test`, used by `runner-image.test.ts` and `image-build.test.ts` ([Repository images](#repository-images)) |
+| `tests/helpers/server.ts` | none, runs `pnpm run build` and `node .output/server/index.mjs` | The built extension on a free port, calls server functions over HTTP ([Server functions](#server-functions)) |
+| `tests/helpers/session-token.ts` | none, a local HTTP server | Stands in for `MW_EXT_API_URL`: public key and access token exchange for session tokens signed with a key pair per run |
 | `tests/integration/image-build.test.ts` | the builder and the GitHub runner from `tests/helpers/images.ts`, plus two `registry:2` (one open, one with an htpasswd login) | Image builds end to end: runner, builder and a registry on one network, the queue directory as a bind mount |
 
 The probe suite in `docker/runner/probes/` runs inside the built images.
@@ -74,6 +76,30 @@ pnpm run runner:build test
 PREBUILT_IMAGES=1 pnpm run test:integration
 ```
 
+## Server functions
+
+`server-functions.test.ts` calls every server function of the built extension over
+HTTP, as the browser does, so the middleware in `src/middleware/`, the zod validators and
+the error body run unchanged. `beforeAll` runs `pnpm run build` (a few seconds) next to the
+container starts, so the test never sees a stale `.output`, and CI needs no extra step.
+
+Authentication goes through the real path. `@mittwald/ext-bridge/node` reads
+`MW_EXT_API_URL` and calls `GET /v2/public-keys/{serial}` and
+`POST /v2/authenticate-session-token`; `tests/helpers/session-token.ts` answers both and
+signs session tokens with an Ed25519 key it generates per run. `MITTWALD_API_URL` and
+`GITHUB_API_URL` point at Prism as in the other tests.
+
+`tests/helpers/server.ts` speaks the wire format of the TanStack Start client, which
+couples it to TanStack internals:
+
+- The URL is `/_serverFn/<id>`, the id is the SHA-256 of
+  `<file>--<export>_createServerFn_handler`, which the build derives the same way.
+- Payloads and responses are seroval JSON (`seroval` is a dev dependency for this), read
+  with `defaultSerovalDeserializerPlugins` from `@tanstack/react-start`.
+- Results and thrown errors both arrive with status 200 as `{ result }` or `{ error }`.
+  The helper throws on any other status, which is what a changed id scheme after a
+  TanStack upgrade looks like (`Server function info not found`).
+
 ## Test files
 
 | File | Verifies |
@@ -83,6 +109,7 @@ PREBUILT_IMAGES=1 pnpm run test:integration
 | `runner-image.test.ts` | Per image: gets the image from `provideRepositoryImage` (prebuilt in CI, built from `docker/runner/versions.json` locally), entrypoint reaches registration with the configured values (Forgejo: labels as `<label>:host`, capacity), runs as user `runner`, passes the probe suite (GitHub: patched Node in `externals`), entrypoint rejects missing required variables with a clear message |
 | `image-build.test.ts` | `docker build --push` from the runner through the builder into a registry, image id and metadata file match the pushed digest, edits of base image files land in the layer despite `--snapshot-mode=redo` (same size with a new mtime, a deletion, a new owner only), a failing build keeps its exit code, the predefined platform arguments (`TARGETARCH` and friends) are set in a native build, `apt-get install procps` on a Debian base image passes (Alpine files like `/etc/sysctl.conf` must not collide with conffiles), both on the fallback path and in the sandbox, a base image with file capabilities builds with a warning on the fallback path, BuildKit only features and an architecture without emulator in `FROM` are refused before a job is queued. For the other architecture (arm64 on an amd64 host, amd64 on an arm64 host): a `COPY`-only image and a cross-compiled Go binary without emulation, checked by the architecture in the image config and the ELF machine of the binary; the explanation of `exec format error` when the builder found no emulation; `RUN` under qemu in the sandbox; a base image with file capabilities in the sandbox; `docker buildx build --platform linux/amd64,linux/arm64 --push` into the registry with a login, which has to end up as one index under the only tag, with the index digest in `--iidfile` and `--metadata-file` ([image-builds.md](image-builds.md)). Three tags in two repositories of the two registries end up at one digest, with a single platform (the manifest) and with two platforms (the index), and `crane ls` shows no other tag. Failure paths: one platform of a multi platform `--push` fails, nothing is pushed and the tag keeps its digest; the upload to a second repository without a login fails and the tag in the first repository keeps its digest; a tag PUT fails after others moved (a `crane` wrapper in `PATH` refuses it, because `registry:2` accepts every tag once the upload passed), the tag that existed before goes back to its digest and the new one stays; two runners queue a build at the same time and each gets its own image; the builder is killed mid build and the runner fails within a minute; `BUILD_TIMEOUT` ends a `RUN sleep` on both paths and the builder exits; the runner takes back a job no builder claimed within `--timeout`; one foreign platform without `--push` lands in the image store with that architecture, several platforms without `--push` are refused; a native build with a literal `FROM --platform` of the other architecture runs its `RUN` under qemu; `exec format error` in a build without `--platform` gets the explanation for the native platform; the platform list is normalized (`linux/arm64/v8`, `arm64`, spaces) and `linux/s390x` is refused. Every test starts its own builder, because kaniko destroys the container it builds in. Builds for several platforms need one builder per job, `superviseBuilders` starts the next one when the last one exited. The builder gets the capabilities of a Container Hosting container (no `SETFCAP`, `MKNOD`, `NET_RAW`, `SYS_CHROOT`, `AUDIT_WRITE`) and, like there, no seccomp filter and no AppArmor profile (`seccomp=unconfined`, `apparmor=unconfined`). Docker's default seccomp profile blocks `unshare`, only the tests of the fallback path keep it. With `IMAGE_EXPORT_DIR` set, the multi platform test also writes the image of the other architecture there as `linux-<arch>.tar`, see [below](#emulated-images-on-native-hardware) |
 | `changelog.test.ts` | `getChangelog` against the GitHub Prism mock: releases parsed and validated, second call served from the cache, releases newer than `EXTENSION_VERSION` hidden |
+| `server-functions.test.ts` | Every server function over HTTP against the built server: a call without a session token and one with altered claims get the generic error body; per function the happy path, and for those with a validator a body the generated zod schema rejects, answered with a `ValidationError` body; `listRunners` shows only the runners of the token's instance, `restartRunner` refuses a runner of another instance with `NotFoundError` |
 
 What the tests cannot cover is the behaviour of `docker/setup-buildx-action` and
 `docker/build-push-action`, which ask the docker CLI several questions before they build.

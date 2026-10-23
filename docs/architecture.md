@@ -328,7 +328,7 @@ src/mittwald/client.ts       factory for the mittwald API client (configurable b
 src/db/                      Drizzle schema, pool, migration runner, generated migrations
 src/i18n/                    message catalogs (en, de), locale resolution, React hooks
 tests/integration/           Testcontainers tests
-tests/helpers/               container starters (PostgreSQL, Prism), builds of the repository images
+tests/helpers/               container starters (PostgreSQL, Prism), builds of the repository images, the built server and a session token stub
 .github/                     community files (CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, templates, dependabot, release notes)
 .github/workflows/           CI on push/PR, PR title check, image builds on tags only, deployment after image builds
 .github/actions/test-images/ builds the images the integration tests use, with a layer cache
