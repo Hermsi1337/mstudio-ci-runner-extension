@@ -31,6 +31,26 @@ describe("error body contract", () => {
         expect(parsed?.details.affectedField).toBe("name");
     });
 
+    it("takes the affected field from the first issue with a path", () => {
+        const zodIssues = JSON.stringify([
+            { path: [], message: "Invalid input" },
+            { path: ["instanceUrl"], message: "Invalid URL" },
+        ]);
+        const parsed = roundTrip(new Error(zodIssues));
+        expect(parsed?.message).toBe("Invalid URL");
+        expect(parsed?.details.affectedField).toBe("instanceUrl");
+    });
+
+    it("leaves the affected field out when no issue has a path", () => {
+        const zodIssues = JSON.stringify([
+            { path: [], message: "Invalid input" },
+        ]);
+        const parsed = roundTrip(new Error(zodIssues));
+        expect(parsed?.type).toBe("ValidationError");
+        expect(parsed?.message).toBe("Invalid input");
+        expect(parsed?.details).toEqual({});
+    });
+
     it("maps an unknown error to a generic body", () => {
         const parsed = roundTrip(new Error("boom"));
         expect(parsed?.type).toBe("UnknownError");
