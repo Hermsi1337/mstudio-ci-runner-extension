@@ -368,6 +368,8 @@ export const en = {
         "The stack already has a container called builder that this extension did not create. Image builds need that name. Rename your container or pick another stack.",
     "error.dockerApi.nameTaken":
         "The stack already has a container called docker that this extension did not create. Docker in jobs needs that name. Rename your container or pick another stack.",
+    "error.runner.nameTaken":
+        "A runner named {name} already exists for {target}. A second one would replace its registration in GitHub. Pick another name or delete the other runner.",
     "error.dockerApi.unconfigured":
         "Docker in jobs is not available in this installation of the extension. Create the runner without it.",
     "error.containerHosting.unavailable":

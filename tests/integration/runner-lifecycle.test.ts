@@ -407,7 +407,7 @@ describe("shared stacks", () => {
             extensionInstanceId,
             projectId,
             userId,
-            { ...shared, name: "Build" },
+            { ...shared, name: "Deploy" },
         );
         expect(second.stackId).toBe(first.stackId);
         const [a, b] = await db
@@ -415,7 +415,7 @@ describe("shared stacks", () => {
             .from(schema.runners)
             .where(eq(schema.runners.stackId, first.stackId));
         expect(a?.serviceName).toBe("runner-build");
-        expect(b?.serviceName).toBe("runner-build-2");
+        expect(b?.serviceName).toBe("runner-deploy");
     });
 
     it("keeps the stack while a runner remains and drops it with the last one", async () => {
@@ -432,6 +432,115 @@ describe("shared stacks", () => {
             .from(schema.runnerStacks)
             .where(eq(schema.runnerStacks.stackId, first.stackId));
         expect(gone).toBeUndefined();
+    });
+});
+
+describe("duplicate runner names", () => {
+    const github = {
+        provider: "github" as const,
+        tokenType: "registration" as const,
+        token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+    };
+    const gitlab = {
+        provider: "gitlab" as const,
+        instanceUrl: "https://gitlab.example.com",
+        tokenType: "registration" as const,
+        token: "glrt-t1_AbCdEfGhIjKlMnOpQrSt",
+    };
+    const otherProjectId = "44444444-4444-4444-4444-444444444444";
+
+    const create = (input: CreateRunnerRequest, project = projectId) =>
+        runner.createRunner(
+            client,
+            extensionInstanceId,
+            project,
+            userId,
+            input,
+        );
+
+    it("rejects a second GitHub runner with the same name for the same target", async () => {
+        const first = await create({
+            ...github,
+            name: "Build",
+            target: "acme/duplicates",
+        });
+        const updateStack = vi.spyOn(client.container, "updateStack");
+        try {
+            await expect(
+                create({ ...github, name: "build", target: "Acme/Duplicates" }),
+            ).rejects.toMatchObject({
+                messageKey: "error.runner.nameTaken",
+                params: { name: "Build", target: "acme/duplicates" },
+                details: { affectedField: "name" },
+            });
+            await expect(
+                create(
+                    { ...github, name: "Build", target: "acme/duplicates" },
+                    otherProjectId,
+                ),
+            ).rejects.toMatchObject({ messageKey: "error.runner.nameTaken" });
+            expect(updateStack).not.toHaveBeenCalled();
+        } finally {
+            updateStack.mockRestore();
+        }
+        const rows = await db
+            .select({ id: schema.runners.id })
+            .from(schema.runners)
+            .where(
+                eq(
+                    schema.runners.targetUrl,
+                    "https://github.com/acme/duplicates",
+                ),
+            );
+        expect(rows).toEqual([{ id: first.id }]);
+
+        await runner.deleteRunner(client, extensionInstanceId, first.id);
+    });
+
+    it("allows the same name for another target", async () => {
+        const existingId = "77777777-7777-7777-7777-777777777777";
+        await db.insert(schema.runners).values({
+            id: existingId,
+            extensionInstanceId,
+            projectId,
+            stackId: "88888888-8888-8888-8888-888888888888",
+            provider: "github",
+            name: "Build",
+            target: "acme/duplicates",
+            targetUrl: "https://github.com/acme/duplicates",
+            labels: "mittwald",
+            createdBy: userId,
+        });
+        try {
+            const created = await create({
+                ...github,
+                name: "Build",
+                target: "acme/elsewhere",
+            });
+            expect(created.name).toBe("Build");
+            await runner.deleteRunner(client, extensionInstanceId, created.id);
+        } finally {
+            await db
+                .delete(schema.runners)
+                .where(eq(schema.runners.id, existingId));
+        }
+    });
+
+    it("allows the same name twice for GitLab", async () => {
+        const first = await create({ ...gitlab, name: "Build" });
+        const second = await create({ ...gitlab, name: "Build" });
+        expect(second.stackId).toBe(first.stackId);
+        const services = await db
+            .select({ serviceName: schema.runners.serviceName })
+            .from(schema.runners)
+            .where(eq(schema.runners.stackId, first.stackId));
+        expect(services.map((s) => s.serviceName).sort()).toEqual([
+            "runner-build",
+            "runner-build-2",
+        ]);
+
+        await runner.deleteRunner(client, extensionInstanceId, first.id);
+        await runner.deleteRunner(client, extensionInstanceId, second.id);
     });
 });
 
