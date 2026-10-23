@@ -550,8 +550,12 @@ export const RunnerForm = ({
                                     {t("form.section.featuresToggle")}
                                 </Heading>
                                 <Content>
-                                    <JobFeatureFields form={form} />
-                                    <ProjectDirectoryFields form={form} />
+                                    <Flex direction="column" gap="xl">
+                                        <Section>
+                                            <JobFeatureFields form={form} />
+                                        </Section>
+                                        <ProjectDirectoryFields form={form} />
+                                    </Flex>
                                 </Content>
                             </Accordion>
                         </AccordionGroup>

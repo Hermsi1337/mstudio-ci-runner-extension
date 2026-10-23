@@ -8,7 +8,7 @@ import {
     IconDelete,
     IconPlus,
     Label,
-    Link,
+    Markdown,
     Section,
     Text,
     TextField,
@@ -36,9 +36,10 @@ type DirectoryForm = UseFormReturn<ProjectDirectoryFormValues>;
 const SYNC_DOCS_URL = `${DOCS_URL}/runner-image.md#project-directories`;
 
 /**
- * One entry. The target follows the source (`/deploy/<last segment>`) as long
- * as it is empty or still holds the suggestion for the previous source, so a
- * path the user typed stays.
+ * One entry. The target is filled with `/deploy/<last segment of the source>`
+ * and follows the source as long as it still holds the value the row put
+ * there, so a path the user typed stays. A row subscribes to its own source,
+ * because a parent that re-renders is no guarantee inside a remote tree.
  */
 function DirectoryRow({
     form,
@@ -51,21 +52,30 @@ function DirectoryRow({
 }) {
     const t = useTranslation();
     const Field = typedField(form);
-    const source = form.watch(`projectDirectories.${index}.source`);
-    const previousSource = useRef(source);
+    const targetName = `projectDirectories.${index}.target` as const;
+    const source = useWatch({
+        control: form.control,
+        name: `projectDirectories.${index}.source`,
+    });
+    const initialTarget = form.getValues(targetName);
+    const filledTarget = useRef<string | null>(
+        initialTarget === "" || initialTarget === suggestTarget(source)
+            ? initialTarget
+            : null,
+    );
 
     useEffect(() => {
-        const name = `projectDirectories.${index}.target` as const;
-        const target = form.getValues(name);
-        const suggestion = suggestTarget(source);
-        if (
-            target !== suggestion &&
-            (target === "" || target === suggestTarget(previousSource.current))
-        ) {
-            form.setValue(name, suggestion);
+        const target = form.getValues(targetName);
+        if (target !== filledTarget.current) {
+            filledTarget.current = null;
+            return;
         }
-        previousSource.current = source;
-    }, [form, index, source]);
+        const suggestion = suggestTarget(source);
+        filledTarget.current = suggestion;
+        if (suggestion !== target) {
+            form.setValue(targetName, suggestion, { shouldDirty: true });
+        }
+    }, [form, targetName, source]);
 
     const validate = (field: ProjectDirectoryField) => () => {
         const issue = projectDirectoryIssues(
@@ -80,15 +90,21 @@ function DirectoryRow({
             <ColumnLayout s={[1]} m={[1, 1]}>
                 <Field
                     name={`projectDirectories.${index}.source`}
-                    rules={{ validate: validate("source") }}
+                    rules={{
+                        required: t("error.projectDirectory.sourceRequired"),
+                        validate: validate("source"),
+                    }}
                 >
                     <TextField placeholder="html/my-app">
                         <Label>{t("form.directories.source.label")}</Label>
                     </TextField>
                 </Field>
                 <Field
-                    name={`projectDirectories.${index}.target`}
-                    rules={{ validate: validate("target") }}
+                    name={targetName}
+                    rules={{
+                        required: t("error.projectDirectory.targetRequired"),
+                        validate: validate("target"),
+                    }}
                 >
                     <TextField placeholder="/deploy/my-app">
                         <Label>{t("form.directories.target.label")}</Label>
@@ -175,10 +191,9 @@ export function ProjectDirectoryFields<T extends ProjectDirectoryFormValues>({
                 />
             </Heading>
             <FieldDescription>
-                {t("form.directories.description")}{" "}
-                <Link href={SYNC_DOCS_URL} target="_blank">
-                    {t("form.directories.docs")}
-                </Link>
+                <Markdown>
+                    {t("form.directories.description", { url: SYNC_DOCS_URL })}
+                </Markdown>
             </FieldDescription>
             {fields.map((field, index) => (
                 <DirectoryRow

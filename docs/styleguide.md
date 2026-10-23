@@ -133,24 +133,28 @@ had slipped out of the layout.
 - Optional groups sit one step away. In the create form the job features and the
   project directories live in one collapsed `Accordion` whose `Heading` names the kind
   of content ("Optional features"); the summary column still shows what is switched on.
-  The settings modal gives each group its own `Tab`. Flow's `Accordion` hides the panel
+  Two groups in one panel sit in a `Flex` (`direction="column"`, `gap="xl"`), so the
+  second does not stick to the first. The settings modal gives each group its own `Tab`. Flow's `Accordion` hides the panel
   without unmounting it, so react-hook-form keeps the values. A collapsed panel must not
   hide an error: the create form controls its `AccordionGroup` and opens it when a
   submit leaves `cacheSizeGb` or a project directory invalid.
 - A list the user edits row by row is a react-hook-form `useFieldArray`
   (`ProjectDirectoryFields.tsx`): a `Heading` with a `FieldHelp` names the group, a
-  `FieldDescription` below it says how the entries are used, each row holds its
+  `FieldDescription` below it says how the entries are used (through `Markdown`, so
+  commands render as inline code and the docs link sits in the text), each row holds its
   `TextField`s in a `ColumnLayout` (`s={[1]}`, `m={[1, 1]}`) and its `Checkbox` next to
   a plain icon `Button` that removes it (`IconDelete`, `aria-label` with the row
-  number), and a soft `Button` with `IconPlus` adds a row until the limit. Rows are
+  number), and a soft `Button` with `IconPlus` adds a row until the limit. Fields a row
+  needs carry a `required` rule, which also drops the "(optional)" suffix. Rows are
   keyed by the `id` of the field array, never by index. Each field validates against
   the whole list with the rules the server uses, and a change of a value checks every
   field again that the user has left or that shows an error, because a duplicate spans
   two rows. A server error names `<list>.<index>.<field>` as `affectedField`, so
   `useFormErrorHandling` puts it at its row, and the settings modal switches to the tab
   of the list. A value derived from another field of the row (the target from the
-  source) follows only while it is empty or still the suggestion, so an edit by hand
-  stays.
+  source) is set with `setValue`, not only shown as placeholder, and follows only while
+  it still holds what the row set there, so an edit by hand stays. The row subscribes to
+  its own source with `useWatch`.
 - Units Intl knows go into `formatOptions` of the `NumberField` (`GIGABYTE_FORMAT`
   from `src/runner-sizes.ts`), not into the label.
 

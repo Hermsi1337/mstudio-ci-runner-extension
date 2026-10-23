@@ -339,7 +339,7 @@ export const de: Messages = {
     "form.directories.help":
         "Der Runner bindet jedes Verzeichnis aus dem Dateisystem des Projekts unter dem Pfad ein, den du angibst. Gib es relativ zum Projektverzeichnis an, zum Beispiel `html/my-app` für `/home/p-xxxxxx/html/my-app`.\nJobs laufen als Benutzer `runner`, dem die Dateien des Projekts nicht gehören. `mstudio-sync <src> <dest>` kopiert als Besitzer des Zielverzeichnisses, damit die Dateien beim Benutzer des Projekts bleiben und SFTP und deine App weiter darauf zugreifen. `--delete` löscht Dateien, die in der Quelle fehlen.\nIn ein Verzeichnis, das nicht nur lesbar ist, kann jeder Job auf diesem Runner schreiben. Änderst du die Liste, wird der Container neu erstellt.",
     "form.directories.description":
-        "Schreib mit mstudio-sync <src> <dest> in ein Verzeichnis, damit die Dateien dem Besitzer im Projekt gehören.",
+        "Schreib mit `mstudio-sync <src> <dest>` in ein Verzeichnis, damit die Dateien dem Besitzer im Projekt gehören. [So funktioniert mstudio-sync]({url})",
     "form.directories.docs": "So funktioniert mstudio-sync",
     "form.directories.add": "Verzeichnis hinzufügen",
     "form.directories.remove": "Verzeichnis {number} entfernen",
