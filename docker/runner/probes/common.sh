@@ -288,3 +288,50 @@ expect_output "qemu-user-static gets the platforms of the builder" '"supported":
 expect_output "docker run of another image fails although an argument names binfmt" "needs a Docker daemon" \
     bash -c "! docker run --rm -e MODE=binfmt alpine ls /proc/sys/fs/binfmt_misc 2>&1"
 expect_output "buildx ls reports the platforms of the builder" "linux/$(dpkg --print-architecture)" docker buildx ls
+
+# A project directory belongs to the project user, never to the runner; 4242
+# stands in for that user and keeps the runner out, so checks inside run as root.
+sync_dir="$(mktemp -d)"
+sync_mount="${sync_dir}/mount"
+sudo install -d -m 750 -o 4242 -g 4343 "${sync_mount}"
+mkdir -p "${sync_dir}/dist/assets"
+echo index >"${sync_dir}/dist/index.html"
+echo app >"${sync_dir}/dist/assets/app.js"
+chmod 600 "${sync_dir}/dist/index.html"
+export MSTUDIO_PROJECT_DIRECTORIES="/deploy/elsewhere:${sync_mount}"
+expect "mstudio-sync executable" test -x /usr/local/bin/mstudio-sync
+expect_output "mstudio-sync --help names the usage" "Usage: mstudio-sync [--delete] SRC DEST" mstudio-sync --help
+expect "runner cannot write into the project directory itself" bash -c "! touch ${sync_mount}/plain 2>/dev/null"
+expect "mstudio-sync copies into a missing directory of the project directory" \
+    mstudio-sync "${sync_dir}/dist/" "${sync_mount}/site/public"
+expect_output "mstudio-sync hands a file to the owner with mode 644" "4242:4343 644" \
+    sudo stat -c "%u:%g %a" "${sync_mount}/site/public/index.html"
+expect_output "mstudio-sync hands a copied directory to the owner with mode 755" "4242:4343 755" \
+    sudo stat -c "%u:%g %a" "${sync_mount}/site/public/assets"
+expect_output "mstudio-sync creates missing parents for the owner" "4242:4343 755" \
+    sudo stat -c "%u:%g %a" "${sync_mount}/site"
+sudo install -d -m 700 -o 4545 -g 4545 "${sync_mount}/kept"
+expect "mstudio-sync into an existing directory" mstudio-sync "${sync_dir}/dist/index.html" "${sync_mount}/kept"
+expect_output "mstudio-sync leaves an existing directory to its owner" "4545:4545" \
+    sudo stat -c "%u:%g" "${sync_mount}/kept"
+expect_output "mstudio-sync takes the owner of the existing directory" "4545:4545 644" \
+    sudo stat -c "%u:%g %a" "${sync_mount}/kept/index.html"
+sudo install -m 644 -o 4242 -g 4343 /dev/null "${sync_mount}/site/public/stale"
+expect "mstudio-sync syncs again from a relative source" \
+    bash -c "cd ${sync_dir} && mstudio-sync dist/ ${sync_mount}/site/public"
+expect "mstudio-sync keeps files the source lacks without --delete" sudo test -e "${sync_mount}/site/public/stale"
+expect "mstudio-sync --delete removes files the source lacks" \
+    bash -c "mstudio-sync --delete ${sync_dir}/dist/ ${sync_mount}/site/public && sudo test ! -e ${sync_mount}/site/public/stale"
+sudo ln -s "${sync_dir}" "${sync_mount}/escape"
+expect_output "mstudio-sync refuses a symlink that leads out of a project directory" "is not in a project directory" \
+    bash -c "! mstudio-sync ${sync_dir}/dist/ ${sync_mount}/escape/outside 2>&1"
+expect_output "mstudio-sync refuses a destination outside the project directories" "is not in a project directory" \
+    bash -c "! mstudio-sync ${sync_dir}/dist/ ${sync_dir}/outside 2>&1"
+expect_output "mstudio-sync refuses a .. that leads out of a project directory" "is not in a project directory" \
+    bash -c "! mstudio-sync ${sync_dir}/dist/ ${sync_mount}/../outside 2>&1"
+expect "mstudio-sync leaves a refused destination alone" test ! -e "${sync_dir}/outside"
+expect_output "mstudio-sync without project directories names the setting" "add one in the runner settings" \
+    bash -c "! MSTUDIO_PROJECT_DIRECTORIES= mstudio-sync ${sync_dir}/dist/ ${sync_mount} 2>&1"
+expect_output "mstudio-sync refuses a missing source" "does not exist" \
+    bash -c "! mstudio-sync ${sync_dir}/missing ${sync_mount} 2>&1"
+unset MSTUDIO_PROJECT_DIRECTORIES

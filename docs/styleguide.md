@@ -84,7 +84,7 @@ had slipped out of the layout.
   Nothing in the runner context is called "installed", because the runner and the
   extension run different versions.
 - A settings modal with more than one topic splits them into `Tabs` (runner name,
-  resources, job features, pipeline snippet). The tab list collapses into a menu on narrow widths.
+  resources, job features, directories, pipeline snippet). The tab list collapses into a menu on narrow widths.
   The warning `Alert` and the `ActionGroup` stay below the tabs, so they apply to
   every tab.
 - A form modal is not dismissable by clicking outside (`isDismissable={false}`).
@@ -126,16 +126,28 @@ had slipped out of the layout.
   button inside a card: the card is a label, and a button inside a label breaks the
   click target.
 - The create form and the settings modal share their field components
-  (`NameField.tsx`, `ResourceFields.tsx`, `JobFeatureFields.tsx`), so both show the same
-  groups in the same order. A shared field takes the texts that differ between the two
-  as props (`NameField.tsx`: what a name changes at creation and on rename).
-- Optional groups sit one step away. In the create form the job features live in a
-  collapsed `Accordion` whose `Heading` names what is inside ("Cache, Docker and
-  image builds"); the summary column still shows what is switched on. The settings
-  modal gives them their own `Tab`. Flow's `Accordion` hides the panel without
-  unmounting it, so react-hook-form keeps the values. A collapsed panel must not hide
-  an error: the create form controls its `AccordionGroup` and opens the job features
-  when a submit leaves `cacheSizeGb` invalid.
+  (`NameField.tsx`, `ResourceFields.tsx`, `JobFeatureFields.tsx`,
+  `ProjectDirectoryFields.tsx`), so both show the same groups in the same order. A
+  shared field takes the texts that differ between the two as props (`NameField.tsx`:
+  what a name changes at creation and on rename).
+- Optional groups sit one step away. In the create form the job features and the
+  project directories live in one collapsed `Accordion` whose `Heading` names the kind
+  of content ("Optional features"); the summary column still shows what is switched on.
+  The settings modal gives each group its own `Tab`. Flow's `Accordion` hides the panel
+  without unmounting it, so react-hook-form keeps the values. A collapsed panel must not
+  hide an error: the create form controls its `AccordionGroup` and opens it when a
+  submit leaves `cacheSizeGb` or a project directory invalid.
+- A list the user edits row by row is a react-hook-form `useFieldArray`
+  (`ProjectDirectoryFields.tsx`): a `Heading` with a `FieldHelp` names the group, a
+  `FieldDescription` below it says how the entries are used, each row holds its
+  `TextField`s in a `ColumnLayout` (`s={[1]}`, `m={[1, 1]}`) and its `Checkbox` next to
+  a plain icon `Button` that removes it (`IconDelete`, `aria-label` with the row
+  number), and a soft `Button` with `IconPlus` adds a row until the limit. Rows are
+  keyed by the `id` of the field array, never by index. Each field validates against
+  the whole list with the rules the server uses, and a server error names
+  `<list>.<index>.<field>` as `affectedField`, so `useFormErrorHandling` puts it at its
+  row. A value derived from another field of the row (the target from the source)
+  follows only while it is empty or still the suggestion, so an edit by hand stays.
 - Units Intl knows go into `formatOptions` of the `NumberField` (`GIGABYTE_FORMAT`
   from `src/runner-sizes.ts`), not into the label.
 
@@ -173,8 +185,8 @@ had slipped out of the layout.
 - Badges: `green` running, `blue` in progress, `orange` degraded, `red` error,
   `neutral` stopped, `violet` mode flags (ephemeral), `blue` update hints, `neutral`
   job features. A feature with a value is a scoped badge (`Label` plus `Text`, for
-  example "Cache | 10 GB"). Only switched on features get a badge, "None" stands in
-  for an empty set.
+  example "Cache | 10 GB", "Directories | 2"). Only switched on features get a badge,
+  a list only with at least one entry, "None" stands in for an empty set.
 - `AccentBox` colors carry meaning or stay `neutral`. Three tiles side by side are
   all `neutral`; icon and heading tell them apart.
 - Avatars: color encodes the provider (GitHub violet, GitLab teal, Forgejo lilac). Do not encode

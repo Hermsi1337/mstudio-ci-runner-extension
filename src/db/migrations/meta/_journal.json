@@ -36,6 +36,13 @@
       "when": 1792736895253,
       "tag": "0004_add_runner_name",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792741616903,
+      "tag": "0005_add_project_directories",
+      "breakpoints": true
     }
   ]
 }

@@ -35,6 +35,10 @@ import {
     type JobFeatureFormValues,
 } from "./JobFeatureFields.tsx";
 import { NameField, type NameFormValues } from "./NameField.tsx";
+import {
+    ProjectDirectoryFields,
+    type ProjectDirectoryFormValues,
+} from "./ProjectDirectoryFields.tsx";
 import { ResourceFields } from "./ResourceFields.tsx";
 import {
     type ResourceFormValues,
@@ -45,7 +49,8 @@ import {
 type FormValues = NameFormValues &
     JobFeatureFormValues &
     ConcurrencyFormValues &
-    ResourceFormValues;
+    ResourceFormValues &
+    ProjectDirectoryFormValues;
 
 /** Mirrors configureRunner: these fields change the service without a recreate. */
 const KEEPS_CONTAINER: readonly (keyof FormValues)[] = ["name"];
@@ -78,6 +83,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
             imageBuilds: runner.imageBuilds,
             dockerApi: runner.dockerApi,
             concurrency: runner.concurrency,
+            projectDirectories: runner.projectDirectories,
             ...toResourceFormValues(runner),
         },
     });
@@ -93,6 +99,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                     imageBuilds: values.imageBuilds,
                     dockerApi: values.dockerApi,
                     concurrency: values.concurrency,
+                    projectDirectories: values.projectDirectories,
                     ...toResourceRequest(values),
                 },
             });
@@ -148,6 +155,10 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                         <Section>
                             <JobFeatureFields form={form} />
                         </Section>
+                    </Tab>
+                    <Tab>
+                        <TabTitle>{t("form.section.directories")}</TabTitle>
+                        <ProjectDirectoryFields form={form} />
                     </Tab>
                     {snippet && (
                         <Tab>

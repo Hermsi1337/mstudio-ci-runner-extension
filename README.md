@@ -31,6 +31,7 @@ and reaches your databases and apps in the same project without a tunnel.
 | **Registration from the setup command** | Paste the `config.sh` or `gitlab-runner register` line from the CI system, or UUID and token of a Forgejo runner. No personal access token is needed |
 | **Sizes and custom limits** | Small, medium, large, or your own CPU and memory limits. Either limit can stay open |
 | **Persistent package cache** | Optional volume for npm, pnpm, yarn, pip, Composer and Go with an hourly size trim |
+| **Deploys into the project** | Mount directories of the project, for example the document root of an app, and copy into them with `mstudio-sync`, which keeps the files owned by the project user |
 | **Parallel jobs** | GitLab and Forgejo runners take several jobs at once, sized to the container |
 | **Lifecycle from mStudio** | Logs, restart, settings, update to the runner image of the running extension with the changes listed, delete, all from the extension page |
 | **English and German** | Follows the mStudio language |

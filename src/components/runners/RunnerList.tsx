@@ -114,7 +114,13 @@ function useSizeSummary(runner: Runner): string {
  */
 const FeatureBadges = ({ runner }: { runner: Runner }) => {
     const t = useTranslation();
-    if (!runner.cache && !runner.imageBuilds && !runner.dockerApi) {
+    const directories = runner.projectDirectories.length;
+    if (
+        !runner.cache &&
+        !runner.imageBuilds &&
+        !runner.dockerApi &&
+        directories === 0
+    ) {
         return <Text>{t("runners.feature.none")}</Text>;
     }
     return (
@@ -132,6 +138,12 @@ const FeatureBadges = ({ runner }: { runner: Runner }) => {
             )}
             {runner.dockerApi && (
                 <Badge>{t("runners.feature.dockerApi")}</Badge>
+            )}
+            {directories > 0 && (
+                <Badge>
+                    <Label>{t("runners.feature.directories")}</Label>
+                    <Text>{directories}</Text>
+                </Badge>
             )}
         </Flex>
     );
@@ -162,6 +174,23 @@ const RunnerDetails = ({ runner }: { runner: Runner }) => {
             value: runner.dockerApi
                 ? t("runners.dockerApi.on")
                 : t("runners.dockerApi.off"),
+        },
+        {
+            key: "projectDirectories",
+            label: t("runners.column.directories"),
+            value:
+                runner.projectDirectories.length > 0
+                    ? runner.projectDirectories
+                          .map(({ source, target, readOnly }) =>
+                              t(
+                                  readOnly
+                                      ? "runners.directories.entryReadOnly"
+                                      : "runners.directories.entry",
+                                  { source, target },
+                              ),
+                          )
+                          .join(", ")
+                    : t("runners.directories.none"),
         },
         {
             key: "version",

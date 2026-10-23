@@ -163,6 +163,20 @@ export class ProviderError extends PublicError {
     }
 }
 
+/** Names the row and field, `projectDirectories.<index>.<field>`, for the form. */
+export class ProjectDirectoryError extends PublicError {
+    public constructor(
+        messageKey: MessageKey,
+        params: MessageParams,
+        affectedField: string,
+    ) {
+        super(messageKey, params, {
+            statusCode: 400,
+            details: { affectedField },
+        });
+    }
+}
+
 export class UpstreamError extends PublicError {
     public constructor(messageKey: MessageKey, params: MessageParams = {}) {
         super(messageKey, params, { statusCode: 502, isRetryable: true });

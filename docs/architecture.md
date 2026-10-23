@@ -36,10 +36,12 @@ confirmation modals through overlay controllers. A row shows labels and switched
 job features; it expands into the remaining details. Flow's list switches from columns
 to stacked rows by container width, so no separate mobile layout exists. The create
 form and the settings modal share `NameField.tsx`, `ResourceFields.tsx` (size cards, and for the custom
-size a "No limit" checkbox per limit plus a warning while memory is unlimited) and
-`JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards). The
-create form keeps the job features in a collapsed `Accordion`, the settings modal in a
-tab. The settings modal opens on the name; renaming alone keeps the container running.
+size a "No limit" checkbox per limit plus a warning while memory is unlimited),
+`JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards) and
+`ProjectDirectoryFields.tsx` (project directories as a field array, one row per
+directory). The create form keeps both in a collapsed `Accordion` ("Optional
+features"), the settings modal gives each a tab. The settings modal opens on the
+name; renaming alone keeps the container running.
 `src/repository.ts` holds the repository and docs URLs the UI links to.
 
 Release notes come from the GitHub API as GitHub-flavored Markdown.
@@ -98,12 +100,20 @@ Two Flow rules shape the components:
    images (`src/domain/builder.ts`, [image-builds.md](image-builds.md)), sets
    `DOCKER_HOST`, mounts `<project directory>/.ci-work/<stack ID>` for the workspace
    and declares the service `docker` when jobs may run containers
-   (`src/domain/docker-api.ts`, [docker-api.md](docker-api.md)), and declares the
+   (`src/domain/docker-api.ts`, [docker-api.md](docker-api.md)), mounts the project
+   directories (`<project directory>/<source>:<target>[:ro]`, unprefixed after the
+   named volumes) and sets `MSTUDIO_PROJECT_DIRECTORIES` when the request lists any
+   ([runner-image.md](runner-image.md#project-directories)), and declares the
    service `runner-<slug>` through `container.updateStack` (PATCH, so the other
    runners of the stack stay untouched) with `restartPolicy: always` and the resource
    limits of the size (preset from `src/runner-sizes.ts` or `cpus`/`memoryMb` for
    `custom`, a missing limit is left out of `deploy.resources.limits`, so only the
    project quota applies). Volumes carry the service name as prefix (`runner-<slug>-data`, `runner-<slug>-cache`).
+   The project directories are checked before anything is created: the rules live in
+   `src/project-directories.ts`, shared with the form, and the domain adds the work
+   directory of Docker in jobs, which depends on the project. A broken entry fails with
+   `ProjectDirectoryError` and `affectedField` `projectDirectories.<index>.<field>`, so
+   the form shows it at its row.
 7. A row in `runners` links extension instance, provider, stack and service. The API
    derives `studioUrl` from them, the detail page of the container in mStudio, linked
    from the runner name in the list.
@@ -111,7 +121,8 @@ Two Flow rules shape the components:
 
 Other operations: list with live status (`container.getStack`), logs
 (`container.getServiceLogs`), restart (`container.restartService`), update to the
-current image and settings changes (name, cache, concurrency, size), delete
+current image and settings changes (name, cache, concurrency, size, project
+directories), delete
 (`container.deleteStack`, then `provider.release`). All stack operations run with the
 access token of the signed-in user, so only with their permissions and the scopes of
 the extension.
@@ -133,6 +144,10 @@ together with other settings goes into the same declaration, which is then recre
 On both paths the runner row is written last, after the declaration and any
 recreate succeeded, so a failure leaves the row as it was (the update still on offer,
 the old name still shown) and the next attempt declares the same state again.
+Every recreating settings change declares the project directories of the row anew:
+it drops the mounts at the old and the new targets and adds the current list, so
+turning the cache, image builds or Docker in jobs on or off keeps them. Bind mounts
+someone added in mStudio stay, unless one sits at a target of the list.
 
 ## Data model
 
@@ -161,7 +176,10 @@ Tables in `src/db/schema.ts`:
   `size`, `cpus`, `memoryMb`, `cache`, `cacheSizeGb`, `imageBuilds`, `dockerApi` and `concurrency` hold the settings
   (`cpus` and `memoryMb` only for `size = custom`, null there means no limit), `tokenType` records how the runner
   authenticated (decides the delete confirmation), `cronjobIds` lists the mittwald
-  cronjobs created for the runner (cache cleanup).
+  cronjobs created for the runner (cache cleanup). `projectDirectories` (jsonb,
+  `[]` for runners created before) holds the normalized `{ source, target, readOnly }`
+  list. It is read and written with the runner as a whole and never queried by entry,
+  so it lives on the row instead of in a table of its own.
 - `runner_stacks`: one row per stack the extension created, unique per
   (extension instance, target URL). The row is both the lock against parallel creates
   and the record that the extension owns the stack. A stack the user picked in the
@@ -256,6 +274,10 @@ job:
   like the runner. It cannot reach the runner, the builder or other services: the
   adapter lists and touches only its own containers, and it holds no token a job could
   read ([docker-api.md](docker-api.md)).
+- A project directory mounted without `Read only` is writable for every job through
+  `sudo`, not only through `mstudio-sync`, and a read only one is readable for every
+  job. Mount only what the pipelines of that target deploy to
+  ([runner-image.md](runner-image.md#project-directories)).
 - `docker login` in a job writes the registry credentials to `~/.docker/config.json` in
   the runner, where the next job on the same container can read them.
 
@@ -295,7 +317,7 @@ config/                      tool configs (vite, vitest, drizzle-kit, openapi-ts
 docker/extension/            extension Dockerfile (+ Dockerfile.dockerignore, build context is the repo root)
 docker/builder/              image builder service: Dockerfile, loop.sh, sandbox.sh (emulated builds), kaniko and qemu versions, kaniko patches (build context is docker/builder)
 docker/runner/<provider>/    Dockerfile + entrypoint.sh per runner image (build context is docker/runner)
-docker/runner/common/        scripts shared by all runner images (trim-cache.sh, reclaim-workspace.sh, docker-shim, mstudio-build and friends)
+docker/runner/common/        scripts shared by all runner images (trim-cache.sh, reclaim-workspace.sh, docker-shim, mstudio-sync, mstudio-build and friends)
 docker/runner/probes/        probe suite run inside the built images by the integration tests
 docker/runner/versions.json  runner software version per provider plus the crane, docker CLI and Node versions, single source for workflow, build and UI
 docker/docker-api/           Docker API adapter for jobs, a Go module (build context is docker/docker-api)
@@ -320,6 +342,8 @@ src/domain/project.ts        capabilities of the mStudio project (Container Host
 src/domain/stack.ts          one stack per registration target: find or create, declare and remove services
 src/domain/builder.ts        builder service of a stack: declare it, remove it once no runner builds images
 src/build-queue.ts           mount of the build queue shared by runners and builder (no server dependencies)
+src/project-directories.ts   rules, normalization and mounts of project directories, shared by domain and forms (no server dependencies)
+src/domain/project-directories.ts  checks a project directory list against the project, throws ProjectDirectoryError
 src/domain/cache.ts          package manager cache: volume, environment, trim cronjob
 src/domain/changelog.ts      GitHub releases for the changelog modal, cached in memory
 src/version-compare.ts       semver comparison for the update hint of the changelog

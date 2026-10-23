@@ -3,6 +3,7 @@ import {
     Heading,
     IconContainer,
     IconCronjob,
+    IconDirectory,
     IconProject,
     IconVolume,
     Label,
@@ -11,7 +12,11 @@ import {
     Text,
 } from "@mittwald/flow-remote-react-components";
 import type { ReactNode } from "react";
-import type { Provider, RunnerSize } from "@/generated/extension-api";
+import type {
+    ProjectDirectory,
+    Provider,
+    RunnerSize,
+} from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
 import { runnerSizes, toMemoryGb } from "@/runner-sizes.ts";
 import { formatLimits } from "./format-limits.ts";
@@ -27,6 +32,7 @@ interface CreatedResourcesProps {
     cacheSizeGb: number;
     imageBuilds: boolean;
     dockerApi: boolean;
+    projectDirectories: ProjectDirectory[];
     selectedStackName?: string;
 }
 
@@ -46,6 +52,7 @@ export const CreatedResources = ({
     cacheSizeGb,
     imageBuilds,
     dockerApi,
+    projectDirectories,
     selectedStackName,
 }: CreatedResourcesProps) => {
     const t = useTranslation();
@@ -133,6 +140,19 @@ export const CreatedResources = ({
                   },
               ]
             : []),
+        ...projectDirectories
+            .filter(({ source }) => source.trim() !== "")
+            .map(({ source, target, readOnly }, index) => ({
+                key: `directory-${index}`,
+                icon: <IconDirectory />,
+                label: t("form.summary.directory.label", {
+                    source: source.trim(),
+                    target: target.trim() || "…",
+                }),
+                text: readOnly
+                    ? t("form.summary.directory.text.readOnly")
+                    : t("form.summary.directory.text.writable"),
+            })),
     ];
 
     return (

@@ -35,6 +35,10 @@ import { FieldHelp } from "./FieldHelp.tsx";
 import { JobFeatureFields } from "./JobFeatureFields.tsx";
 import { NameField } from "./NameField.tsx";
 import { ParsedCommand } from "./ParsedCommand.tsx";
+import {
+    ProjectDirectoryFields,
+    type ProjectDirectoryFormValues,
+} from "./ProjectDirectoryFields.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 import { providerLogos } from "./provider-logos.ts";
 import { ResourceFields } from "./ResourceFields.tsx";
@@ -69,7 +73,7 @@ function isHttpsUrl(value: string): boolean {
     }
 }
 
-interface FormValues extends ResourceFormValues {
+interface FormValues extends ResourceFormValues, ProjectDirectoryFormValues {
     provider: Provider;
     name: string;
     labels: string;
@@ -98,6 +102,7 @@ function toRequest(values: FormValues): CreateRunnerRequest {
         imageBuilds: values.imageBuilds,
         dockerApi: values.dockerApi,
         concurrency: values.concurrency,
+        projectDirectories: values.projectDirectories,
     };
     if (values.provider === "forgejo") {
         return {
@@ -163,6 +168,7 @@ export const RunnerForm = ({
             imageBuilds: false,
             dockerApi: false,
             concurrency: 1,
+            projectDirectories: [],
             configCommand: "",
             runnerGroup: "",
             instanceUrl: "",
@@ -184,6 +190,7 @@ export const RunnerForm = ({
     const cacheSizeGb = form.watch("cacheSizeGb");
     const imageBuilds = form.watch("imageBuilds");
     const dockerApi = form.watch("dockerApi");
+    const projectDirectories = form.watch("projectDirectories");
     const configCommand = form.watch("configCommand");
     const instanceUrl = form.watch("instanceUrl");
     const stackId = form.watch("stackId");
@@ -191,7 +198,10 @@ export const RunnerForm = ({
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
         new Set(),
     );
-    const cacheSizeInvalid = Boolean(form.formState.errors.cacheSizeGb);
+    const featuresInvalid = Boolean(
+        form.formState.errors.cacheSizeGb ??
+            form.formState.errors.projectDirectories,
+    );
     const submitCount = form.formState.submitCount;
     const summaryTarget = (
         provider === "forgejo"
@@ -210,12 +220,12 @@ export const RunnerForm = ({
     }, [provider, configCommand, form]);
 
     useEffect(() => {
-        if (cacheSizeInvalid && submitCount > 0) {
+        if (featuresInvalid && submitCount > 0) {
             setExpandedSections((expanded) =>
                 new Set(expanded).add(JOB_FEATURES_SECTION),
             );
         }
-    }, [cacheSizeInvalid, submitCount]);
+    }, [featuresInvalid, submitCount]);
 
     const [RootError, handleSubmit] = useFormErrorHandling(
         form,
@@ -541,6 +551,7 @@ export const RunnerForm = ({
                                 </Heading>
                                 <Content>
                                     <JobFeatureFields form={form} />
+                                    <ProjectDirectoryFields form={form} />
                                 </Content>
                             </Accordion>
                         </AccordionGroup>
@@ -561,6 +572,7 @@ export const RunnerForm = ({
                         cacheSizeGb={cacheSizeGb}
                         imageBuilds={imageBuilds}
                         dockerApi={dockerApi}
+                        projectDirectories={projectDirectories}
                         selectedStackName={selectedStack?.description}
                     />
                 </AccentBox>

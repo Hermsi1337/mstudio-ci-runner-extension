@@ -87,6 +87,20 @@ export const zDockerApi = z.boolean().default(false);
  */
 export const zCacheSizeGb = z.int().gte(1).lte(500).default(10);
 
+/**
+ * A directory of the project file system, bind-mounted into the runner container.
+ */
+export const zProjectDirectory = z.object({
+    source: z.string().min(1).max(500),
+    target: z.string().min(1).max(255),
+    readOnly: z.boolean()
+});
+
+/**
+ * Project directories mounted into the runner. Jobs write into a writable one with `mstudio-sync` (docs/runner-image.md).
+ */
+export const zProjectDirectories = z.array(zProjectDirectory).max(10);
+
 export const zRunnerBase = z.object({
     name: z.string().min(2).max(64),
     labels: z.string().max(500).optional().default('mittwald'),
@@ -98,6 +112,7 @@ export const zRunnerBase = z.object({
     size: zRunnerSize.optional(),
     cpus: zCpus.optional(),
     memoryMb: zMemoryMb.optional(),
+    projectDirectories: zProjectDirectories.optional(),
     stackId: z.uuid().optional()
 });
 
@@ -158,7 +173,8 @@ export const zConfigureRunnerRequest = z.object({
     concurrency: zConcurrency.optional(),
     size: zRunnerSize.optional(),
     cpus: zCpus.optional(),
-    memoryMb: zMemoryMb.optional()
+    memoryMb: zMemoryMb.optional(),
+    projectDirectories: zProjectDirectories.optional()
 });
 
 export const zRunnerLogsRequest = z.object({
@@ -183,6 +199,7 @@ export const zRunner = z.object({
     imageBuilds: z.boolean(),
     dockerApi: z.boolean(),
     concurrency: z.int(),
+    projectDirectories: zProjectDirectories,
     stackId: z.uuid(),
     serviceId: z.string().nullable(),
     studioUrl: z.url().nullable(),

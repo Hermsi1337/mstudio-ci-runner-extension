@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Copies files into a project directory the extension mounted into the runner
+# (docs/runner-image.md). The runner user does not own the project files, so a
+# plain write fails, and a write with sudo leaves files owned by root that SFTP
+# and the app cannot change any more. This copies with sudo rsync and hands
+# every file to the owner of the destination.
+#
+# Usage: mstudio-sync [--delete] SRC DEST
+#
+# Environment:
+#   MSTUDIO_PROJECT_DIRECTORIES  colon separated paths of the project
+#                                directories in the runner, set by the extension
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: mstudio-sync [--delete] SRC DEST
+
+Copies SRC into the directory DEST with sudo rsync and hands every file to the
+owner of DEST, or of its nearest existing parent. Directories get mode 755,
+files 644. DEST must lie in a project directory of this runner.
+
+As with rsync, SRC/ copies the contents of SRC and SRC without a trailing slash
+copies the directory itself. Missing directories up to DEST are created.
+
+Options:
+  --delete    remove files in DEST that SRC lacks
+  -h, --help  show this help
+EOF
+}
+
+fail() {
+    echo "mstudio-sync: $*" >&2
+    exit 1
+}
+
+delete=()
+while (($# > 0)); do
+    case "$1" in
+        --delete)
+            delete=(--delete)
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*) fail "unknown option $1, see mstudio-sync --help" ;;
+        *) break ;;
+    esac
+done
+if (($# != 2)); then
+    usage >&2
+    exit 2
+fi
+src="$1"
+dest="$2"
+
+[[ -e "${src}" ]] || fail "${src} does not exist"
+[[ -n "${MSTUDIO_PROJECT_DIRECTORIES:-}" ]] ||
+    fail "this runner has no project directories, add one in the runner settings"
+
+# The project user may keep the runner out of its directories, so every look
+# at the destination runs as root. realpath resolves .. and symlinks, so
+# neither leads out of the mount.
+dest_path="$(sudo realpath -m -- "${dest}")"
+mount=""
+IFS=: read -r -a targets <<<"${MSTUDIO_PROJECT_DIRECTORIES}"
+for target in "${targets[@]}"; do
+    [[ -n "${target}" ]] || continue
+    target_path="$(sudo realpath -m -- "${target}")"
+    if [[ "${dest_path}" == "${target_path}" || "${dest_path}" == "${target_path}/"* ]]; then
+        mount="${target_path}"
+        break
+    fi
+done
+[[ -n "${mount}" ]] ||
+    fail "${dest} is not in a project directory of this runner: ${MSTUDIO_PROJECT_DIRECTORIES//:/, }"
+sudo test -d "${mount}" ||
+    fail "${mount} is not mounted, save the runner settings again to recreate the container"
+options=",$(findmnt -n -o OPTIONS -T "${mount}" 2>/dev/null || true),"
+[[ "${options}" != *,ro,* ]] ||
+    fail "${mount} is mounted read only, turn off Read only for it in the runner settings"
+
+existing="${dest_path}"
+missing=()
+while ! sudo test -e "${existing}"; do
+    missing=("${existing}" "${missing[@]}")
+    existing="$(dirname -- "${existing}")"
+done
+sudo test -d "${existing}" || fail "${existing} is not a directory"
+owner="$(sudo stat -c %u:%g -- "${existing}")"
+
+for directory in "${missing[@]}"; do
+    sudo install -d -m 755 -o "${owner%:*}" -g "${owner#*:}" -- "${directory}"
+done
+
+# rsync reads host:path as a remote source; ./ keeps a relative SRC local.
+[[ "${src}" == /* ]] || src="./${src}"
+sudo rsync -rlt "${delete[@]}" --chown="${owner}" --chmod=D755,F644 -- "${src}" "${dest_path}/"

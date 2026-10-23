@@ -6,6 +6,7 @@ import { buildExtensionInstanceTable } from "@weissaufschwarz/mitthooks-drizzle/
 import {
     boolean,
     integer,
+    jsonb,
     real,
     text,
     timestamp,
@@ -14,6 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core/table";
 import { getEnvironmentVariables } from "../env";
+import type { ProjectDirectory } from "../generated/extension-api";
 
 const env = getEnvironmentVariables();
 
@@ -74,6 +76,14 @@ export const runners = pgTable("runners", {
     imageBuilds: boolean().notNull().default(false),
     dockerApi: boolean().notNull().default(false),
     concurrency: integer().notNull().default(1),
+    /**
+     * Read and written with the runner as a whole and never queried by entry,
+     * so the list lives on the row instead of in a table of its own.
+     */
+    projectDirectories: jsonb()
+        .$type<ProjectDirectory[]>()
+        .notNull()
+        .default([]),
     cronjobIds: text().notNull().default("[]"),
     createdBy: varchar({ length: 36 }).notNull(),
     createdAt: timestamp().defaultNow().notNull(),

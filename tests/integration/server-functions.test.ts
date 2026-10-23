@@ -299,6 +299,62 @@ describe("createRunner", () => {
             {},
         ));
 
+    it("rejects a project directory that leads out of the project with the field of its row", async () => {
+        const response = await server.call(functions.createRunner, {
+            headers: headers(own),
+            data: {
+                provider: "forgejo",
+                name: "Escaping Runner",
+                instanceUrl: "https://forgejo.example.com/",
+                tokenType: "registration",
+                uuid: "c9e50be9-a7c3-4aee-ba35-624c4ff8c519",
+                token: "6634bb58be0db23cc013a2e72dd1828ae0257cf",
+                projectDirectories: [
+                    {
+                        source: "html/app",
+                        target: "/deploy/app",
+                        readOnly: false,
+                    },
+                    {
+                        source: "html/../../etc",
+                        target: "/deploy/etc",
+                        readOnly: true,
+                    },
+                ],
+            },
+        });
+
+        expect(response.result).toBeUndefined();
+        expect(parsePublicError(response.error)).toEqual({
+            type: "ProjectDirectoryError",
+            message: translate("en", "error.projectDirectory.sourceOutside"),
+            isRetryable: false,
+            details: { affectedField: "projectDirectories.1.source" },
+        });
+        const rows = await db
+            .select()
+            .from(schema.runners)
+            .where(eq(schema.runners.name, "Escaping Runner"));
+        expect(rows).toEqual([]);
+    });
+
+    it("rejects an empty project directory source with the field of its row", () =>
+        expectValidationError(
+            functions.createRunner,
+            {
+                provider: "forgejo",
+                name: "Forgejo Runner",
+                instanceUrl: "https://forgejo.example.com/",
+                tokenType: "registration",
+                uuid: "c9e50be9-a7c3-4aee-ba35-624c4ff8c519",
+                token: "6634bb58be0db23cc013a2e72dd1828ae0257cf",
+                projectDirectories: [
+                    { source: "", target: "/deploy/app", readOnly: false },
+                ],
+            },
+            { affectedField: "projectDirectories.0.source" },
+        ));
+
     it("creates a runner for the instance and project of the session token", async () => {
         const response = await server.call(functions.createRunner, {
             headers: headers(own),

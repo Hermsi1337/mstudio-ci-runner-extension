@@ -57,11 +57,13 @@ export const de: Messages = {
     "runners.column.dockerApi": "Docker in Jobs",
     "runners.column.version": "Version",
     "runners.column.features": "Funktionen",
+    "runners.column.directories": "Projektverzeichnisse",
     "runners.column.auth": "Token",
     "runners.feature.cache": "Cache",
     "runners.feature.imageBuilds": "Image-Builds",
     "runners.feature.dockerApi": "Docker in Jobs",
     "runners.feature.none": "Keine",
+    "runners.feature.directories": "Verzeichnisse",
     "runners.action.logs": "Logs",
     "runners.action.restart": "Neustart",
     "runners.action.update": "Aktualisieren",
@@ -80,6 +82,9 @@ export const de: Messages = {
     "runners.imageBuilds.off": "Aus",
     "runners.dockerApi.on": "An",
     "runners.dockerApi.off": "Aus",
+    "runners.directories.none": "Keine",
+    "runners.directories.entry": "{source} → {target}",
+    "runners.directories.entryReadOnly": "{source} → {target} (nur lesen)",
     "runners.notice.created": "Runner {name} angelegt",
     "runners.notice.createdText":
         "Der Container startet jetzt und registriert sich innerhalb einer Minute.",
@@ -187,9 +192,14 @@ export const de: Messages = {
     "form.summary.dockerApi.label": "Container: docker",
     "form.summary.dockerApi.text":
         "Startet die Container der Jobs als Container dieses Stacks. Ein zusätzlicher Container im Stack, gemeinsam genutzt, dazu einer für jeden Container, den ein Job startet.",
+    "form.summary.directory.label": "Verzeichnis: {source} → {target}",
+    "form.summary.directory.text.readOnly": "Jobs können die Dateien lesen.",
+    "form.summary.directory.text.writable":
+        "Jeder Job auf diesem Runner kann hier schreiben, mit mstudio-sync.",
     "form.section.runner": "Runner",
     "form.section.features": "Funktionen für Jobs",
-    "form.section.featuresToggle": "Cache, Docker und Image-Builds",
+    "form.section.featuresToggle": "Optionale Funktionen",
+    "form.section.directories": "Verzeichnisse",
     "form.section.resources": "Ressourcen",
     "form.configCommand.parsed": "Registriert bei {target}, Token {token}",
     "form.snippet.heading": "In der Pipeline nutzen",
@@ -325,6 +335,17 @@ export const de: Messages = {
     "form.features.help":
         "**Paketmanager-Cache:** ein Volume unter `/home/runner/.cache`, das Jobs, Neustarts und Updates übersteht. `XDG_CACHE_HOME` und die Variablen der einzelnen Tools zeigen darauf. Schaltest du den Cache aus, wird das Volume gelöscht.\n**Image-Builds:** ein `builder`-Container im Stack baut mit kaniko, der Runner pusht mit den Zugangsdaten aus `docker login`. Es gibt keinen Layer-Cache. `RUN --mount`, `--secret`, `--ssh` und Builds für eine andere Architektur brechen mit einer Meldung ab.\n**Docker in Jobs:** ein `docker`-Container im Stack startet jeden Container eines Jobs als Container des Stacks. Container brauchen ein paar Sekunden zum Start und laufen ohne TTY und ohne Privilegien. Bind-Mounts müssen im Projekt-Dateisystem liegen, dort liegt auch der Workspace des Runners. Jeder Container zählt zu den Ressourcen des Projekts.",
     "form.features.docs": "Doku auf GitHub",
+    "form.directories.label": "Projektverzeichnisse",
+    "form.directories.help":
+        "Der Runner bindet jedes Verzeichnis aus dem Dateisystem des Projekts unter dem Pfad ein, den du angibst. Gib es relativ zum Projektverzeichnis an, zum Beispiel `html/my-app` für `/home/p-xxxxxx/html/my-app`.\nJobs laufen als Benutzer `runner`, dem die Dateien des Projekts nicht gehören. `mstudio-sync <src> <dest>` kopiert mit `sudo rsync` und übergibt jede Datei dem Besitzer des Zielverzeichnisses, damit SFTP und deine App weiter darauf zugreifen. `--delete` löscht Dateien, die in der Quelle fehlen.\nIn ein Verzeichnis, das nicht nur lesbar ist, kann jeder Job auf diesem Runner schreiben. Änderst du die Liste, wird der Container neu erstellt.",
+    "form.directories.description":
+        "Schreib mit mstudio-sync <src> <dest> in ein Verzeichnis, damit die Dateien dem Besitzer im Projekt gehören.",
+    "form.directories.docs": "So funktioniert mstudio-sync",
+    "form.directories.add": "Verzeichnis hinzufügen",
+    "form.directories.remove": "Verzeichnis {number} entfernen",
+    "form.directories.source.label": "Verzeichnis im Projekt",
+    "form.directories.target.label": "Pfad im Runner",
+    "form.directories.readOnly": "Nur lesen",
     "form.concurrency.label": "Jobs gleichzeitig",
     "form.concurrency.required": "Gib an, wie viele Jobs gleichzeitig laufen",
     "form.concurrency.range": "Gib einen Wert zwischen 1 und 8 an",
@@ -401,4 +422,28 @@ export const de: Messages = {
         "Die Forgejo-URL muss eine https-Adresse ohne Benutzer, Query und Fragment sein, zum Beispiel https://forgejo.example.com.",
     "error.forgejo.labelsInvalid":
         "Forgejo-Labels dürfen weder : noch ? enthalten. Gib einfache Namen wie mittwald an; :host hängt die Extension selbst an.",
+    "error.projectDirectory.sourceRequired":
+        "Gib ein Verzeichnis des Projekts an, zum Beispiel html/my-app.",
+    "error.projectDirectory.sourceAbsolute":
+        "Gib das Verzeichnis relativ zum Projektverzeichnis an, ohne führenden /, zum Beispiel html/my-app.",
+    "error.projectDirectory.sourceOutside":
+        "Das Verzeichnis muss im Projektverzeichnis liegen. Entferne das .., das hinausführt.",
+    "error.projectDirectory.sourceProjectRoot":
+        "Gib ein Verzeichnis unterhalb des Projektverzeichnisses an, zum Beispiel html/my-app.",
+    "error.projectDirectory.colon":
+        "Entferne den Doppelpunkt. Pfade für Mounts dürfen keinen enthalten.",
+    "error.projectDirectory.targetRequired":
+        "Gib den Pfad im Runner an, zum Beispiel /deploy/my-app.",
+    "error.projectDirectory.targetRelative":
+        "Gib einen absoluten Pfad an, der mit / beginnt, zum Beispiel /deploy/my-app.",
+    "error.projectDirectory.targetRoot":
+        "Unter / kann der Runner kein Verzeichnis einbinden. Gib einen Pfad wie /deploy/my-app an.",
+    "error.projectDirectory.targetReserved":
+        "{path} nutzt der Runner selbst. Wähl einen Pfad außerhalb davon, zum Beispiel /deploy/my-app.",
+    "error.projectDirectory.targetDuplicate":
+        "Diesen Pfad nutzt schon ein anderes Verzeichnis. Wähl einen anderen.",
+    "error.projectDirectory.targetNested":
+        "Dieser Pfad enthält den Pfad eines anderen Verzeichnisses oder liegt darin. Wähl Pfade nebeneinander.",
+    "error.projectDirectory.tooMany":
+        "Ein Runner nimmt höchstens {max} Verzeichnisse. Entferne dieses.",
 };
