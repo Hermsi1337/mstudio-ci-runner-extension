@@ -158,6 +158,7 @@ command_build() {
             -t | --tag) build+=(--tag "$2"); shift 2 ;;
             -f | --file | --dockerfile) build+=(--dockerfile "$2"); shift 2 ;;
             --build-arg) build+=(--build-arg "$2"); shift 2 ;;
+            --build-context) build+=(--build-context "$2"); shift 2 ;;
             --label) build+=(--label "$2"); shift 2 ;;
             --target) build+=(--target "$2"); shift 2 ;;
             --platform) build+=(--platform "$2"); shift 2 ;;
@@ -199,9 +200,6 @@ command_build() {
                 ;;
             --secret | --ssh)
                 fail "$1 is a BuildKit feature the builder cannot provide, pass the value as --build-arg or write it into the context"
-                ;;
-            --build-context)
-                fail "--build-context is a BuildKit feature the builder cannot provide"
                 ;;
             -h | --help)
                 exec mstudio-build --help

@@ -12,6 +12,10 @@
 #   -t, --tag NAME[:TAG]     image reference, repeatable
 #   -f, --dockerfile PATH    Dockerfile inside the context (default: Dockerfile)
 #       --build-arg K=V      build argument, repeatable
+#       --build-context NAME=VALUE
+#                            extra context for FROM NAME and COPY --from=NAME,
+#                            repeatable. VALUE is a local directory or
+#                            docker-image://REF
 #       --label K=V          image label, repeatable
 #       --target STAGE       build stage to stop at
 #       --push               push every tag with crane after a successful build
@@ -44,6 +48,13 @@ build_args=()
 labels=()
 platforms=()
 jobs=()
+contexts_dir=".mstudio-contexts"
+heredoc_start='<<(-?)["'\'']?([A-Za-z_][A-Za-z0-9_]*)'
+context_names=()
+declare -A context_dirs=()
+declare -A context_images=()
+staging=""
+request_dockerfile=""
 
 log() {
     if [[ "${quiet}" == false ]]; then
@@ -57,7 +68,272 @@ fail() {
 }
 
 usage() {
-    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+# BuildKit takes a named context from a directory, an image, another target, an
+# OCI layout, a URL or a git repository. kaniko has no named contexts, so the
+# first two become stages in front of the Dockerfile and the rest is refused.
+parse_build_context() {
+    local entry="$1" name="${1%%=*}" value="${1#*=}"
+    [[ "${entry}" == *=* && -n "${name}" && -n "${value}" ]] || fail "--build-context ${entry} needs the form NAME=VALUE"
+    if [[ ! "${name}" =~ ^[a-z][a-z0-9_.-]*$ ]]; then
+        fail "--build-context ${name}: the name has to be a stage name (lowercase letters, digits, '-', '_' and '.', starting with a letter). An image reference like alpine:3.20 cannot be one, use alpine instead"
+    fi
+    if [[ -v context_dirs["${name}"] || -v context_images["${name}"] ]]; then
+        fail "--build-context ${name} is given twice"
+    fi
+    case "${value}" in
+        docker-image://*)
+            local reference="${value#docker-image://}"
+            [[ -n "${reference}" && "${reference}" != *[[:space:]]* ]] || fail "--build-context ${entry} names no image"
+            context_images["${name}"]="${reference}"
+            ;;
+        *://* | target:* | git@*)
+            fail "--build-context ${entry} is not supported. The builder takes a local directory or docker-image://REF"
+            ;;
+        *)
+            [[ -d "${value}" ]] || fail "--build-context ${entry}: ${value} is not a directory. The builder takes a local directory or docker-image://REF"
+            context_dirs["${name}"]="${value}"
+            ;;
+    esac
+    context_names+=("${name}")
+}
+
+print_context_stages() {
+    local name
+    for name in "${context_names[@]}"; do
+        if [[ -v context_images["${name}"] ]]; then
+            printf 'FROM %s AS %s\n' "${context_images[${name}]}" "${name}"
+        else
+            printf 'FROM scratch AS %s\nCOPY %s/%s/ /\n' "${name}" "${contexts_dir}" "${name}"
+        fi
+    done
+}
+
+# Splits the COPY or ADD in joined into copy_keyword, copy_flags, copy_sources,
+# copy_destination and copy_json, which the caller declares. Shell and JSON
+# form alike. Returns 1 when there is no source and destination to split.
+split_copy() {
+    local joined="$1" index list
+    local -a words=()
+    read -r -a words <<<"${joined}"
+    copy_keyword="${words[0]}"
+    copy_flags=()
+    copy_json=false
+    index=1
+    while [[ ${index} -lt ${#words[@]} && "${words[index]}" == --* ]]; do
+        copy_flags+=("${words[index]}")
+        index=$((index + 1))
+    done
+    if [[ "${words[index]:-}" == '['* && "${joined}" =~ (\[.*\])[[:space:]]*$ ]]; then
+        copy_json=true
+        list="$(jq -r 'if type == "array" then .[] else error("not an array") end' <<<"${BASH_REMATCH[1]}")" \
+            || fail "${dockerfile}: cannot read the JSON form of ${joined}"
+        mapfile -t copy_sources <<<"${list}"
+    else
+        copy_sources=("${words[@]:index}")
+    fi
+    [[ ${#copy_sources[@]} -ge 2 ]] || return 1
+    copy_destination="${copy_sources[-1]}"
+    unset 'copy_sources[-1]'
+}
+
+# BuildKit keeps every source inside its named context. Under
+# .mstudio-contexts/NAME/ a ".." could reach the main context instead.
+leaves_context() {
+    local depth=0 part
+    local -a parts=()
+    IFS=/ read -r -a parts <<<"$1"
+    for part in "${parts[@]}"; do
+        case "${part}" in
+            '' | .) ;;
+            ..)
+                depth=$((depth - 1))
+                ((depth >= 0)) || return 0
+                ;;
+            *) depth=$((depth + 1)) ;;
+        esac
+    done
+
+    return 1
+}
+
+# kaniko saves the whole root file system of a stage when a later COPY --from
+# takes / or . from it, and fails on /proc. A local context is part of the
+# build context anyway, so COPY --from=NAME reads from its directory there.
+copy_from_context() {
+    local name="$1" flag source
+    local -a rewritten=() kept=("${copy_keyword}")
+    for flag in "${copy_flags[@]}"; do
+        [[ "${flag}" == --from=* ]] || kept+=("${flag}")
+    done
+    for source in "${copy_sources[@]}"; do
+        if leaves_context "${source}"; then
+            fail "${dockerfile}:${pending_line}: COPY --from=${name} ${source} reaches outside the build context ${name}, name a path inside it"
+        fi
+        while [[ "${source}" == /* ]]; do
+            source="${source#/}"
+        done
+        rewritten+=("${contexts_dir}/${name}/${source}")
+    done
+    if [[ "${copy_json}" == true ]]; then
+        kept+=("$(jq -c -n '$ARGS.positional' --args "${rewritten[@]}" "${copy_destination}")")
+    else
+        kept+=("${rewritten[@]}" "${copy_destination}")
+    fi
+    printf '%s\n' "${kept[*]}"
+}
+
+# The extra contexts sit inside the main context, and one ignore file applies
+# to every COPY alike. A COPY of the whole main context takes them along.
+warn_about_whole_context_copy() {
+    local source
+    [[ ${#context_dirs[@]} -gt 0 ]] || return 0
+    for source in "${copy_sources[@]}"; do
+        while [[ "${source}" == /* || "${source}" == ./* ]]; do
+            source="${source#/}"
+            source="${source#./}"
+        done
+        case "${source%/}" in
+            '' | . | '*' | '.*')
+                log "mstudio-build: ${dockerfile}:${pending_line}: this ${copy_keyword} also copies ${contexts_dir}/ with the extra build contexts into the image, see docs/image-builds.md"
+                return 0
+                ;;
+        esac
+    done
+}
+
+# Prints one instruction from pending, the physical lines that
+# write_context_dockerfile collected for it, and queues its here-documents.
+emit_pending_instruction() {
+    local keyword="" joined="" rest part from index
+    local copy_keyword copy_destination copy_json
+    local -a copy_flags=() copy_sources=()
+    [[ "${pending[0]}" =~ ^[[:space:]]*([A-Za-z]+) ]] && keyword="${BASH_REMATCH[1],,}"
+    if [[ "${keyword}" == from && "${inserted}" == false ]]; then
+        print_context_stages
+        inserted=true
+    fi
+    for part in "${pending[@]}"; do
+        [[ "${part}" =~ ^[[:space:]]*(#.*)?$ ]] && continue
+        part="${part%"${part##*[![:space:]]}"}"
+        joined+=" ${part%"${escape}"}"
+    done
+    rest="${joined}"
+    while [[ "${rest}" =~ ${heredoc_start} ]]; do
+        heredocs+=("${BASH_REMATCH[1]}${BASH_REMATCH[2]}")
+        rest="${rest#*"${BASH_REMATCH[0]}"}"
+    done
+    if [[ "${keyword}" == from && "${joined}" =~ [[:space:]][Aa][Ss][[:space:]]+([^[:space:]]+) ]]; then
+        stages["${BASH_REMATCH[1],,}"]=1
+    fi
+    if [[ "${keyword}" == copy && "${joined}" =~ [[:space:]]--from=([^[:space:]]+) ]]; then
+        from="${BASH_REMATCH[1],,}"
+        if [[ -v context_dirs["${from}"] ]] && split_copy "${joined}"; then
+            copy_from_context "${from}"
+            return 0
+        fi
+        if [[ "${from}" =~ ^[0-9]+$ ]]; then
+            for index in "${!pending[@]}"; do
+                if [[ "${pending[index]}" =~ ^(.*[[:space:]])?--from=([0-9]+)([[:space:]].*)?$ ]]; then
+                    pending[index]="${BASH_REMATCH[1]}--from=$((10#${BASH_REMATCH[2]} + ${#context_names[@]}))${BASH_REMATCH[3]}"
+                fi
+            done
+        fi
+    elif [[ "${keyword}" == copy || "${keyword}" == add ]] && split_copy "${joined}"; then
+        warn_about_whole_context_copy
+    fi
+    printf '%s\n' "${pending[@]}"
+}
+
+# The stages of the extra contexts go directly in front of the first FROM, so
+# FROM NAME and COPY --from=NAME resolve to them. Parser directives and global
+# ARGs stay above them, otherwise they lose their effect. A numbered COPY
+# --from moves by the number of inserted stages. Here-document bodies stay as
+# they are.
+write_context_dockerfile() {
+    local source="$1" escape="\\" directives=true inserted=false line trimmed name
+    local line_number=0 pending_line=0 delimiter body
+    local -a pending=() heredocs=()
+    local -A stages=()
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        line_number=$((line_number + 1))
+        if [[ ${#heredocs[@]} -gt 0 ]]; then
+            printf '%s\n' "${line}"
+            delimiter="${heredocs[0]}"
+            body="${line}"
+            if [[ "${delimiter}" == -* ]]; then
+                delimiter="${delimiter#-}"
+                body="${line#"${line%%[!$'\t']*}"}"
+            fi
+            if [[ "${body}" == "${delimiter}" ]]; then
+                heredocs=("${heredocs[@]:1}")
+            fi
+            continue
+        fi
+        if [[ "${directives}" == true && "${line}" =~ ^#[[:space:]]*([A-Za-z]+)[[:space:]]*=[[:space:]]*([^[:space:]]+) ]]; then
+            [[ "${BASH_REMATCH[1],,}" == escape ]] && escape="${BASH_REMATCH[2]:0:1}"
+            printf '%s\n' "${line}"
+            continue
+        fi
+        directives=false
+        if [[ ${#pending[@]} -eq 0 && "${line}" =~ ^[[:space:]]*(#.*)?$ ]]; then
+            printf '%s\n' "${line}"
+            continue
+        fi
+        [[ ${#pending[@]} -eq 0 ]] && pending_line="${line_number}"
+        pending+=("${line}")
+        trimmed="${line%"${line##*[![:space:]]}"}"
+        if [[ "${trimmed}" == *"${escape}" || "${line}" =~ ^[[:space:]]*(#.*)?$ ]]; then
+            continue
+        fi
+        emit_pending_instruction
+        pending=()
+    done <"${source}"
+    if [[ ${#pending[@]} -gt 0 ]]; then
+        emit_pending_instruction
+    fi
+
+    for name in "${context_names[@]}"; do
+        if [[ -v stages["${name}"] ]]; then
+            fail "--build-context ${name} has the name of a stage in ${dockerfile}, rename one of them"
+        fi
+    done
+}
+
+# kaniko reads one ignore file for the whole context: the one next to the
+# Dockerfile, or else the one at the root. The patterns of an extra context are
+# anchored at its root, so under its prefix they keep their meaning. They come
+# after the patterns of the main context, which an allowlist like "*" would
+# otherwise apply to the extra contexts as well.
+write_context_dockerignore() {
+    local main_ignore="${context}/${dockerfile}.dockerignore" name pattern negation
+    [[ -f "${main_ignore}" ]] || main_ignore="${context}/.dockerignore"
+    if [[ -f "${main_ignore}" ]]; then
+        cat "${main_ignore}"
+        echo
+    fi
+    printf '!%s\n!%s/**\n' "${contexts_dir}" "${contexts_dir}"
+    for name in "${context_names[@]}"; do
+        [[ -v context_dirs["${name}"] && -f "${context_dirs[${name}]}/.dockerignore" ]] || continue
+        while IFS= read -r pattern || [[ -n "${pattern}" ]]; do
+            pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+            pattern="${pattern%"${pattern##*[![:space:]]}"}"
+            [[ -z "${pattern}" || "${pattern}" == '#'* ]] && continue
+            negation=""
+            if [[ "${pattern}" == '!'* ]]; then
+                negation='!'
+                pattern="${pattern#!}"
+            fi
+            while [[ "${pattern}" == /* ]]; do
+                pattern="${pattern#/}"
+            done
+            [[ -n "${pattern}" ]] || continue
+            printf '%s%s/%s/%s\n' "${negation}" "${contexts_dir}" "${name}" "${pattern}"
+        done <"${context_dirs[${name}]}/.dockerignore"
+    done
+    printf '%s/Dockerfile\n%s/Dockerfile.dockerignore\n' "${contexts_dir}" "${contexts_dir}"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -65,6 +341,7 @@ while [[ $# -gt 0 ]]; do
         -t | --tag) tags+=("$2"); shift 2 ;;
         -f | --dockerfile) dockerfile="$2"; shift 2 ;;
         --build-arg) build_args+=("$2"); shift 2 ;;
+        --build-context) parse_build_context "$2"; shift 2 ;;
         --label) labels+=("$2"); shift 2 ;;
         --target) target="$2"; shift 2 ;;
         --push) push=true; shift ;;
@@ -102,11 +379,6 @@ fi
 [[ -d "${context}" ]] || fail "build context ${context} does not exist"
 [[ -f "${context}/${dockerfile}" ]] || fail "${context}/${dockerfile} does not exist"
 
-mstudio-dockerfile-check "${context}/${dockerfile}"
-if [[ ${#platforms[@]} -eq 0 ]]; then
-    platforms=("")
-fi
-
 # The builder claims a job by renaming its request, so the same rename takes
 # back a job that no builder claimed yet. A claimed job is only removed once
 # its result is in, because the builder reads the directory while it works. A
@@ -124,8 +396,30 @@ cleanup() {
             rm -rf "${job}" 2>/dev/null || true
         fi
     done
+    if [[ -n "${staging}" ]]; then
+        rm -rf "${staging}"
+    fi
 }
 trap cleanup EXIT
+
+# The builder takes one context and one Dockerfile per job. Extra contexts
+# travel inside the main context, next to a rewritten Dockerfile that turns
+# each of them into a stage.
+if [[ ${#context_names[@]} -gt 0 ]]; then
+    [[ ! -e "${context}/${contexts_dir}" ]] || fail "${context}/${contexts_dir} already exists, but --build-context needs that path for the extra contexts. Rename it."
+    staging="$(mktemp -d -t mstudio-build-XXXXXX)"
+    mkdir "${staging}/${contexts_dir}"
+    write_context_dockerfile "${context}/${dockerfile}" >"${staging}/${contexts_dir}/Dockerfile"
+    write_context_dockerignore >"${staging}/${contexts_dir}/Dockerfile.dockerignore"
+    (cd "${staging}" && mstudio-dockerfile-check "${contexts_dir}/Dockerfile")
+    request_dockerfile="${contexts_dir}/Dockerfile"
+else
+    mstudio-dockerfile-check "${context}/${dockerfile}"
+    request_dockerfile="${dockerfile}"
+fi
+if [[ ${#platforms[@]} -eq 0 ]]; then
+    platforms=("")
+fi
 
 builder_platforms() {
     local line
@@ -175,8 +469,16 @@ build_for() {
     local job_id="${job##*/}" result="${job}/result"
     mkdir -p "${job}/context"
 
-    log "mstudio-build: sending ${context} to the builder (job ${job_id}${platform:+, ${platform}})"
+    log "mstudio-build: sending ${context}${context_names[*]:+ with the build contexts ${context_names[*]}} to the builder (job ${job_id}${platform:+, ${platform}})"
     tar -c -C "${context}" . | tar -x -C "${job}/context"
+    if [[ -n "${staging}" ]]; then
+        cp -R "${staging}/${contexts_dir}" "${job}/context/"
+        local name
+        for name in "${!context_dirs[@]}"; do
+            mkdir "${job}/context/${contexts_dir}/${name}"
+            tar -c -C "${context_dirs[${name}]}" . | tar -x -C "${job}/context/${contexts_dir}/${name}"
+        done
+    fi
 
     if [[ ${#build_args[@]} -gt 0 ]]; then
         printf '%s\n' "${build_args[@]}" >"${job}/build-args"
@@ -186,7 +488,7 @@ build_for() {
     fi
 
     {
-        echo "DOCKERFILE=${dockerfile}"
+        echo "DOCKERFILE=${request_dockerfile}"
         [[ -n "${destination}" ]] && echo "DESTINATION=${destination}"
         [[ -n "${target}" ]] && echo "TARGET=${target}"
         [[ -n "${platform}" ]] && echo "PLATFORM=${platform}"
