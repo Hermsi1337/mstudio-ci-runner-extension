@@ -170,6 +170,64 @@ expect_output "an allowlist .dockerignore keeps the build contexts" \
     "$(printf '*\n!Dockerfile\n\n!.mstudio-contexts\n!.mstudio-contexts/**\n')" \
     cat "${contexts_dir}/job/context/.mstudio-contexts/Dockerfile.dockerignore"
 
+mkdir -p "${contexts_dir}/app/sub" "${contexts_dir}/ci"
+printf 'FROM alpine AS sub\n' >"${contexts_dir}/app/sub/Dockerfile"
+echo sub-only >"${contexts_dir}/app/sub/Dockerfile.dockerignore"
+printf 'FROM alpine\nCOPY --from=shared /file /ci\n' >"${contexts_dir}/ci/Dockerfile"
+echo ci-only >"${contexts_dir}/ci/Dockerfile.dockerignore"
+contexts_dockerfile "FROM alpine"
+job_dockerfile="${contexts_dir}/job/context/.mstudio-contexts/Dockerfile"
+# Runs docker build in a directory and keeps the job it queued in
+# ${contexts_dir}/job.
+captured_build() {
+    local directory="$1"
+    shift
+    rm -rf "${contexts_dir}/job"
+    capture_job &
+    (cd "${directory}" && BUILD_QUEUE_DIR="${contexts_dir}/builds" docker build "$@" -t probe:file >"${contexts_dir}/build.log" 2>&1)
+    wait
+}
+
+captured_build "${contexts_dir}/app" .
+expect_output "docker build without -f sends the Dockerfile of the context" \
+    "DOCKERFILE=Dockerfile" cat "${contexts_dir}/job/request"
+expect "docker build without -f adds nothing to the context" \
+    test ! -e "${contexts_dir}/job/context/.mstudio-contexts"
+captured_build "${contexts_dir}" -f app/sub/Dockerfile app
+expect_output "-f inside the context is relative to the working directory" \
+    "DOCKERFILE=sub/Dockerfile" cat "${contexts_dir}/job/request"
+captured_build / -f "${contexts_dir}/app/sub/Dockerfile" "${contexts_dir}/app"
+expect_output "an absolute -f inside the context becomes a path in the context" \
+    "DOCKERFILE=sub/Dockerfile" cat "${contexts_dir}/job/request"
+expect_output "-f that misses the working directory says where it looked" \
+    "relative to the working directory" \
+    bash -c "cd ${contexts_dir} && BUILD_QUEUE_DIR=${contexts_dir}/builds docker build -f sub/Dockerfile app 2>&1"
+
+captured_build "${contexts_dir}/app" -f ../ci/Dockerfile .
+expect_output "-f outside the context travels as .mstudio-contexts/Dockerfile" \
+    "DOCKERFILE=.mstudio-contexts/Dockerfile" cat "${contexts_dir}/job/request"
+expect_output "-f outside the context arrives unchanged" \
+    "$(cat "${contexts_dir}/ci/Dockerfile")" cat "${job_dockerfile}"
+expect_output "-f outside the context takes the ignore file next to it and ignores .mstudio-contexts" \
+    "$(printf 'ci-only\n\n.mstudio-contexts\n')" cat "${job_dockerfile}.dockerignore"
+captured_build "${contexts_dir}/app" -f - . <"${contexts_dir}/ci/Dockerfile"
+expect_output "-f - reads the Dockerfile from stdin" \
+    "$(cat "${contexts_dir}/ci/Dockerfile")" cat "${job_dockerfile}"
+expect_output "-f - takes the .dockerignore of the context" \
+    "$(printf '*\n!Dockerfile\n\n.mstudio-contexts\n')" cat "${job_dockerfile}.dockerignore"
+
+captured_build "${contexts_dir}/app" -f "${contexts_dir}/ci/Dockerfile" --build-context shared=../shared .
+expect_output "an absolute -f outside the context gets the build contexts" \
+    "$(printf 'FROM scratch AS shared\nCOPY .mstudio-contexts/shared/ /\nFROM alpine\nCOPY .mstudio-contexts/shared/file /ci\n')" \
+    cat "${job_dockerfile}"
+expect_output "-f outside the context with build contexts takes the ignore file next to it" \
+    "$(printf 'ci-only\n\n!.mstudio-contexts\n')" cat "${job_dockerfile}.dockerignore"
+captured_build "${contexts_dir}" -f app/sub/Dockerfile --build-context shared=shared app
+expect_output "-f inside the context with build contexts is relative to the working directory" \
+    "$(printf 'FROM scratch AS shared\nCOPY .mstudio-contexts/shared/ /\nFROM alpine AS sub\n')" cat "${job_dockerfile}"
+expect_output "-f inside the context with build contexts takes the ignore file next to it" \
+    "$(printf 'sub-only\n\n!.mstudio-contexts\n')" cat "${job_dockerfile}.dockerignore"
+
 expect_output "setup-qemu-action gets the platforms of the builder" '"supported":["linux/' \
     docker run --rm --privileged tonistiigi/binfmt
 expect_output "a pinned binfmt image gets the platforms of the builder" '"supported":["linux/' \
