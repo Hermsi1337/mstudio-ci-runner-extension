@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
     zChangelog,
     zProjectCapabilities,
@@ -134,14 +134,43 @@ async function expectValidationError(
     });
 }
 
+/** Skips the tests that act on the runner when its creation failed. */
+function describeWithRunner(name: string, tests: () => void): void {
+    describe(name, () => {
+        beforeEach((context) => {
+            if (runnerId === undefined) {
+                context.skip("createRunner failed");
+            }
+        });
+        tests();
+    });
+}
+
 beforeAll(async () => {
-    [postgres, mittwald, github, sessionTokens] = await Promise.all([
-        startPostgres(),
-        startMockApi("mittwald-v2"),
-        startMockApi("github"),
-        startSessionTokenApi(extensionSecret),
+    // Each resource is kept as soon as it runs, so afterAll stops it even
+    // when the build or another container fails.
+    const started = await Promise.allSettled([
+        startPostgres().then((container) => {
+            postgres = container;
+        }),
+        startMockApi("mittwald-v2").then((api) => {
+            mittwald = api;
+        }),
+        startMockApi("github").then((api) => {
+            github = api;
+        }),
+        startSessionTokenApi(extensionSecret).then((api) => {
+            sessionTokens = api;
+        }),
         buildServer(),
     ]);
+    const failure = started.find(
+        (result): result is PromiseRejectedResult =>
+            result.status === "rejected",
+    );
+    if (failure) {
+        throw failure.reason;
+    }
     setTestEnvironment({
         MITTWALD_API_URL: `${mittwald.url}/`,
         GITHUB_API_URL: github.url,
@@ -302,7 +331,7 @@ describe("createRunner", () => {
     });
 });
 
-describe("listRunners", () => {
+describeWithRunner("listRunners", () => {
     it("lists the runners of the session token's instance only", async () => {
         const response = await server.call(functions.listRunners, {
             headers: headers(own),
@@ -314,7 +343,7 @@ describe("listRunners", () => {
     });
 });
 
-describe("getRunnerLogs", () => {
+describeWithRunner("getRunnerLogs", () => {
     it("rejects a tail below the minimum", () =>
         expectValidationError(
             functions.getRunnerLogs,
@@ -333,7 +362,7 @@ describe("getRunnerLogs", () => {
     });
 });
 
-describe("restartRunner", () => {
+describeWithRunner("restartRunner", () => {
     it("rejects a runner id that is no UUID", () =>
         expectValidationError(
             functions.restartRunner,
@@ -365,7 +394,7 @@ describe("restartRunner", () => {
     });
 });
 
-describe("configureRunner", () => {
+describeWithRunner("configureRunner", () => {
     it("rejects a cache size of zero", () =>
         expectValidationError(
             functions.configureRunner,
@@ -387,7 +416,7 @@ describe("configureRunner", () => {
     });
 });
 
-describe("updateRunner", () => {
+describeWithRunner("updateRunner", () => {
     it("rejects a runner id that is no UUID", () =>
         expectValidationError(
             functions.updateRunner,
@@ -414,7 +443,7 @@ describe("updateRunner", () => {
     });
 });
 
-describe("deleteRunner", () => {
+describeWithRunner("deleteRunner", () => {
     it("rejects a runner id that is no UUID", () =>
         expectValidationError(
             functions.deleteRunner,

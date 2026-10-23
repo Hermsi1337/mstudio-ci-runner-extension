@@ -1,4 +1,4 @@
-import { execFile, spawn } from "node:child_process";
+import { type ChildProcess, execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { type AddressInfo, createServer } from "node:net";
@@ -43,44 +43,81 @@ export async function buildServer(): Promise<void> {
 
 /**
  * Starts `.output/server/index.mjs` with the current process environment plus
- * `env`. Call `buildServer` first.
+ * `env`. Call `buildServer` first. Start-up counts once the child itself
+ * reports listening on the port, so a foreign process on that port fails the
+ * start instead of answering the tests.
  */
 export async function startServer(
     env: Record<string, string>,
 ): Promise<ExtensionServer> {
     const port = await freePort();
+    const url = `http://127.0.0.1:${port}`;
+    const childEnv: NodeJS.ProcessEnv = {
+        ...process.env,
+        ...env,
+        HOST: "127.0.0.1",
+        PORT: String(port),
+    };
+    // srvx stays silent about the listening address while TEST is set.
+    delete childEnv.TEST;
     const child = spawn(process.execPath, [".output/server/index.mjs"], {
-        env: { ...process.env, ...env, PORT: String(port) },
+        env: childEnv,
         stdio: ["ignore", "pipe", "pipe"],
     });
-    let output = "";
-    child.stdout.on("data", (chunk) => {
-        output += chunk;
-    });
-    child.stderr.on("data", (chunk) => {
-        output += chunk;
-    });
-    const url = `http://127.0.0.1:${port}`;
 
-    const deadline = Date.now() + 30_000;
-    while (!(await reachable(url))) {
-        if (child.exitCode !== null || Date.now() > deadline) {
-            child.kill();
-            throw new Error(`extension server did not start:\n${output}`);
-        }
-        await new Promise((resolve) => setTimeout(resolve, 200));
+    try {
+        await waitForListening(child, url);
+    } catch (error) {
+        await terminate(child);
+        throw error;
     }
 
     return {
         url,
         call: (fn, options) => callServerFunction(url, fn, options),
-        stop: async () => {
-            if (child.exitCode === null) {
-                child.kill();
-                await once(child, "exit");
-            }
-        },
+        stop: () => terminate(child),
     };
+}
+
+function waitForListening(child: ChildProcess, url: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        let output = "";
+        const fail = (reason: string) => {
+            clearTimeout(timeout);
+            reject(
+                new Error(
+                    `extension server did not start (${reason}):\n${output}`,
+                ),
+            );
+        };
+        const timeout = setTimeout(() => fail("timed out"), 30_000);
+        const collect = (chunk: Buffer) => {
+            output += chunk;
+            if (output.includes(`Listening on: ${url}/`)) {
+                clearTimeout(timeout);
+                resolve();
+            }
+        };
+        child.stdout?.on("data", collect);
+        child.stderr?.on("data", collect);
+        child.once("error", (error) => fail(error.message));
+        child.once("exit", (code, signal) =>
+            fail(`exited with ${signal ?? code}`),
+        );
+    });
+}
+
+async function terminate(child: ChildProcess): Promise<void> {
+    if (
+        child.pid === undefined ||
+        child.exitCode !== null ||
+        child.signalCode !== null
+    ) {
+        return;
+    }
+    const exited = once(child, "exit");
+    child.kill();
+    await exited;
 }
 
 /**
@@ -141,13 +178,4 @@ async function freePort(): Promise<number> {
     server.close();
     await once(server, "close");
     return port;
-}
-
-async function reachable(url: string): Promise<boolean> {
-    try {
-        await fetch(url);
-        return true;
-    } catch {
-        return false;
-    }
 }
