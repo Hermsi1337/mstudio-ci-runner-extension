@@ -31,6 +31,12 @@ export interface RunnerProvider<
      * Undefined for runners that take one job at a time.
      */
     readonly concurrencyVariable?: string;
+    /**
+     * True when the CI system keys a registration by runner name and target,
+     * so a second runner with the same name would take over the first one's
+     * registration. The domain then rejects such a name.
+     */
+    readonly uniqueNamePerTarget?: boolean;
     currentImage(): string;
     prepare(input: Request, runnerName: string): Promise<PreparedRunner>;
     /**

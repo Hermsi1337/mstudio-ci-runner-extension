@@ -34,6 +34,8 @@ export function parseGitHubTarget(input: string): GitHubTarget {
  * runner credentials in the data volume, so restarts do not need a new token.
  * The token is worthless after one hour and is not stored. Nothing to clean
  * up on the provider side; GitHub removes an offline runner after 14 days.
+ * The entrypoint registers with --replace to recover its own broken
+ * registration, which also replaces any other runner of the same name.
  *
  * A PAT mode existed and is disabled: the PAT lived in the runner container
  * where every job can read it. Bringing ephemeral runners back needs the
@@ -43,6 +45,7 @@ export function parseGitHubTarget(input: string): GitHubTarget {
 export const githubProvider: RunnerProvider<ProviderRequest<"github">> = {
     id: "github",
     runnerVersion: runnerVersions.github.version,
+    uniqueNamePerTarget: true,
     currentImage: () => getEnvironmentVariables().RUNNER_IMAGE_GITHUB,
 
     async prepare(input, runnerName) {

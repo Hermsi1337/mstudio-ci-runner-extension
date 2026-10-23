@@ -21,6 +21,7 @@ import {
     ContainerHostingUnavailableError,
     NotFoundError,
     PermissionsInsufficientError,
+    RunnerNameTakenError,
     UnknownInstanceError,
     UpstreamError,
 } from "@/global-errors.ts";
@@ -47,6 +48,7 @@ import { getProjectCapabilities, getProjectDirectory } from "./project.ts";
 import {
     getProvider,
     getProviderById,
+    type PreparedRunner,
     type RunnerProvider,
 } from "./providers/index.ts";
 import { resolveResources, resourceLimits, storedLimits } from "./resources.ts";
@@ -368,6 +370,42 @@ async function assertContainerHosting(
     }
 }
 
+/**
+ * Compares slugs, the names the CI system sees, and target URLs ignoring case
+ * like the CI system does. Covers every project of the instance, since the
+ * registration lives in the CI system and not in a project. Rows that already
+ * share a name stay untouched.
+ */
+async function assertRunnerNameFree(
+    extensionInstanceId: string,
+    provider: RunnerProvider,
+    prepared: PreparedRunner,
+    runnerName: string,
+): Promise<void> {
+    const rows = await getDatabase()
+        .select({
+            name: runners.name,
+            target: runners.target,
+            targetUrl: runners.targetUrl,
+        })
+        .from(runners)
+        .where(
+            and(
+                eq(runners.extensionInstanceId, extensionInstanceId),
+                eq(runners.provider, provider.id),
+            ),
+        );
+    const targetUrl = prepared.targetUrl.toLowerCase();
+    const taken = rows.find(
+        (row) =>
+            row.targetUrl.toLowerCase() === targetUrl &&
+            slugify(row.name) === runnerName,
+    );
+    if (taken) {
+        throw new RunnerNameTakenError(taken.name, taken.target);
+    }
+}
+
 export async function createRunner(
     client: MittwaldAPIV2Client,
     extensionInstanceId: string,
@@ -398,6 +436,14 @@ export async function createRunner(
         memoryMb: resources.memoryMb,
     });
     const prepared = await provider.prepare({ ...input, labels }, runnerName);
+    if (provider.uniqueNamePerTarget) {
+        await assertRunnerNameFree(
+            extensionInstanceId,
+            provider,
+            prepared,
+            runnerName,
+        );
+    }
     const cache = input.cache ?? false;
     const cacheSizeGb = input.cacheSizeGb ?? 10;
     const imageBuilds = input.imageBuilds ?? false;

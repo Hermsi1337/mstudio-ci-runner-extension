@@ -111,6 +111,16 @@ export class DockerApiNameTakenError extends PublicError {
     }
 }
 
+export class RunnerNameTakenError extends PublicError {
+    public constructor(name: string, target: string) {
+        super(
+            "error.runner.nameTaken",
+            { name, target },
+            { statusCode: 409, details: { affectedField: "name" } },
+        );
+    }
+}
+
 /** The service `docker` needs a public URL of the extension to get tokens. */
 export class DockerApiUnconfiguredError extends PublicError {
     public constructor() {

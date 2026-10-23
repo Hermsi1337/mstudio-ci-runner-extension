@@ -376,6 +376,8 @@ export const de: Messages = {
         "Im Stack gibt es schon einen Container namens builder, der nicht von dieser Extension stammt. Image-Builds brauchen diesen Namen. Benenne deinen Container um oder nimm einen anderen Stack.",
     "error.dockerApi.nameTaken":
         "Im Stack gibt es schon einen Container namens docker, der nicht von dieser Extension stammt. Docker in Jobs braucht diesen Namen. Benenne deinen Container um oder nimm einen anderen Stack.",
+    "error.runner.nameTaken":
+        "Für {target} gibt es schon einen Runner namens {name}. Ein zweiter würde dessen Registrierung in GitHub ersetzen. Wähl einen anderen Namen oder lösch den anderen Runner.",
     "error.dockerApi.unconfigured":
         "Docker in Jobs ist in dieser Installation der Extension nicht verfügbar. Leg den Runner ohne diese Option an.",
     "error.containerHosting.unavailable":

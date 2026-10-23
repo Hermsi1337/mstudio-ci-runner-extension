@@ -75,6 +75,8 @@ Two Flow rules shape the components:
 4. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
    registration in the CI system where needed and returns image, environment and the
    data volume ([providers.md](providers.md)). Nothing secret is returned for storage.
+   For a provider with `uniqueNamePerTarget` (GitHub) a runner name already used for
+   the same target fails with `error.runner.nameTaken` before anything is created.
 5. `src/domain/stack.ts` resolves the stack (`resolveStack`). Without a `stackId` in
    the request it finds the stack of the registration target in `runner_stacks` or
    creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
