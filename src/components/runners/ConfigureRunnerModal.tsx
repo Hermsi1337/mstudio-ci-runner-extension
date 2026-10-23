@@ -34,6 +34,7 @@ import {
     JobFeatureFields,
     type JobFeatureFormValues,
 } from "./JobFeatureFields.tsx";
+import { NameField, type NameFormValues } from "./NameField.tsx";
 import { ResourceFields } from "./ResourceFields.tsx";
 import {
     type ResourceFormValues,
@@ -41,9 +42,13 @@ import {
     toResourceRequest,
 } from "./resource-request.ts";
 
-type FormValues = JobFeatureFormValues &
+type FormValues = NameFormValues &
+    JobFeatureFormValues &
     ConcurrencyFormValues &
     ResourceFormValues;
+
+/** Mirrors configureRunner: these fields change the service without a recreate. */
+const KEEPS_CONTAINER: readonly (keyof FormValues)[] = ["name"];
 
 function pipelineSnippet(runner: Runner): string | null {
     if (runner.labels.length === 0) {
@@ -67,6 +72,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
     const { notify } = useNotify();
     const form = useForm<FormValues>({
         defaultValues: {
+            name: runner.name,
             cache: runner.cache,
             cacheSizeGb: runner.cacheSizeGb,
             imageBuilds: runner.imageBuilds,
@@ -78,9 +84,10 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
     const [RootError, handleSubmit] = useFormErrorHandling(
         form,
         async (values) => {
-            await RunnerClientGhost.configureRunner({
+            const configured = await RunnerClientGhost.configureRunner({
                 data: {
                     runnerId: runner.id,
+                    name: values.name,
                     cache: values.cache,
                     cacheSizeGb: values.cacheSizeGb,
                     imageBuilds: values.imageBuilds,
@@ -92,18 +99,31 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
             RunnerClientGhost.listRunners().invalidate(queryClient);
             notify(
                 "success",
-                t("runners.notice.configured", { name: runner.name }),
+                t("runners.notice.configured", { name: configured.name }),
             );
             modal.close();
         },
     );
     const changed = form.formState.isDirty;
+    const recreates = (
+        Object.keys(form.formState.dirtyFields) as (keyof FormValues)[]
+    ).some((field) => !KEEPS_CONTAINER.includes(field));
     const snippet = pipelineSnippet(runner);
 
     return (
         <Form form={form} onSubmit={handleSubmit}>
             <Content>
                 <Tabs>
+                    <Tab>
+                        <TabTitle>{t("form.section.runner")}</TabTitle>
+                        <Section>
+                            <NameField
+                                form={form}
+                                description={t("form.rename.description")}
+                                help={t("form.rename.help")}
+                            />
+                        </Section>
+                    </Tab>
                     <Tab>
                         <TabTitle>{t("form.section.resources")}</TabTitle>
                         <Section>
@@ -145,7 +165,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                         </Tab>
                     )}
                 </Tabs>
-                {changed && (
+                {recreates && (
                     <Alert status="warning">
                         <Heading>{t("form.configure.warning.heading")}</Heading>
                         <Text>{t("form.configure.warning.text")}</Text>

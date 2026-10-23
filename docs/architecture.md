@@ -35,11 +35,11 @@ screen are in [styleguide.md](styleguide.md). The runners are grouped by registr
 confirmation modals through overlay controllers. A row shows labels and switched on
 job features; it expands into the remaining details. Flow's list switches from columns
 to stacked rows by container width, so no separate mobile layout exists. The create
-form and the settings modal share `ResourceFields.tsx` (size cards, and for the custom
+form and the settings modal share `NameField.tsx`, `ResourceFields.tsx` (size cards, and for the custom
 size a "No limit" checkbox per limit plus a warning while memory is unlimited) and
 `JobFeatureFields.tsx` (cache, image builds, Docker in jobs as checkbox cards). The
 create form keeps the job features in a collapsed `Accordion`, the settings modal in a
-tab.
+tab. The settings modal opens on the name; renaming alone keeps the container running.
 `src/repository.ts` holds the repository and docs URLs the UI links to.
 
 Release notes come from the GitHub API as GitHub-flavored Markdown.
@@ -75,8 +75,9 @@ Two Flow rules shape the components:
 4. The provider (`src/domain/providers/<provider>.ts`) checks access, creates the
    registration in the CI system where needed and returns image, environment and the
    data volume ([providers.md](providers.md)). Nothing secret is returned for storage.
-   For a provider with `uniqueNamePerTarget` (GitHub) a runner name already used for
-   the same target fails with `error.runner.nameTaken` before anything is created.
+   For a provider with `uniqueNamePerTarget` (GitHub) a runner name whose slug another
+   runner registered with for the same target (`runners.runnerName`, kept on rename)
+   fails with `error.runner.nameTaken` before anything is created.
 5. `src/domain/stack.ts` resolves the stack (`resolveStack`). Without a `stackId` in
    the request it finds the stack of the registration target in `runner_stacks` or
    creates it (`CI Runner: <target>` via `container.createStack`). The unique pair
@@ -110,7 +111,7 @@ Two Flow rules shape the components:
 
 Other operations: list with live status (`container.getStack`), logs
 (`container.getServiceLogs`), restart (`container.restartService`), update to the
-current image and settings changes (cache, concurrency, size), delete
+current image and settings changes (name, cache, concurrency, size), delete
 (`container.deleteStack`, then `provider.release`). All stack operations run with the
 access token of the signed-in user, so only with their permissions and the scopes of
 the extension.
@@ -124,9 +125,14 @@ that shares the stack. The extension skips the recreate only when mittwald repor
 `requiresRecreate: false` for the declared service. Dropping a limit redeclares
 `deploy.resources` without it, and mittwald replaces `deploy` as a whole on PATCH
 (`{ resources: {} }` clears the limits, leaving `deploy` out keeps the old ones). A recreate cancels the job that
-runs in the container; neither GitHub, GitLab nor Forgejo retries it automatically. The
-runner row is written after the recreate succeeded, so a failed recreate leaves the
-update on offer and the next attempt declares the same state again.
+runs in the container; neither GitHub, GitLab nor Forgejo retries it automatically.
+A change of the name alone redeclares the service with its current state and only a
+new description and never calls `container.recreateService`: the description is not
+part of the service state, so the container and its job keep running. A name changed
+together with other settings goes into the same declaration, which is then recreated.
+On both paths the runner row is written last, after the declaration and any
+recreate succeeded, so a failure leaves the row as it was (the update still on offer,
+the old name still shown) and the next attempt declares the same state again.
 
 ## Data model
 
@@ -136,7 +142,10 @@ Tables in `src/db/schema.ts`:
   instance secret).
 - `runners`: one row per runner. Foreign key to `extension_instance` with
   `ON DELETE CASCADE`. `stackId` and `serviceName` locate the container; `provider`,
-  `target`, `targetUrl` describe the registration target. No column holds a provider
+  `target`, `targetUrl` describe the registration target. `name` is the display name
+  that the settings modal can change; `runnerName` is the slug the container registered
+  with (`RUNNER_NAME`) and never changes, like `serviceName`, which prefixes the volumes
+  ([providers.md](providers.md#package-manager-cache)). No column holds a provider
   secret: the registration token exists only in the environment of the runner container.
   `image` and `runnerVersion` record what the stack was declared with; `updateAvailable`
   in the API compares `image` with the image of the running extension release.

@@ -2,6 +2,7 @@ import { assertStatus } from "@mittwald/api-client";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { StackResponse } from "@/domain/stack.ts";
 import type { CreateRunnerRequest, Runner } from "@/generated/extension-api";
 import {
     zProjectStackList,
@@ -506,6 +507,7 @@ describe("duplicate runner names", () => {
             stackId: "88888888-8888-8888-8888-888888888888",
             provider: "github",
             name: "Build",
+            runnerName: "build",
             target: "acme/duplicates",
             targetUrl: "https://github.com/acme/duplicates",
             labels: "mittwald",
@@ -541,6 +543,183 @@ describe("duplicate runner names", () => {
 
         await runner.deleteRunner(client, extensionInstanceId, first.id);
         await runner.deleteRunner(client, extensionInstanceId, second.id);
+    });
+
+    it("checks the name GitHub sees, not the new name of a renamed runner", async () => {
+        const target = "acme/renamed-duplicates";
+        const first = await create({ ...github, name: "Build", target });
+        await runner.configureRunner(client, extensionInstanceId, {
+            runnerId: first.id,
+            cache: false,
+            name: "Deploy",
+        });
+        await expect(
+            create({ ...github, name: "Build", target }),
+        ).rejects.toMatchObject({
+            messageKey: "error.runner.nameTaken",
+            params: { name: "Deploy", target },
+        });
+        const second = await create({ ...github, name: "Deploy", target });
+        expect(second.name).toBe("Deploy");
+
+        await runner.deleteRunner(client, extensionInstanceId, first.id);
+        await runner.deleteRunner(client, extensionInstanceId, second.id);
+    });
+});
+
+describe("rename", () => {
+    let created: Runner;
+
+    afterAll(async () => {
+        if (created) {
+            await runner.deleteRunner(client, extensionInstanceId, created.id);
+        }
+    });
+
+    const readRow = async () => {
+        const [row] = await db
+            .select()
+            .from(schema.runners)
+            .where(eq(schema.runners.id, created.id));
+        return row;
+    };
+
+    it("renames without recreating the container", async () => {
+        created = await runner.createRunner(
+            client,
+            extensionInstanceId,
+            projectId,
+            userId,
+            {
+                provider: "github",
+                name: "Old Name",
+                target: "acme/rename",
+                tokenType: "registration",
+                token: "AEBIHM56SBF3SULYYYY3BH3KU333M",
+                cache: true,
+            },
+        );
+        const before = await readRow();
+        const getStack = vi.spyOn(client.container, "getStack");
+        const updateStack = vi.spyOn(client.container, "updateStack");
+        const recreateService = vi.spyOn(client.container, "recreateService");
+        const updateCronjob = vi.spyOn(client.cronjob, "updateCronjob");
+        try {
+            const renamed = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                { runnerId: created.id, cache: true, name: "New Name" },
+            );
+            expect(zRunner.parse(renamed)).toEqual(renamed);
+            expect(renamed.name).toBe("New Name");
+
+            const response = await getStack.mock.results[0]?.value;
+            assertStatus(response, 200);
+            const stack: StackResponse = response.data;
+            const service = stack.services?.find(
+                (s) =>
+                    s.serviceName === before.serviceName ||
+                    s.id === before.serviceId,
+            );
+            expect(service).toBeDefined();
+            const state = service?.pendingState ?? service?.deployedState;
+            expect(updateStack).toHaveBeenCalledTimes(1);
+            const services = updateStack.mock.calls[0][0].data?.services;
+            expect(Object.keys(services ?? {})).toEqual([before.serviceName]);
+            expect(services?.[before.serviceName]).toEqual({
+                description: "github runner New Name",
+                image: state?.image,
+                environment: state?.envs,
+                restartPolicy: service?.restartPolicy,
+                deploy: service?.deploy,
+                volumes: state?.volumes,
+                ports: state?.ports,
+                command: state?.command,
+                entrypoint: state?.entrypoint,
+            });
+            expect(service?.description).not.toBe("github runner New Name");
+            expect(recreateService).not.toHaveBeenCalled();
+            expect(updateCronjob).toHaveBeenCalledTimes(1);
+            expect(updateCronjob.mock.calls[0][0].data?.description).toMatch(
+                /\(New Name\)$/,
+            );
+        } finally {
+            getStack.mockRestore();
+            updateStack.mockRestore();
+            recreateService.mockRestore();
+            updateCronjob.mockRestore();
+        }
+
+        const after = await readRow();
+        expect(after).toMatchObject({
+            name: "New Name",
+            runnerName: "old-name",
+            serviceName: before.serviceName,
+            serviceId: before.serviceId,
+            stackId: before.stackId,
+        });
+        const listed = (
+            await runner.listRunners(client, extensionInstanceId)
+        ).find((r) => r.id === created.id);
+        expect(listed?.name).toBe("New Name");
+    });
+
+    it("leaves the service alone when the name stays", async () => {
+        const updateStack = vi.spyOn(client.container, "updateStack");
+        const updateCronjob = vi.spyOn(client.cronjob, "updateCronjob");
+        try {
+            await runner.configureRunner(client, extensionInstanceId, {
+                runnerId: created.id,
+                cache: true,
+                name: "New Name",
+            });
+            expect(updateStack).not.toHaveBeenCalled();
+            expect(updateCronjob).not.toHaveBeenCalled();
+        } finally {
+            updateStack.mockRestore();
+            updateCronjob.mockRestore();
+        }
+    });
+
+    it("renames and changes a setting in one recreating declaration", async () => {
+        const updateStack = vi.spyOn(client.container, "updateStack");
+        const recreateService = vi.spyOn(client.container, "recreateService");
+        try {
+            const configured = await runner.configureRunner(
+                client,
+                extensionInstanceId,
+                {
+                    runnerId: created.id,
+                    cache: true,
+                    name: "Large Runner",
+                    size: "large",
+                },
+            );
+            expect(configured).toMatchObject({
+                name: "Large Runner",
+                size: "large",
+            });
+            expect(updateStack).toHaveBeenCalledTimes(1);
+            const declared = Object.values(
+                updateStack.mock.calls[0][0].data?.services ?? {},
+            );
+            expect(declared).toHaveLength(1);
+            expect(declared[0]).toMatchObject({
+                description: "github runner Large Runner",
+                deploy: {
+                    resources: { limits: { cpus: "2", memory: "4096mb" } },
+                },
+            });
+            expect(recreateService).toHaveBeenCalledTimes(1);
+        } finally {
+            updateStack.mockRestore();
+            recreateService.mockRestore();
+        }
+        expect(await readRow()).toMatchObject({
+            name: "Large Runner",
+            runnerName: "old-name",
+            size: "large",
+        });
     });
 });
 

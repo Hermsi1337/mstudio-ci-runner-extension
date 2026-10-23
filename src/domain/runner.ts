@@ -33,6 +33,7 @@ import {
 } from "./builder.ts";
 import {
     CACHE_VOLUME,
+    type CacheCronjob,
     cacheTrimCronjob,
     withCache,
     withoutCache,
@@ -62,6 +63,7 @@ import {
     recreateService,
     removeService,
     resolveStack,
+    type ServiceDeclaration,
     type ServiceResponse,
     type StackResponse,
     uniqueServiceName,
@@ -132,7 +134,8 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
     };
 }
 
-function slugify(name: string): string {
+/** The runner name the CI system sees; migration 0004 repeats it in SQL. */
+export function slugify(name: string): string {
     return name
         .toLowerCase()
         .replace(/[^a-z0-9-]+/g, "-")
@@ -180,6 +183,30 @@ function withConcurrency(
     };
 }
 
+function serviceDescription(provider: RunnerProvider, name: string): string {
+    return `${provider.id} runner ${name}`;
+}
+
+/** What mittwald holds for the service, a pending declaration included. */
+function currentDeclaration(service: ServiceResponse): ServiceDeclaration {
+    const state = service.pendingState ?? service.deployedState;
+    return {
+        description: service.description,
+        image: state.image,
+        environment: state.envs,
+        restartPolicy: service.restartPolicy,
+        deploy: service.deploy,
+        volumes: state.volumes,
+        ports: state.ports,
+        command: state.command,
+        entrypoint: state.entrypoint,
+    };
+}
+
+function cronjobDescription(cronjob: CacheCronjob, name: string): string {
+    return `${cronjob.description} (${name})`;
+}
+
 async function createTrimCronjob(
     client: MittwaldAPIV2Client,
     row: Pick<NewRunnerRow, "projectId" | "stackId" | "name">,
@@ -190,7 +217,7 @@ async function createTrimCronjob(
     const created = await client.cronjob.createCronjob({
         projectId: row.projectId,
         data: {
-            description: `${cronjob.description} (${row.name})`,
+            description: cronjobDescription(cronjob, row.name),
             interval: cronjob.interval,
             active: true,
             timeout: cronjob.timeoutSeconds,
@@ -247,7 +274,7 @@ async function updateTrimCronjob(
     const updated = await client.cronjob.updateCronjob({
         cronjobId,
         data: {
-            description: `${cronjob.description} (${row.name})`,
+            description: cronjobDescription(cronjob, row.name),
             target: {
                 stackId: row.stackId,
                 serviceIdentifier: serviceId,
@@ -371,10 +398,10 @@ async function assertContainerHosting(
 }
 
 /**
- * Compares slugs, the names the CI system sees, and target URLs ignoring case
- * like the CI system does. Covers every project of the instance, since the
- * registration lives in the CI system and not in a project. Rows that already
- * share a name stay untouched.
+ * Compares the names the CI system sees (runnerName, which a rename keeps) and
+ * target URLs ignoring case like the CI system does. Covers every project of
+ * the instance, since the registration lives in the CI system and not in a
+ * project. Rows that already share a name stay untouched.
  */
 async function assertRunnerNameFree(
     extensionInstanceId: string,
@@ -385,6 +412,7 @@ async function assertRunnerNameFree(
     const rows = await getDatabase()
         .select({
             name: runners.name,
+            runnerName: runners.runnerName,
             target: runners.target,
             targetUrl: runners.targetUrl,
         })
@@ -399,7 +427,7 @@ async function assertRunnerNameFree(
     const taken = rows.find(
         (row) =>
             row.targetUrl.toLowerCase() === targetUrl &&
-            slugify(row.name) === runnerName,
+            row.runnerName === runnerName,
     );
     if (taken) {
         throw new RunnerNameTakenError(taken.name, taken.target);
@@ -575,7 +603,7 @@ export async function createRunner(
             stackId,
             serviceName,
             {
-                description: `${provider.id} runner ${input.name}`,
+                description: serviceDescription(provider, input.name),
                 image: prepared.image,
                 environment: withConcurrency(
                     provider,
@@ -630,6 +658,7 @@ export async function createRunner(
         serviceId: service?.id ?? null,
         provider: provider.id,
         name: input.name,
+        runnerName,
         target: prepared.target,
         targetUrl: prepared.targetUrl,
         labels: prepared.labels,
@@ -748,24 +777,13 @@ export async function updateRunner(
     if (!provider || !service) {
         throw new NotFoundError("runnerContainer");
     }
-    const state = service.pendingState ?? service.deployedState;
     const image = provider.currentImage();
     const updatedService = await declareService(
         client,
         extensionInstanceId,
         row.stackId,
         row.serviceName,
-        {
-            description: service.description,
-            image,
-            environment: state.envs,
-            restartPolicy: service.restartPolicy,
-            deploy: service.deploy,
-            volumes: state.volumes,
-            ports: state.ports,
-            command: state.command,
-            entrypoint: state.entrypoint,
-        },
+        { ...currentDeclaration(service), image },
     );
     await recreateIfRequired(
         client,
@@ -830,8 +848,8 @@ async function recreateIfRequired(
 }
 
 /**
- * Changes cache, image builds, Docker in jobs, concurrency and resources after
- * creation.
+ * Changes the name, cache, image builds, Docker in jobs, concurrency and
+ * resources after creation.
  * Switching the cache adds or removes the cache volume and environment on the
  * service state mittwald reports, image builds add or remove the build queue
  * mount and the builder service of the stack, concurrency changes an
@@ -839,7 +857,9 @@ async function recreateIfRequired(
  * service. Turning the cache off deletes its cronjob and volume, turning image
  * builds off removes the builder once no runner of the stack builds any more.
  * Docker in jobs sets DOCKER_HOST and adds or removes the service `docker` the
- * same way.
+ * same way. A new name changes the descriptions of the service and the cache
+ * cronjob; serviceName and runnerName stay, so the volumes and the registration
+ * in the CI system keep theirs.
  */
 export async function configureRunner(
     client: MittwaldAPIV2Client,
@@ -869,6 +889,13 @@ export async function configureRunner(
         resources.size !== current.size ||
         resources.cpus !== current.cpus ||
         resources.memoryMb !== current.memoryMb;
+    const name = input.name ?? row.name;
+    const renamed = name !== row.name;
+    const description = renamed
+        ? serviceDescription(provider, name)
+        : service.description;
+    const named = { ...row, name };
+    const declared = currentDeclaration(service);
     addLogContext({ runnerId: row.id, stackId: row.stackId });
 
     let updatedService = service;
@@ -879,14 +906,13 @@ export async function configureRunner(
         concurrency !== row.concurrency ||
         resourcesChanged
     ) {
-        const state = service.pendingState ?? service.deployedState;
         const plainMounts = unprefixMounts(
             row.serviceName,
-            state.volumes ?? [],
+            declared.volumes ?? [],
         );
         const cached = cache
-            ? withCache(state.envs ?? {}, plainMounts)
-            : withoutCache(state.envs ?? {}, plainMounts);
+            ? withCache(declared.environment ?? {}, plainMounts)
+            : withoutCache(declared.environment ?? {}, plainMounts);
         const { environment, mounts } = dockerApi
             ? withDockerApi(
                   cached,
@@ -914,22 +940,18 @@ export async function configureRunner(
                 row.stackId,
                 row.serviceName,
                 {
-                    description: service.description,
-                    image: state.image,
+                    ...declared,
+                    description,
                     environment: withConcurrency(
                         provider,
                         environment,
                         concurrency,
                     ),
-                    restartPolicy: service.restartPolicy,
                     deploy: {
-                        ...service.deploy,
+                        ...declared.deploy,
                         resources: { limits: resourceLimits(resources) },
                     },
                     volumes: prefixMounts(row.serviceName, mountsWithQueue),
-                    ports: state.ports,
-                    command: state.command,
-                    entrypoint: state.entrypoint,
                 },
             )) ?? service;
         // The builder comes after the runner, so a sibling that turns image
@@ -970,6 +992,17 @@ export async function configureRunner(
                 row.stackId,
             );
         }
+    } else if (renamed) {
+        // mittwald keeps the description outside the service state, so this
+        // declaration requires no recreate and running jobs go on.
+        updatedService =
+            (await declareService(
+                client,
+                extensionInstanceId,
+                row.stackId,
+                row.serviceName,
+                { ...declared, description },
+            )) ?? service;
     }
 
     let cronjobIds = parseCronjobIds(row);
@@ -978,17 +1011,17 @@ export async function configureRunner(
             cronjobIds = [
                 await createTrimCronjob(
                     client,
-                    row,
+                    named,
                     updatedService.id,
                     cacheSizeGb,
                 ),
             ];
             await persistCronjobIds(client, row.id, cronjobIds);
-        } else if (cacheSizeGb !== row.cacheSizeGb) {
+        } else if (cacheSizeGb !== row.cacheSizeGb || renamed) {
             for (const cronjobId of cronjobIds) {
                 await updateTrimCronjob(
                     client,
-                    row,
+                    named,
                     updatedService.id,
                     cronjobId,
                     cacheSizeGb,
@@ -1008,6 +1041,7 @@ export async function configureRunner(
     const [updated] = await getDatabase()
         .update(runners)
         .set({
+            name,
             cache,
             cacheSizeGb,
             imageBuilds,
@@ -1024,6 +1058,8 @@ export async function configureRunner(
         throw new NotFoundError("runner");
     }
     log.info("runner configured", {
+        name,
+        previousName: row.name,
         cache,
         cacheSizeGb,
         imageBuilds,

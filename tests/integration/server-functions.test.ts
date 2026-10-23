@@ -198,6 +198,7 @@ beforeAll(async () => {
         stackId: "77777777-7777-7777-7777-777777777777",
         provider: "forgejo",
         name: "Foreign Runner",
+        runnerName: "foreign-runner",
         target: "forgejo.example.com",
         targetUrl: "https://forgejo.example.com",
         labels: "[]",
@@ -401,6 +402,32 @@ describeWithRunner("configureRunner", () => {
             { runnerId, cache: true, cacheSizeGb: 0 },
             { affectedField: "cacheSizeGb" },
         ));
+
+    it("rejects a name with one character", () =>
+        expectValidationError(
+            functions.configureRunner,
+            { runnerId, cache: false, name: "x" },
+            { affectedField: "name" },
+        ));
+
+    it("refuses to rename a runner of another instance", async () => {
+        const response = await server.call(functions.configureRunner, {
+            headers: headers(own),
+            data: { runnerId: foreignRunnerId, cache: false, name: "Hijacked" },
+        });
+
+        expect(parsePublicError(response.error)).toEqual({
+            type: "NotFoundError",
+            message: translate("en", "error.notFound.runner"),
+            isRetryable: false,
+            details: {},
+        });
+        const [foreignRow] = await db
+            .select({ name: schema.runners.name })
+            .from(schema.runners)
+            .where(eq(schema.runners.id, foreignRunnerId));
+        expect(foreignRow?.name).toBe("Foreign Runner");
+    });
 
     it("changes the settings", async () => {
         const response = await server.call(functions.configureRunner, {

@@ -57,6 +57,8 @@ export const runners = pgTable("runners", {
     serviceId: varchar({ length: 64 }),
     provider: varchar({ length: 32 }).notNull(),
     name: varchar({ length: 64 }).notNull(),
+    /** RUNNER_NAME the container registered with; renaming changes only name. */
+    runnerName: varchar({ length: 40 }).notNull(),
     target: text().notNull(),
     targetUrl: text().notNull(),
     labels: text().notNull(),
