@@ -75,15 +75,24 @@ usage() {
 }
 
 # Prints the path of a file relative to the context, or returns 1 when the file
-# lies outside of it. Symlinks resolve first, because the copy of the context
-# keeps them and a link to the outside breaks in the builder.
+# lies outside of it. Inside or outside follows the resolved symlinks, because
+# the copy of the context keeps them and a link to the outside breaks in the
+# builder. The printed path stays the one -f names where it can, so kaniko
+# looks for the same <Dockerfile>.dockerignore as Docker does.
 path_in_context() {
-    local root file
+    local root file lexical_root lexical_file
     root="$(realpath -e -- "${context}")"
     root="${root%/}"
     file="$(realpath -e -- "$1")"
     [[ "${file}" == "${root}/"* ]] || return 1
-    echo "${file#"${root}/"}"
+    lexical_root="$(realpath -s -- "${context}")"
+    lexical_root="${lexical_root%/}"
+    lexical_file="$(realpath -s -- "$1")"
+    if [[ "${lexical_file}" == "${lexical_root}/"* ]]; then
+        echo "${lexical_file#"${lexical_root}/"}"
+    else
+        echo "${file#"${root}/"}"
+    fi
 }
 
 # BuildKit takes a named context from a directory, an image, another target, an
@@ -401,6 +410,8 @@ fi
 if [[ -z "${dockerfile}" ]]; then
     dockerfile="${context%/}/Dockerfile"
     [[ -f "${dockerfile}" ]] || fail "${dockerfile} does not exist"
+elif [[ "${dockerfile}" == /* && ! -f "${dockerfile}" ]]; then
+    fail "${dockerfile} does not exist"
 elif [[ "${dockerfile}" != - && ! -f "${dockerfile}" ]]; then
     fail "${dockerfile} does not exist in ${PWD}. Like docker build, -f takes a path relative to the working directory, not to the context."
 fi

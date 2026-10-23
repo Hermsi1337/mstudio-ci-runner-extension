@@ -208,7 +208,8 @@ mstudio-build --push -t ghcr.io/me/app:1 --build-arg VERSION=1 .
 
 `-f` is relative to the working directory, like with the docker CLI; without it the
 Dockerfile is `<CONTEXT>/Dockerfile`. A Dockerfile inside the context goes to the builder
-as its path in the context. kaniko reads no Dockerfile from outside the context, so one
+as the path in the context that `-f` names. A symlink counts as inside only when its
+target lies inside the context. kaniko reads no Dockerfile from outside the context, so one
 from elsewhere, or from stdin with `-f -`, travels as `.mstudio-contexts/Dockerfile`
 together with `.mstudio-contexts/Dockerfile.dockerignore`. That ignore file holds the
 patterns of `<Dockerfile>.dockerignore` next to the original Dockerfile, or else of the

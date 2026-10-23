@@ -170,22 +170,39 @@ expect_output "an allowlist .dockerignore keeps the build contexts" \
     "$(printf '*\n!Dockerfile\n\n!.mstudio-contexts\n!.mstudio-contexts/**\n')" \
     cat "${contexts_dir}/job/context/.mstudio-contexts/Dockerfile.dockerignore"
 
-mkdir -p "${contexts_dir}/app/sub" "${contexts_dir}/ci"
+mkdir -p "${contexts_dir}/app/sub" "${contexts_dir}/ci" "${contexts_dir}/app-ci"
 printf 'FROM alpine AS sub\n' >"${contexts_dir}/app/sub/Dockerfile"
 echo sub-only >"${contexts_dir}/app/sub/Dockerfile.dockerignore"
+ln -s sub/Dockerfile "${contexts_dir}/app/linked.Dockerfile"
+echo linked-only >"${contexts_dir}/app/linked.Dockerfile.dockerignore"
+ln -s ../ci/Dockerfile "${contexts_dir}/app/outside.Dockerfile"
 printf 'FROM alpine\nCOPY --from=shared /file /ci\n' >"${contexts_dir}/ci/Dockerfile"
 echo ci-only >"${contexts_dir}/ci/Dockerfile.dockerignore"
+printf 'FROM alpine AS sibling\n' >"${contexts_dir}/app-ci/Dockerfile"
 contexts_dockerfile "FROM alpine"
 job_dockerfile="${contexts_dir}/job/context/.mstudio-contexts/Dockerfile"
 # Runs docker build in a directory and keeps the job it queued in
-# ${contexts_dir}/job.
+# ${contexts_dir}/job. A build that queues nothing fails with its log.
 captured_build() {
-    local directory="$1"
+    local directory="$1" capturer
     shift
     rm -rf "${contexts_dir}/job"
     capture_job &
+    capturer=$!
     (cd "${directory}" && BUILD_QUEUE_DIR="${contexts_dir}/builds" docker build "$@" -t probe:file >"${contexts_dir}/build.log" 2>&1)
-    wait
+    kill "${capturer}" 2>/dev/null
+    wait "${capturer}" 2>/dev/null
+    if [[ ! -f "${contexts_dir}/job/request" ]]; then
+        echo "docker build $* in ${directory} queued no job:" >&2
+        cat "${contexts_dir}/build.log" >&2
+    fi
+    expect "docker build $* queues a job" test -f "${contexts_dir}/job/request"
+}
+# For builds that are refused before a job is queued.
+refused_build() {
+    local directory="$1"
+    shift
+    (cd "${directory}" && BUILD_QUEUE_DIR="${contexts_dir}/builds" docker build "$@" -t probe:file 2>&1)
 }
 
 captured_build "${contexts_dir}/app" .
@@ -199,9 +216,15 @@ expect_output "-f inside the context is relative to the working directory" \
 captured_build / -f "${contexts_dir}/app/sub/Dockerfile" "${contexts_dir}/app"
 expect_output "an absolute -f inside the context becomes a path in the context" \
     "DOCKERFILE=sub/Dockerfile" cat "${contexts_dir}/job/request"
+captured_build "${contexts_dir}/app" -f linked.Dockerfile .
+expect_output "-f of a symlink inside the context keeps the path -f names" \
+    "DOCKERFILE=linked.Dockerfile" cat "${contexts_dir}/job/request"
 expect_output "-f that misses the working directory says where it looked" \
-    "relative to the working directory" \
-    bash -c "cd ${contexts_dir} && BUILD_QUEUE_DIR=${contexts_dir}/builds docker build -f sub/Dockerfile app 2>&1"
+    "relative to the working directory" refused_build "${contexts_dir}" -f sub/Dockerfile app
+missing="$(refused_build / -f "${contexts_dir}/missing/Dockerfile" "${contexts_dir}/app")"
+expect_output "a missing absolute -f is named" "${contexts_dir}/missing/Dockerfile does not exist" echo "${missing}"
+expect "a missing absolute -f gets no hint about the working directory" \
+    test "${missing}" = "${missing//working directory/}"
 
 captured_build "${contexts_dir}/app" -f ../ci/Dockerfile .
 expect_output "-f outside the context travels as .mstudio-contexts/Dockerfile" \
@@ -210,11 +233,24 @@ expect_output "-f outside the context arrives unchanged" \
     "$(cat "${contexts_dir}/ci/Dockerfile")" cat "${job_dockerfile}"
 expect_output "-f outside the context takes the ignore file next to it and ignores .mstudio-contexts" \
     "$(printf 'ci-only\n\n.mstudio-contexts\n')" cat "${job_dockerfile}.dockerignore"
+captured_build "${contexts_dir}/app" -f ../app-ci/Dockerfile .
+expect_output "-f in a sibling directory that shares the prefix of the context is outside" \
+    "$(cat "${contexts_dir}/app-ci/Dockerfile")" cat "${job_dockerfile}"
+captured_build "${contexts_dir}/app" -f outside.Dockerfile .
+expect_output "-f of a symlink to the outside travels as .mstudio-contexts/Dockerfile" \
+    "$(cat "${contexts_dir}/ci/Dockerfile")" cat "${job_dockerfile}"
+mkdir "${contexts_dir}/app/.mstudio-contexts"
+expect_output "-f outside a context that has .mstudio-contexts is refused" \
+    ".mstudio-contexts already exists" refused_build "${contexts_dir}/app" -f ../ci/Dockerfile .
+rmdir "${contexts_dir}/app/.mstudio-contexts"
 captured_build "${contexts_dir}/app" -f - . <"${contexts_dir}/ci/Dockerfile"
 expect_output "-f - reads the Dockerfile from stdin" \
     "$(cat "${contexts_dir}/ci/Dockerfile")" cat "${job_dockerfile}"
 expect_output "-f - takes the .dockerignore of the context" \
     "$(printf '*\n!Dockerfile\n\n.mstudio-contexts\n')" cat "${job_dockerfile}.dockerignore"
+expect_output "-f - with an empty stdin is refused" \
+    "found no Dockerfile on stdin" refused_build "${contexts_dir}/app" -f - . </dev/null
+expect "-f - with an empty stdin queues nothing" test -z "$(ls -A "${contexts_dir}/builds/queue")"
 
 captured_build "${contexts_dir}/app" -f "${contexts_dir}/ci/Dockerfile" --build-context shared=../shared .
 expect_output "an absolute -f outside the context gets the build contexts" \
@@ -227,6 +263,13 @@ expect_output "-f inside the context with build contexts is relative to the work
     "$(printf 'FROM scratch AS shared\nCOPY .mstudio-contexts/shared/ /\nFROM alpine AS sub\n')" cat "${job_dockerfile}"
 expect_output "-f inside the context with build contexts takes the ignore file next to it" \
     "$(printf 'sub-only\n\n!.mstudio-contexts\n')" cat "${job_dockerfile}.dockerignore"
+captured_build "${contexts_dir}/app" -f linked.Dockerfile --build-context shared=../shared .
+expect_output "-f of a symlink inside the context with build contexts takes the ignore file next to the link" \
+    "$(printf 'linked-only\n\n!.mstudio-contexts\n')" cat "${job_dockerfile}.dockerignore"
+captured_build "${contexts_dir}/app" -f - --build-context shared=../shared . <"${contexts_dir}/ci/Dockerfile"
+expect_output "-f - gets the build contexts" \
+    "$(printf 'FROM scratch AS shared\nCOPY .mstudio-contexts/shared/ /\nFROM alpine\nCOPY .mstudio-contexts/shared/file /ci\n')" \
+    cat "${job_dockerfile}"
 
 expect_output "setup-qemu-action gets the platforms of the builder" '"supported":["linux/' \
     docker run --rm --privileged tonistiigi/binfmt
