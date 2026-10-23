@@ -227,17 +227,30 @@ sets one variable:
 
 The files belong to the project user, not to `runner`, so a plain write fails with
 `Permission denied`, and a write with `sudo` leaves files owned by root that SFTP and the
-app cannot change. `mstudio-sync [--delete] SRC DEST` copies with
-`sudo rsync -rlt --chown=<uid:gid> --chmod=D755,F644`, where `uid:gid` is the owner of
-`DEST` or of its nearest existing parent. It creates missing directories up to `DEST`
-for the same owner. As with rsync, `SRC/` copies the contents and gives `DEST` itself
-mode 755, `SRC` without the slash copies the directory. `--delete` removes files in
-`DEST` that `SRC` lacks.
+app cannot change. `mstudio-sync [--delete] SRC DEST` writes as the owner of `DEST`, or
+of its nearest existing parent:
 
-`mstudio-sync` refuses a `DEST` outside the targets, after resolving `..` and symlinks,
-and a target mounted read only. Every job on the runner can write into a writable
-directory, `sudo` included, so give a runner only the directories its pipelines deploy
-to.
+1. As root it resolves `DEST` (`..` and symlinks) and refuses it outside the targets.
+   The target must be a mount point (`findmnt`) whose options it can read and that is
+   not read only.
+2. As root it reads the owner `uid:gid` of the nearest existing directory and refuses
+   one that belongs to root.
+3. It stages `SRC` in a private temporary directory and hands it to that owner.
+4. As the owner (`setpriv --reuid --regid --clear-groups`) it creates the missing
+   directories up to `DEST` (mode 755) and runs
+   `rsync -rltp --chmod=D755,F644 [--delete]` from the stage into `DEST`.
+
+Root never writes into the project directory, so a symlink someone swaps in after the
+check reaches only what the owner may write anyway, and rsync replaces symlinks in
+`DEST` instead of following them. Every directory and file it copies gets mode 755 and
+644, existing files included; files in `DEST` that `SRC` lacks keep theirs. A file the
+owner may not write makes rsync fail. As with rsync, `SRC/` copies the contents and
+gives `DEST` itself mode 755, `SRC` without the slash copies the directory. `--delete`
+removes files in `DEST` that `SRC` lacks. `--` ends the options, for a `SRC` that
+starts with a dash.
+
+Every job on the runner can write into a writable directory with `sudo` as well, so
+give a runner only the directories its pipelines deploy to.
 
 Rules for the list, checked by the form and the server (`src/project-directories.ts`):
 at most 10 entries, no colon in a path, the source stays inside the project directory

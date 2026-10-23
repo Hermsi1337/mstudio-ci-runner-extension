@@ -144,10 +144,13 @@ had slipped out of the layout.
   a plain icon `Button` that removes it (`IconDelete`, `aria-label` with the row
   number), and a soft `Button` with `IconPlus` adds a row until the limit. Rows are
   keyed by the `id` of the field array, never by index. Each field validates against
-  the whole list with the rules the server uses, and a server error names
-  `<list>.<index>.<field>` as `affectedField`, so `useFormErrorHandling` puts it at its
-  row. A value derived from another field of the row (the target from the source)
-  follows only while it is empty or still the suggestion, so an edit by hand stays.
+  the whole list with the rules the server uses, and a change of a value checks every
+  field again that the user has left or that shows an error, because a duplicate spans
+  two rows. A server error names `<list>.<index>.<field>` as `affectedField`, so
+  `useFormErrorHandling` puts it at its row, and the settings modal switches to the tab
+  of the list. A value derived from another field of the row (the target from the
+  source) follows only while it is empty or still the suggestion, so an edit by hand
+  stays.
 - Units Intl knows go into `formatOptions` of the `NumberField` (`GIGABYTE_FORMAT`
   from `src/runner-sizes.ts`), not into the label.
 

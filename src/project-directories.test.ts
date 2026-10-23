@@ -8,12 +8,10 @@ import {
     normalizeTarget,
     PROJECT_DIRECTORIES_VARIABLE,
     projectDirectoryIssues,
-    projectDirectoryMount,
     RUNNER_RESERVED_TARGETS,
     sameProjectDirectories,
     suggestTarget,
-    withoutMountsAt,
-    withProjectDirectoriesVariable,
+    withProjectDirectories,
 } from "./project-directories.ts";
 
 const directory = (
@@ -209,45 +207,86 @@ describe("project directory mounts", () => {
         expect(sameProjectDirectories(list, [])).toBe(false);
     });
 
-    it("mounts the source below the project directory", () => {
+    it("mounts the sources below the project directory after the volumes", () => {
         expect(
-            projectDirectoryMount(
+            withProjectDirectories(
+                {
+                    environment: { A: "1" },
+                    volumes: ["runner-a-data:/home/runner/data"],
+                },
                 "/home/p-4e7tz3",
-                directory("html/a", "/deploy/a"),
-            ),
-        ).toBe("/home/p-4e7tz3/html/a:/deploy/a");
-        expect(
-            projectDirectoryMount(
-                "/home/p-4e7tz3",
-                directory("html/b", "/deploy/b", true),
-            ),
-        ).toBe("/home/p-4e7tz3/html/b:/deploy/b:ro");
-    });
-
-    it("drops mounts at the given targets, named or bind", () => {
-        expect(
-            withoutMountsAt(
                 [
-                    "data:/home/runner/data",
-                    "/home/p-4e7tz3/html/a:/deploy/a:ro",
-                    "/home/p-4e7tz3/manual:/manual",
+                    directory("html/a", "/deploy/a"),
+                    directory("html/b", "/deploy/b", true),
                 ],
-                ["/deploy/a", "/home/runner/data"],
             ),
-        ).toEqual(["/home/p-4e7tz3/manual:/manual"]);
+        ).toEqual({
+            environment: {
+                A: "1",
+                [PROJECT_DIRECTORIES_VARIABLE]: "/deploy/a:/deploy/b",
+            },
+            volumes: [
+                "runner-a-data:/home/runner/data",
+                "/home/p-4e7tz3/html/a:/deploy/a",
+                "/home/p-4e7tz3/html/b:/deploy/b:ro",
+            ],
+        });
     });
 
-    it("lists the targets for mstudio-sync and drops the variable without one", () => {
-        const environment = withProjectDirectoriesVariable({ A: "1" }, [
-            directory("a", "/deploy/a"),
-            directory("b", "/deploy/b", true),
-        ]);
-        expect(environment).toEqual({
-            A: "1",
-            [PROJECT_DIRECTORIES_VARIABLE]: "/deploy/a:/deploy/b",
+    it("replaces the mounts at old and new targets and keeps the others", () => {
+        expect(
+            withProjectDirectories(
+                {
+                    environment: {
+                        A: "1",
+                        [PROJECT_DIRECTORIES_VARIABLE]: "/deploy/a:/deploy/b",
+                    },
+                    volumes: [
+                        "runner-a-data:/home/runner/data",
+                        "/home/p-4e7tz3/html/a:/deploy/a",
+                        "/home/p-4e7tz3/html/b:/deploy/b:ro",
+                        "/home/p-4e7tz3/manual:/manual",
+                        "/home/p-4e7tz3/html:/var/www",
+                    ],
+                },
+                "/home/p-4e7tz3",
+                [
+                    directory("html/b", "/deploy/b"),
+                    directory("html/www", "/var/www", true),
+                ],
+                [
+                    directory("html/a", "/deploy/a"),
+                    directory("html/b", "/deploy/b", true),
+                ],
+            ),
+        ).toEqual({
+            environment: {
+                A: "1",
+                [PROJECT_DIRECTORIES_VARIABLE]: "/deploy/b:/var/www",
+            },
+            volumes: [
+                "runner-a-data:/home/runner/data",
+                "/home/p-4e7tz3/manual:/manual",
+                "/home/p-4e7tz3/html/b:/deploy/b",
+                "/home/p-4e7tz3/html/www:/var/www:ro",
+            ],
         });
-        expect(withProjectDirectoriesVariable(environment, [])).toEqual({
-            A: "1",
-        });
+    });
+
+    it("drops the mounts and the variable with the last directory", () => {
+        expect(
+            withProjectDirectories(
+                {
+                    environment: {
+                        A: "1",
+                        [PROJECT_DIRECTORIES_VARIABLE]: "/deploy/a",
+                    },
+                    volumes: ["/home/p-4e7tz3/html/a:/deploy/a"],
+                },
+                "/home/p-4e7tz3",
+                [],
+                [directory("html/a", "/deploy/a")],
+            ),
+        ).toEqual({ environment: { A: "1" }, volumes: [] });
     });
 });

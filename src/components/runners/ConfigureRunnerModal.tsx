@@ -19,6 +19,7 @@ import {
     SubmitButton,
 } from "@mittwald/flow-remote-react-components/react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { Runner } from "@/generated/extension-api";
 import { RunnerClientGhost } from "@/ghosts.ts";
@@ -116,12 +117,28 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
         Object.keys(form.formState.dirtyFields) as (keyof FormValues)[]
     ).some((field) => !KEEPS_CONTAINER.includes(field));
     const snippet = pipelineSnippet(runner);
+    const [selectedTab, setSelectedTab] = useState("runner");
+    const directoriesInvalid = Boolean(
+        form.formState.errors.projectDirectories,
+    );
+    const submitCount = form.formState.submitCount;
+
+    // A tab hides the errors of the others, and the server checks directories
+    // the form cannot (the work directory of Docker in jobs).
+    useEffect(() => {
+        if (directoriesInvalid && submitCount > 0) {
+            setSelectedTab("directories");
+        }
+    }, [directoriesInvalid, submitCount]);
 
     return (
         <Form form={form} onSubmit={handleSubmit}>
             <Content>
-                <Tabs>
-                    <Tab>
+                <Tabs
+                    selectedKey={selectedTab}
+                    onSelectionChange={(key) => setSelectedTab(String(key))}
+                >
+                    <Tab id="runner">
                         <TabTitle>{t("form.section.runner")}</TabTitle>
                         <Section>
                             <NameField
@@ -131,7 +148,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                             />
                         </Section>
                     </Tab>
-                    <Tab>
+                    <Tab id="resources">
                         <TabTitle>{t("form.section.resources")}</TabTitle>
                         <Section>
                             <ResourceFields
@@ -150,18 +167,18 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                             )}
                         </Section>
                     </Tab>
-                    <Tab>
+                    <Tab id="features">
                         <TabTitle>{t("form.section.features")}</TabTitle>
                         <Section>
                             <JobFeatureFields form={form} />
                         </Section>
                     </Tab>
-                    <Tab>
+                    <Tab id="directories">
                         <TabTitle>{t("form.section.directories")}</TabTitle>
                         <ProjectDirectoryFields form={form} />
                     </Tab>
                     {snippet && (
-                        <Tab>
+                        <Tab id="snippet">
                             <TabTitle>{t("form.snippet.heading")}</TabTitle>
                             <Section>
                                 <Text>

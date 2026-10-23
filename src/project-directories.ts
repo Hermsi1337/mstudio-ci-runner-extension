@@ -206,35 +206,45 @@ export function suggestTarget(source: string): string {
     return segment ? `${TARGET_SUGGESTION_ROOT}/${segment}` : "";
 }
 
-export function projectDirectoryMount(
+export interface DeclaredMounts {
+    environment: Record<string, string>;
+    volumes: string[];
+}
+
+/**
+ * Mounts the directories after the given volumes and sets the variable
+ * mstudio-sync reads, absent without a directory. Every mount at a target of
+ * `previous` or `directories` goes first, whoever declared it, so a changed
+ * list leaves no stale mount and a mount added by hand at a new target gives
+ * way.
+ */
+export function withProjectDirectories(
+    { environment, volumes }: DeclaredMounts,
     projectDirectory: string,
-    { source, target, readOnly }: ProjectDirectory,
-): string {
-    return `${projectDirectory}/${source}:${target}${readOnly ? ":ro" : ""}`;
-}
-
-/** Drops every mount at one of the targets, whoever declared it. */
-export function withoutMountsAt(
-    mounts: readonly string[],
-    targets: readonly string[],
-): string[] {
-    return mounts.filter((mount) => !targets.includes(mount.split(":")[1]));
-}
-
-/** The variable mstudio-sync reads; absent without a directory. */
-export function withProjectDirectoriesVariable(
-    environment: Record<string, string>,
     directories: readonly ProjectDirectory[],
-): Record<string, string> {
+    previous: readonly ProjectDirectory[] = [],
+): DeclaredMounts {
+    const targets = [...previous, ...directories].map(({ target }) => target);
     const { [PROJECT_DIRECTORIES_VARIABLE]: _previous, ...rest } = environment;
-    if (directories.length === 0) {
-        return rest;
-    }
 
     return {
-        ...rest,
-        [PROJECT_DIRECTORIES_VARIABLE]: directories
-            .map(({ target }) => target)
-            .join(":"),
+        environment:
+            directories.length === 0
+                ? rest
+                : {
+                      ...rest,
+                      [PROJECT_DIRECTORIES_VARIABLE]: directories
+                          .map(({ target }) => target)
+                          .join(":"),
+                  },
+        volumes: [
+            ...volumes.filter(
+                (mount) => !targets.includes(mount.split(":")[1]),
+            ),
+            ...directories.map(
+                ({ source, target, readOnly }) =>
+                    `${projectDirectory}/${source}:${target}${readOnly ? ":ro" : ""}`,
+            ),
+        ],
     };
 }

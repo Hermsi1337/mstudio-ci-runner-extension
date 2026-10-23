@@ -331,7 +331,7 @@ export const en = {
     "form.features.docs": "Documentation on GitHub",
     "form.directories.label": "Project directories",
     "form.directories.help":
-        "The runner mounts each directory of the project file system at the path you give. Enter it relative to the project directory, for example `html/my-app` for `/home/p-xxxxxx/html/my-app`.\nJobs run as the user `runner`, who does not own the project files. `mstudio-sync <src> <dest>` copies with `sudo rsync` and hands every file to the owner of the target directory, so SFTP and your app keep access. `--delete` removes files the source lacks.\nEvery job on this runner can write into a directory that is not read only. Changing the list recreates the container.",
+        "The runner mounts each directory of the project file system at the path you give. Enter it relative to the project directory, for example `html/my-app` for `/home/p-xxxxxx/html/my-app`.\nJobs run as the user `runner`, who does not own the project files. `mstudio-sync <src> <dest>` copies as the owner of the target directory, so the files stay with the project user and SFTP and your app keep access. `--delete` removes files the source lacks.\nEvery job on this runner can write into a directory that is not read only. Changing the list recreates the container.",
     "form.directories.description":
         "Write into a directory with mstudio-sync <src> <dest>, so the files keep the owner of the project.",
     "form.directories.docs": "How mstudio-sync works",

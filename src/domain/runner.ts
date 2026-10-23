@@ -27,10 +27,8 @@ import {
 } from "@/global-errors.ts";
 import { addLogContext, createLogger } from "@/logger.ts";
 import {
-    projectDirectoryMount,
     sameProjectDirectories,
-    withoutMountsAt,
-    withProjectDirectoriesVariable,
+    withProjectDirectories,
 } from "@/project-directories.ts";
 import {
     buildQueueMount,
@@ -623,22 +621,20 @@ export async function createRunner(
             {
                 description: serviceDescription(provider, input.name),
                 image: prepared.image,
-                environment: withConcurrency(
-                    provider,
-                    withProjectDirectoriesVariable(
-                        environment,
-                        projectDirectories,
-                    ),
-                    concurrency,
-                ),
                 restartPolicy: "always",
                 deploy: { resources: { limits: resourceLimits(resources) } },
-                volumes: [
-                    ...prefixMounts(serviceName, mountsWithQueue),
-                    ...projectDirectories.map((directory) =>
-                        projectDirectoryMount(projectDirectory, directory),
-                    ),
-                ],
+                ...withProjectDirectories(
+                    {
+                        environment: withConcurrency(
+                            provider,
+                            environment,
+                            concurrency,
+                        ),
+                        volumes: prefixMounts(serviceName, mountsWithQueue),
+                    },
+                    projectDirectory,
+                    projectDirectories,
+                ),
             },
         );
         // After the runner, never before: a sibling that turns image builds off
@@ -955,11 +951,9 @@ export async function configureRunner(
             (dockerApi || projectDirectories.length > 0
                 ? await getProjectDirectory(client, row.projectId)
                 : "");
-        const plainMounts = withoutMountsAt(
-            unprefixMounts(row.serviceName, declared.volumes ?? []),
-            [...row.projectDirectories, ...projectDirectories].map(
-                ({ target }) => target,
-            ),
+        const plainMounts = unprefixMounts(
+            row.serviceName,
+            declared.volumes ?? [],
         );
         const cached = cache
             ? withCache(declared.environment ?? {}, plainMounts)
@@ -990,24 +984,26 @@ export async function configureRunner(
                 {
                     ...declared,
                     description,
-                    environment: withConcurrency(
-                        provider,
-                        withProjectDirectoriesVariable(
-                            environment,
-                            projectDirectories,
-                        ),
-                        concurrency,
-                    ),
                     deploy: {
                         ...declared.deploy,
                         resources: { limits: resourceLimits(resources) },
                     },
-                    volumes: [
-                        ...prefixMounts(row.serviceName, mountsWithQueue),
-                        ...projectDirectories.map((directory) =>
-                            projectDirectoryMount(home, directory),
-                        ),
-                    ],
+                    ...withProjectDirectories(
+                        {
+                            environment: withConcurrency(
+                                provider,
+                                environment,
+                                concurrency,
+                            ),
+                            volumes: prefixMounts(
+                                row.serviceName,
+                                mountsWithQueue,
+                            ),
+                        },
+                        home,
+                        projectDirectories,
+                        row.projectDirectories,
+                    ),
                 },
             )) ?? service;
         // The builder comes after the runner, so a sibling that turns image

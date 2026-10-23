@@ -15,7 +15,7 @@ import {
 } from "@mittwald/flow-remote-react-components";
 import { typedField } from "@mittwald/flow-remote-react-components/react-hook-form";
 import { useEffect, useRef } from "react";
-import { type UseFormReturn, useFieldArray } from "react-hook-form";
+import { type UseFormReturn, useFieldArray, useWatch } from "react-hook-form";
 import type { ProjectDirectory } from "@/generated/extension-api";
 import { useTranslation } from "@/i18n/react.tsx";
 import {
@@ -132,6 +132,34 @@ export function ProjectDirectoryFields<T extends ProjectDirectoryFormValues>({
         control: directoryForm.control,
         name: "projectDirectories",
     });
+    const directories = useWatch({
+        control: directoryForm.control,
+        name: "projectDirectories",
+    });
+    const serialized = JSON.stringify(directories);
+    const checked = useRef(serialized);
+
+    // Duplicate and nested targets involve two rows, so a change in one row
+    // checks again every field the user has left or that shows an error. Only
+    // after a change of a value: on mount or after a submit, a server error the
+    // form cannot reproduce (the work directory of Docker in jobs) has to stay.
+    useEffect(() => {
+        if (serialized === checked.current) {
+            return;
+        }
+        checked.current = serialized;
+        const names = directories.flatMap((_, index) =>
+            (["source", "target"] as const)
+                .map((field) => `projectDirectories.${index}.${field}` as const)
+                .filter((name) => {
+                    const state = directoryForm.getFieldState(name);
+                    return state.isTouched || state.invalid;
+                }),
+        );
+        if (names.length > 0) {
+            void directoryForm.trigger(names);
+        }
+    }, [directoryForm, directories, serialized]);
 
     return (
         <Section>
