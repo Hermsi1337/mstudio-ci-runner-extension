@@ -49,6 +49,7 @@ labels=()
 platforms=()
 jobs=()
 contexts_dir=".mstudio-contexts"
+heredoc_start='<<(-?)["'\'']?([A-Za-z_][A-Za-z0-9_]*)'
 context_names=()
 declare -A context_dirs=()
 declare -A context_images=()
@@ -110,41 +111,105 @@ print_context_stages() {
     done
 }
 
+# Splits the COPY or ADD in joined into copy_keyword, copy_flags, copy_sources,
+# copy_destination and copy_json, which the caller declares. Shell and JSON
+# form alike. Returns 1 when there is no source and destination to split.
+split_copy() {
+    local joined="$1" index list
+    local -a words=()
+    read -r -a words <<<"${joined}"
+    copy_keyword="${words[0]}"
+    copy_flags=()
+    copy_json=false
+    index=1
+    while [[ ${index} -lt ${#words[@]} && "${words[index]}" == --* ]]; do
+        copy_flags+=("${words[index]}")
+        index=$((index + 1))
+    done
+    if [[ "${words[index]:-}" == '['* && "${joined}" =~ (\[.*\])[[:space:]]*$ ]]; then
+        copy_json=true
+        list="$(jq -r 'if type == "array" then .[] else error("not an array") end' <<<"${BASH_REMATCH[1]}")" \
+            || fail "${dockerfile}: cannot read the JSON form of ${joined}"
+        mapfile -t copy_sources <<<"${list}"
+    else
+        copy_sources=("${words[@]:index}")
+    fi
+    [[ ${#copy_sources[@]} -ge 2 ]] || return 1
+    copy_destination="${copy_sources[-1]}"
+    unset 'copy_sources[-1]'
+}
+
+# BuildKit keeps every source inside its named context. Under
+# .mstudio-contexts/NAME/ a ".." could reach the main context instead.
+leaves_context() {
+    local depth=0 part
+    local -a parts=()
+    IFS=/ read -r -a parts <<<"$1"
+    for part in "${parts[@]}"; do
+        case "${part}" in
+            '' | .) ;;
+            ..)
+                depth=$((depth - 1))
+                ((depth >= 0)) || return 0
+                ;;
+            *) depth=$((depth + 1)) ;;
+        esac
+    done
+
+    return 1
+}
+
 # kaniko saves the whole root file system of a stage when a later COPY --from
 # takes / or . from it, and fails on /proc. A local context is part of the
 # build context anyway, so COPY --from=NAME reads from its directory there.
 copy_from_context() {
-    local joined="$1" prefix="${contexts_dir}/$2/" word json index last
-    local -a words=() kept=()
-    read -r -a words <<<"${joined}"
-    kept=("${words[0]}")
-    index=1
-    while [[ ${index} -lt ${#words[@]} && "${words[index]}" == --* ]]; do
-        [[ "${words[index]}" == --from=* ]] || kept+=("${words[index]}")
-        index=$((index + 1))
+    local name="$1" flag source
+    local -a rewritten=() kept=("${copy_keyword}")
+    for flag in "${copy_flags[@]}"; do
+        [[ "${flag}" == --from=* ]] || kept+=("${flag}")
     done
-    if [[ "${words[index]:-}" == '['* && "${joined}" =~ (\[.*\])[[:space:]]*$ ]]; then
-        json="$(jq -c --arg prefix "${prefix}" '(.[:-1] | map($prefix + sub("^/+"; ""))) + [.[-1]]' <<<"${BASH_REMATCH[1]}")" \
-            || fail "${dockerfile}: cannot read the JSON form of ${joined}"
-        kept+=("${json}")
-    else
-        last=$((${#words[@]} - 1))
-        for ((; index < last; index++)); do
-            word="${words[index]}"
-            while [[ "${word}" == /* ]]; do
-                word="${word#/}"
-            done
-            kept+=("${prefix}${word}")
+    for source in "${copy_sources[@]}"; do
+        if leaves_context "${source}"; then
+            fail "${dockerfile}:${pending_line}: COPY --from=${name} ${source} reaches outside the build context ${name}, name a path inside it"
+        fi
+        while [[ "${source}" == /* ]]; do
+            source="${source#/}"
         done
-        kept+=("${words[last]}")
+        rewritten+=("${contexts_dir}/${name}/${source}")
+    done
+    if [[ "${copy_json}" == true ]]; then
+        kept+=("$(jq -c -n '$ARGS.positional' --args "${rewritten[@]}" "${copy_destination}")")
+    else
+        kept+=("${rewritten[@]}" "${copy_destination}")
     fi
     printf '%s\n' "${kept[*]}"
 }
 
+# The extra contexts sit inside the main context, and one ignore file applies
+# to every COPY alike. A COPY of the whole main context takes them along.
+warn_about_whole_context_copy() {
+    local source
+    [[ ${#context_dirs[@]} -gt 0 ]] || return 0
+    for source in "${copy_sources[@]}"; do
+        while [[ "${source}" == /* || "${source}" == ./* ]]; do
+            source="${source#/}"
+            source="${source#./}"
+        done
+        case "${source%/}" in
+            '' | . | '*' | '.*')
+                log "mstudio-build: ${dockerfile}:${pending_line}: this ${copy_keyword} also copies ${contexts_dir}/ with the extra build contexts into the image, see docs/image-builds.md"
+                return 0
+                ;;
+        esac
+    done
+}
+
 # Prints one instruction from pending, the physical lines that
-# write_context_dockerfile collected for it.
+# write_context_dockerfile collected for it, and queues its here-documents.
 emit_pending_instruction() {
-    local keyword="" joined="" part from index
+    local keyword="" joined="" rest part from index
+    local copy_keyword copy_destination copy_json
+    local -a copy_flags=() copy_sources=()
     [[ "${pending[0]}" =~ ^[[:space:]]*([A-Za-z]+) ]] && keyword="${BASH_REMATCH[1],,}"
     if [[ "${keyword}" == from && "${inserted}" == false ]]; then
         print_context_stages
@@ -155,13 +220,18 @@ emit_pending_instruction() {
         part="${part%"${part##*[![:space:]]}"}"
         joined+=" ${part%"${escape}"}"
     done
+    rest="${joined}"
+    while [[ "${rest}" =~ ${heredoc_start} ]]; do
+        heredocs+=("${BASH_REMATCH[1]}${BASH_REMATCH[2]}")
+        rest="${rest#*"${BASH_REMATCH[0]}"}"
+    done
     if [[ "${keyword}" == from && "${joined}" =~ [[:space:]][Aa][Ss][[:space:]]+([^[:space:]]+) ]]; then
         stages["${BASH_REMATCH[1],,}"]=1
     fi
     if [[ "${keyword}" == copy && "${joined}" =~ [[:space:]]--from=([^[:space:]]+) ]]; then
         from="${BASH_REMATCH[1],,}"
-        if [[ -v context_dirs["${from}"] ]]; then
-            copy_from_context "${joined}" "${from}"
+        if [[ -v context_dirs["${from}"] ]] && split_copy "${joined}"; then
+            copy_from_context "${from}"
             return 0
         fi
         if [[ "${from}" =~ ^[0-9]+$ ]]; then
@@ -171,6 +241,8 @@ emit_pending_instruction() {
                 fi
             done
         fi
+    elif [[ "${keyword}" == copy || "${keyword}" == add ]] && split_copy "${joined}"; then
+        warn_about_whole_context_copy
     fi
     printf '%s\n' "${pending[@]}"
 }
@@ -178,12 +250,28 @@ emit_pending_instruction() {
 # The stages of the extra contexts go directly in front of the first FROM, so
 # FROM NAME and COPY --from=NAME resolve to them. Parser directives and global
 # ARGs stay above them, otherwise they lose their effect. A numbered COPY
-# --from moves by the number of inserted stages.
+# --from moves by the number of inserted stages. Here-document bodies stay as
+# they are.
 write_context_dockerfile() {
     local source="$1" escape="\\" directives=true inserted=false line trimmed name
-    local -a pending=()
+    local line_number=0 pending_line=0 delimiter body
+    local -a pending=() heredocs=()
     local -A stages=()
     while IFS= read -r line || [[ -n "${line}" ]]; do
+        line_number=$((line_number + 1))
+        if [[ ${#heredocs[@]} -gt 0 ]]; then
+            printf '%s\n' "${line}"
+            delimiter="${heredocs[0]}"
+            body="${line}"
+            if [[ "${delimiter}" == -* ]]; then
+                delimiter="${delimiter#-}"
+                body="${line#"${line%%[!$'\t']*}"}"
+            fi
+            if [[ "${body}" == "${delimiter}" ]]; then
+                heredocs=("${heredocs[@]:1}")
+            fi
+            continue
+        fi
         if [[ "${directives}" == true && "${line}" =~ ^#[[:space:]]*([A-Za-z]+)[[:space:]]*=[[:space:]]*([^[:space:]]+) ]]; then
             [[ "${BASH_REMATCH[1],,}" == escape ]] && escape="${BASH_REMATCH[2]:0:1}"
             printf '%s\n' "${line}"
@@ -194,6 +282,7 @@ write_context_dockerfile() {
             printf '%s\n' "${line}"
             continue
         fi
+        [[ ${#pending[@]} -eq 0 ]] && pending_line="${line_number}"
         pending+=("${line}")
         trimmed="${line%"${line##*[![:space:]]}"}"
         if [[ "${trimmed}" == *"${escape}" || "${line}" =~ ^[[:space:]]*(#.*)?$ ]]; then
@@ -245,16 +334,6 @@ write_context_dockerignore() {
         done <"${context_dirs[${name}]}/.dockerignore"
     done
     printf '%s/Dockerfile\n%s/Dockerfile.dockerignore\n' "${contexts_dir}" "${contexts_dir}"
-}
-
-# The extra contexts sit inside the main context, and the ignore file applies
-# to every COPY alike. A COPY of the whole main context takes them along.
-warn_about_whole_context_copies() {
-    local finding
-    [[ ${#context_dirs[@]} -gt 0 ]] || return 0
-    while IFS= read -r finding; do
-        log "mstudio-build: ${dockerfile}:${finding%%:*}: this COPY also copies ${contexts_dir}/ with the extra build contexts into the image, see docs/image-builds.md"
-    done < <(grep -n -i -E '^[[:space:]]*(COPY|ADD)[[:space:]]' "${context}/${dockerfile}" | grep -v -- '--from' | grep -E '[[:space:]](\./?|\*)[[:space:]]' || true)
 }
 
 while [[ $# -gt 0 ]]; do
@@ -333,7 +412,6 @@ if [[ ${#context_names[@]} -gt 0 ]]; then
     write_context_dockerfile "${context}/${dockerfile}" >"${staging}/${contexts_dir}/Dockerfile"
     write_context_dockerignore >"${staging}/${contexts_dir}/Dockerfile.dockerignore"
     (cd "${staging}" && mstudio-dockerfile-check "${contexts_dir}/Dockerfile")
-    warn_about_whole_context_copies
     request_dockerfile="${contexts_dir}/Dockerfile"
 else
     mstudio-dockerfile-check "${context}/${dockerfile}"

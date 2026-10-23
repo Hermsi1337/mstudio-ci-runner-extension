@@ -69,7 +69,7 @@ Protocol, one directory per job:
 
 | Path | Written by | Content |
 |---|---|---|
-| `queue/<job>/context/` | runner | build context |
+| `queue/<job>/context/` | runner | build context. With `--build-context` it also holds `.mstudio-contexts/` with every local extra context, the rewritten `Dockerfile` and its `Dockerfile.dockerignore` |
 | `queue/<job>/build-args`, `labels` | runner | one `KEY=VALUE` per line |
 | `queue/<job>/request` | runner | job parameters (`DOCKERFILE`, `DESTINATION`, `TARGET`, `PLATFORM`), written last, offers the job |
 | `queue/<job>/request.claimed` | builder | the same file renamed, which is how one builder takes a job |
@@ -332,7 +332,9 @@ kaniko has no named contexts, and the builder receives one context per job. Befo
 3. `COPY --from=<NAME>` of a local directory becomes a `COPY` from
    `.mstudio-contexts/<NAME>/`, on one line, with the other flags kept. kaniko saves
    the whole root file system of a stage when a later `COPY --from` takes `/` or `.`
-   from it, and fails on `/proc`; the directory is in the build context anyway.
+   from it, and fails on `/proc`; the directory is in the build context anyway. A source
+   whose `..` segments lead outside the named context is refused. Here-document bodies
+   stay as they are.
 4. kaniko reads only one ignore file, `.mstudio-contexts/Dockerfile.dockerignore`. It
    holds the patterns of the main context (from `<Dockerfile>.dockerignore` or
    `.dockerignore`), then `!.mstudio-contexts` and `!.mstudio-contexts/**` so an
@@ -352,8 +354,11 @@ Limits of the emulation:
   `alpine:3.20`; here only `FROM alpine` with a context named `alpine` works.
 - **A COPY of the whole main context takes the extra contexts along.** `COPY . /app`
   puts `.mstudio-contexts/<NAME>/` into the image as well, because the extra contexts sit
-  inside the main context and one ignore file applies to every `COPY`. `mstudio-build`
-  names every such line in the log. An allowlist `.dockerignore` avoids it.
+  inside the main context and the ignore file has to keep them for their own stages.
+  No `.dockerignore` prevents this; copy named paths of the main context instead.
+  `mstudio-build` warns about every `COPY` or `ADD` without `--from` whose source is
+  `.`, `./`, `/`, `*` or `.*`, in the shell and the JSON form, with its line in the
+  Dockerfile.
 - **Every extra context travels in full.** The whole directory goes through the project
   file system with the main context, ignored files included.
 - **Every context stage is built.** kaniko builds a context stage even when no
@@ -362,8 +367,9 @@ Limits of the emulation:
 
 Refused with a message, before a job is queued: an OCI layout (`oci-layout://`), another
 target (`target:`), a URL or git repository, a path that is no directory, a name that is
-no stage name, a name that is given twice or that a stage of the Dockerfile has, and a
-main context that already contains `.mstudio-contexts`.
+no stage name, a name that is given twice or that a stage of the Dockerfile has, a main
+context that already contains `.mstudio-contexts`, and a `COPY --from=<NAME>` source
+that leads outside the context with `..`.
 
 ## What the shim fills in
 
