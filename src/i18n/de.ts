@@ -208,6 +208,8 @@ export const de: Messages = {
     "form.name.required": "Bitte einen Namen angeben",
     "form.name.tooShort": "Der Name braucht mindestens 2 Zeichen",
     "form.name.tooLong": "Der Name darf höchstens 64 Zeichen haben",
+    "form.rename.description":
+        "Ändert den Namen in dieser Liste und in mStudio. Der Name im CI-System bleibt.",
     "form.github.configCommand.label": "Einrichtungsbefehl von GitHub",
     "form.github.configCommand.description":
         "Füge den config-Befehl von der Seite New self-hosted runner ein. Repository oder Organisation und das Registrierungs-Token werden daraus gelesen.",
@@ -288,6 +290,8 @@ export const de: Messages = {
     "help.open": "Hilfe zu {subject}",
     "form.name.help":
         "Wird in dieser Liste und als Runner-Name in GitHub oder GitLab angezeigt. Forgejo behält den Namen, den du dem Runner dort gegeben hast. Buchstaben, Ziffern und Bindestriche bleiben erhalten, alle anderen Zeichen werden zu Bindestrichen.",
+    "form.rename.help":
+        "Der neue Name erscheint in dieser Liste und in den Beschreibungen des Containers und des Cache-Cronjobs in mStudio. Benennst du nur um, läuft der Container weiter, ein Job darauf ebenfalls. GitHub und GitLab behalten den Runner-Namen vom Anlegen, Forgejo behält den Namen, den du dem Runner dort gegeben hast. Der Service-Name im Stack und seine Volumes bleiben, wie sie sind.",
     "form.github.configCommand.help":
         "Öffne auf GitHub das Repository oder die Organisation, dann `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Kopiere unter `Configure` die Zeile, die mit `./config.sh` (oder `./config.cmd`) beginnt, und füge sie hier ein. Genutzt werden nur `--url` und `--token`. Das Token läuft nach einer Stunde ab, lege den Runner also direkt an. Nach dem Löschen hier führt GitHub den Runner noch als offline, bis es ihn nach 14 Tagen entfernt.",
     "form.github.runnerGroup.help":
@@ -377,7 +381,7 @@ export const de: Messages = {
     "error.dockerApi.nameTaken":
         "Im Stack gibt es schon einen Container namens docker, der nicht von dieser Extension stammt. Docker in Jobs braucht diesen Namen. Benenne deinen Container um oder nimm einen anderen Stack.",
     "error.runner.nameTaken":
-        "Für {target} gibt es schon einen Runner namens {name}. Ein zweiter würde dessen Registrierung in GitHub ersetzen. Wähl einen anderen Namen oder lösch den anderen Runner.",
+        "Der Runner {name} nutzt diesen Namen in GitHub schon für {target}. Ein zweiter würde seine Registrierung ersetzen. Wähl einen anderen Namen oder lösch den anderen Runner.",
     "error.dockerApi.unconfigured":
         "Docker in Jobs ist in dieser Installation der Extension nicht verfügbar. Leg den Runner ohne diese Option an.",
     "error.containerHosting.unavailable":

@@ -56,7 +56,8 @@ had slipped out of the layout.
   happens to running work (update: the container is recreated, a running job fails
   and is not retried).
 - A form whose submit interrupts running work (settings modal) shows an
-  `Alert status="warning"` with the consequence as soon as the form is dirty. The
+  `Alert status="warning"` with the consequence as soon as a field that causes it is
+  dirty. A change that keeps the container running (the name) shows no warning. The
   alert sits between the fields and the `ActionGroup`.
 
 ## Modals
@@ -82,8 +83,8 @@ had slipped out of the layout.
   releases between them and marks both ("Runs on this runner", "Update target").
   Nothing in the runner context is called "installed", because the runner and the
   extension run different versions.
-- A settings modal with more than one topic splits them into `Tabs` (resources, job
-  features, pipeline snippet). The tab list collapses into a menu on narrow widths.
+- A settings modal with more than one topic splits them into `Tabs` (runner name,
+  resources, job features, pipeline snippet). The tab list collapses into a menu on narrow widths.
   The warning `Alert` and the `ActionGroup` stay below the tabs, so they apply to
   every tab.
 - A form modal is not dismissable by clicking outside (`isDismissable={false}`).
@@ -125,8 +126,9 @@ had slipped out of the layout.
   button inside a card: the card is a label, and a button inside a label breaks the
   click target.
 - The create form and the settings modal share their field components
-  (`ResourceFields.tsx`, `JobFeatureFields.tsx`), so both show the same groups in the
-  same order.
+  (`NameField.tsx`, `ResourceFields.tsx`, `JobFeatureFields.tsx`), so both show the same
+  groups in the same order. A shared field takes the texts that differ between the two
+  as props (`NameField.tsx`: what a name changes at creation and on rename).
 - Optional groups sit one step away. In the create form the job features live in a
   collapsed `Accordion` whose `Heading` names what is inside ("Cache, Docker and
   image builds"); the summary column still shows what is switched on. The settings

@@ -146,10 +146,11 @@ export const zRunnerIdRequest = z.object({
 });
 
 /**
- * Settings that can change after creation. The stack is redeclared, mittwald recreates the container.
+ * Settings that can change after creation. The stack is redeclared, mittwald recreates the container. A change of the name alone keeps the container running.
  */
 export const zConfigureRunnerRequest = z.object({
     runnerId: z.uuid(),
+    name: z.string().min(2).max(64).optional(),
     cache: zCacheEnabled,
     cacheSizeGb: zCacheSizeGb.optional(),
     imageBuilds: zImageBuilds.optional(),

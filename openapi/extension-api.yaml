@@ -283,12 +283,18 @@ components:
     ConfigureRunnerRequest:
       type: object
       required: [runnerId, cache]
-      description: Settings that can change after creation. The stack is redeclared, mittwald recreates the container.
+      description: Settings that can change after creation. The stack is redeclared, mittwald recreates the container. A change of the name alone keeps the container running.
       properties:
         runnerId:
           type: string
           format: uuid
           example: 8c2f1d0e-5b4a-4c3d-9e2f-1a2b3c4d5e6f
+        name:
+          type: string
+          minLength: 2
+          maxLength: 64
+          description: New display name. Updates the runner list and the descriptions of the service and the cache cronjob. The service name in the stack and the runner name in the CI system keep their values from creation.
+          example: acme-app
         cache:
           $ref: '#/components/schemas/CacheEnabled'
         cacheSizeGb:

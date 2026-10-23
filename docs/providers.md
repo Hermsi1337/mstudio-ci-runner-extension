@@ -14,7 +14,7 @@ one.
 | `runnerVersion` | Version of the runner software in the image, read from `docker/runner/versions.json` (`<provider>.version`) |
 | `currentImage()` | Image this extension release creates runners with (`RUNNER_IMAGE_<PROVIDER>`) |
 | `concurrencyVariable` | Optional. Environment variable for the number of jobs the runner takes at once (`RUNNER_CONCURRENT` for GitLab, `RUNNER_CAPACITY` for Forgejo). Without it the runner takes one job at a time and `concurrency` is stored as 1 |
-| `uniqueNamePerTarget` | Optional. True when the CI system keys a registration by runner name and target. `createRunner` then rejects a name whose slug another runner of the extension instance (any project) already uses for the same target URL, compared without case, with `error.runner.nameTaken` on the field `name`. Rows that already share a name stay as they are. The check is not atomic: two creates in the same second can both pass, a unique index is not possible because rows keep the raw name and older duplicates exist |
+| `uniqueNamePerTarget` | Optional. True when the CI system keys a registration by runner name and target. `createRunner` then rejects a name whose slug equals the `runnerName` of another runner of the extension instance (any project) for the same target URL, compared without case, with `error.runner.nameTaken` on the field `name`. `runnerName` is the name the container registered with and survives a rename, so the old name stays taken. A rename itself is not checked, because the registration keeps its name. Rows that already share a name stay as they are. The check is not atomic: two creates in the same second can both pass, a unique index is not possible because older duplicates exist |
 | `prepare(input, runnerName)` | Check access, create the provider-side registration, return image, runner version, environment variables, volumes and the labels to show |
 | `release(environment)` | Remove the provider-side registration with the environment of the runner container as mittwald reports it (the extension stores no provider secrets); must tolerate runners that are already gone |
 
@@ -40,8 +40,8 @@ involved. `runner.ts` then creates a mittwald service cronjob (stack, service, c
 from `cacheTrimCronjob(sizeGb)` that runs `/usr/local/bin/trim-cache.sh` hourly inside
 the container, stores its id in `runners.cronjobIds` and deletes it with the runner.
 
-`configureRunner` changes cache, concurrency and resources after creation
-(`ConfigureRunnerRequest`: `cache`, `cacheSizeGb`, `concurrency`, `size`, `cpus`,
+`configureRunner` changes name, cache, concurrency and resources after creation
+(`ConfigureRunnerRequest`: `name`, `cache`, `cacheSizeGb`, `concurrency`, `size`, `cpus`,
 `memoryMb`, the last two null for no limit with size `custom`). `withCache` and `withoutCache` add or strip the cache mount and
 variables from the service state mittwald reports, the stack is redeclared and the
 service recreated (`container.recreateService`, see
@@ -50,6 +50,14 @@ patches its command, turning it off deletes the cronjob and the volume
 (`container.listStackVolumes`, `container.deleteVolume`). A volume that is still in use
 (412) stays orphaned in the stack and can be removed in mStudio. `runners.cache`,
 `runners.cacheSizeGb` and `runners.concurrency` record the current settings.
+
+A new `name` changes only what mStudio and the runner list show: `runners.name`, the
+description of the service (`<provider> runner <name>`) and of the cache cronjob. A
+change of the name alone redeclares the service with its current state and the new
+description and skips `container.recreateService`, since the description is not part of
+the service state mittwald compares. `serviceName`, the volumes and `runnerName`
+(`RUNNER_NAME` in the container) keep their values from creation, so the registration
+in the CI system keeps its name.
 
 Registry in `src/domain/providers/index.ts`. `src/domain/runner.ts` picks the provider
 from `input.provider` and knows no provider details beyond that.

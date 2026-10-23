@@ -74,6 +74,10 @@ Rename the generated file from Drizzle's random name to a descriptive one
 (`0001_runner_tags.sql`) and change the `tag` in `meta/_journal.json` to match. Never
 edit an applied migration; a fresh database gets `0000_initial.sql`.
 
+A new `NOT NULL` column without a default fails on existing rows. Edit the generated SQL
+before it is applied anywhere: add the column nullable, fill it with an `UPDATE`, then
+`SET NOT NULL` (`0004_add_runner_name.sql`, which derives the slug of each name).
+
 ## Scripts
 
 | Script | Purpose |

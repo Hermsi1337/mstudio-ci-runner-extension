@@ -203,6 +203,8 @@ export const en = {
     "form.name.required": "Name is required",
     "form.name.tooShort": "Name needs at least 2 characters",
     "form.name.tooLong": "Name can have 64 characters at most",
+    "form.rename.description":
+        "Changes the name in this list and in mStudio. The name in the CI system stays.",
     "form.github.configCommand.label": "Setup command from GitHub",
     "form.github.configCommand.description":
         "Paste the config command from the New self-hosted runner page. Repository or organization and the registration token are read from it.",
@@ -282,6 +284,8 @@ export const en = {
     "help.open": "Help for {subject}",
     "form.name.help":
         "Shown in this list and as the runner name in GitHub or GitLab. Forgejo keeps the name you gave the runner there. Letters, digits and hyphens are kept, every other character becomes a hyphen.",
+    "form.rename.help":
+        "The new name shows in this list and in the descriptions of the container and the cache cronjob in mStudio. Renaming alone keeps the container running, a job on it goes on. GitHub and GitLab keep the runner name from creation, Forgejo keeps the name you gave the runner there. The service name in the stack and its volumes stay as they are.",
     "form.github.configCommand.help":
         "On GitHub open the repository or organization, then `Settings` → `Actions` → `Runners` → `New self-hosted runner`. Under `Configure` copy the line starting with `./config.sh` (or `./config.cmd`) and paste it here. Only `--url` and `--token` are used. The token expires after one hour, so create the runner right away. After you delete the runner here, GitHub lists it as offline until it removes it after 14 days.",
     "form.github.runnerGroup.help":
@@ -369,7 +373,7 @@ export const en = {
     "error.dockerApi.nameTaken":
         "The stack already has a container called docker that this extension did not create. Docker in jobs needs that name. Rename your container or pick another stack.",
     "error.runner.nameTaken":
-        "A runner named {name} already exists for {target}. A second one would replace its registration in GitHub. Pick another name or delete the other runner.",
+        "The runner {name} already uses this name in GitHub for {target}. A second one would replace its registration. Pick another name or delete the other runner.",
     "error.dockerApi.unconfigured":
         "Docker in jobs is not available in this installation of the extension. Create the runner without it.",
     "error.containerHosting.unavailable":

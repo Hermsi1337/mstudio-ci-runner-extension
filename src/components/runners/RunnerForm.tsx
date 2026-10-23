@@ -33,6 +33,7 @@ import { ConcurrencyField, concurrentProviders } from "./ConcurrencyField.tsx";
 import { CreatedResources } from "./CreatedResources.tsx";
 import { FieldHelp } from "./FieldHelp.tsx";
 import { JobFeatureFields } from "./JobFeatureFields.tsx";
+import { NameField } from "./NameField.tsx";
 import { ParsedCommand } from "./ParsedCommand.tsx";
 import { parseConfigCommand } from "./parseConfigCommand.ts";
 import { providerLogos } from "./provider-logos.ts";
@@ -48,13 +49,11 @@ import {
 } from "./StackField.tsx";
 
 /**
- * Mirror zRunnerBase.name and zForgejoRunnerRequest from
- * src/generated/extension-api/zod.gen.ts. The server rejects the same values,
- * but only in English and only after the request, so the form checks them
- * first. Keep both in sync when the spec changes.
+ * Mirror zForgejoRunnerRequest from src/generated/extension-api/zod.gen.ts.
+ * The server rejects the same values, but only in English and only after the
+ * request, so the form checks them first. Keep both in sync when the spec
+ * changes.
  */
-const NAME_MIN_LENGTH = 2;
-const NAME_MAX_LENGTH = 64;
 const TOKEN_MIN_LENGTH = 10;
 const TOKEN_PATTERN = /^\s*[A-Za-z0-9]+\s*$/;
 const FORGEJO_LABEL_FORBIDDEN = /[:?]/;
@@ -475,33 +474,11 @@ export const RunnerForm = ({
 
                     <Section>
                         <Heading>{t("form.section.runner")}</Heading>
-                        <Field
-                            name="name"
-                            rules={{
-                                required: t("form.name.required"),
-                                minLength: {
-                                    value: NAME_MIN_LENGTH,
-                                    message: t("form.name.tooShort"),
-                                },
-                                maxLength: {
-                                    value: NAME_MAX_LENGTH,
-                                    message: t("form.name.tooLong"),
-                                },
-                            }}
-                        >
-                            <TextField>
-                                <Label>
-                                    {t("form.name.label")}
-                                    <FieldHelp
-                                        subject={t("form.name.label")}
-                                        text={t("form.name.help")}
-                                    />
-                                </Label>
-                                <FieldDescription>
-                                    {t("form.name.description")}
-                                </FieldDescription>
-                            </TextField>
-                        </Field>
+                        <NameField
+                            form={form}
+                            description={t("form.name.description")}
+                            help={t("form.name.help")}
+                        />
                         {provider !== "gitlab" && (
                             <Field
                                 name="labels"

@@ -214,10 +214,14 @@ export type RunnerIdRequest = {
 };
 
 /**
- * Settings that can change after creation. The stack is redeclared, mittwald recreates the container.
+ * Settings that can change after creation. The stack is redeclared, mittwald recreates the container. A change of the name alone keeps the container running.
  */
 export type ConfigureRunnerRequest = {
     runnerId: string;
+    /**
+     * New display name. Updates the runner list and the descriptions of the service and the cache cronjob. The service name in the stack and the runner name in the CI system keep their values from creation.
+     */
+    name?: string;
     cache: CacheEnabled;
     cacheSizeGb?: CacheSizeGb;
     imageBuilds?: ImageBuilds;
