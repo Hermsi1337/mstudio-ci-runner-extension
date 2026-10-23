@@ -78,9 +78,11 @@ usage() {
 # lies outside of it. Inside or outside follows the resolved symlinks, because
 # the copy of the context keeps them and a link to the outside breaks in the
 # builder. The printed path stays the one -f names where it can, so kaniko
-# looks for the same <Dockerfile>.dockerignore as Docker does.
+# looks for the same <Dockerfile>.dockerignore as Docker does. A link with an
+# absolute target on that path breaks in the copy as well, then the resolved
+# path goes instead.
 path_in_context() {
-    local root file lexical_root lexical_file
+    local root file lexical_root lexical_file prefix part
     root="$(realpath -e -- "${context}")"
     root="${root%/}"
     file="$(realpath -e -- "$1")"
@@ -88,11 +90,21 @@ path_in_context() {
     lexical_root="$(realpath -s -- "${context}")"
     lexical_root="${lexical_root%/}"
     lexical_file="$(realpath -s -- "$1")"
-    if [[ "${lexical_file}" == "${lexical_root}/"* ]]; then
-        echo "${lexical_file#"${lexical_root}/"}"
-    else
+    if [[ "${lexical_file}" != "${lexical_root}/"* ]]; then
         echo "${file#"${root}/"}"
+        return 0
     fi
+    prefix="${lexical_root}"
+    local -a parts=()
+    IFS=/ read -r -a parts <<<"${lexical_file#"${lexical_root}/"}"
+    for part in "${parts[@]}"; do
+        prefix+="/${part}"
+        if [[ -L "${prefix}" && "$(readlink -- "${prefix}")" == /* ]]; then
+            echo "${file#"${root}/"}"
+            return 0
+        fi
+    done
+    echo "${lexical_file#"${lexical_root}/"}"
 }
 
 # BuildKit takes a named context from a directory, an image, another target, an

@@ -175,6 +175,8 @@ printf 'FROM alpine AS sub\n' >"${contexts_dir}/app/sub/Dockerfile"
 echo sub-only >"${contexts_dir}/app/sub/Dockerfile.dockerignore"
 ln -s sub/Dockerfile "${contexts_dir}/app/linked.Dockerfile"
 echo linked-only >"${contexts_dir}/app/linked.Dockerfile.dockerignore"
+ln -s "${contexts_dir}/app/sub/Dockerfile" "${contexts_dir}/app/absolute.Dockerfile"
+ln -s "${contexts_dir}/app/sub" "${contexts_dir}/app/absolute-dir"
 ln -s ../ci/Dockerfile "${contexts_dir}/app/outside.Dockerfile"
 printf 'FROM alpine\nCOPY --from=shared /file /ci\n' >"${contexts_dir}/ci/Dockerfile"
 echo ci-only >"${contexts_dir}/ci/Dockerfile.dockerignore"
@@ -219,6 +221,12 @@ expect_output "an absolute -f inside the context becomes a path in the context" 
 captured_build "${contexts_dir}/app" -f linked.Dockerfile .
 expect_output "-f of a symlink inside the context keeps the path -f names" \
     "DOCKERFILE=linked.Dockerfile" cat "${contexts_dir}/job/request"
+captured_build "${contexts_dir}/app" -f absolute.Dockerfile .
+expect_output "-f of a symlink with an absolute target inside the context sends the resolved path" \
+    "DOCKERFILE=sub/Dockerfile" cat "${contexts_dir}/job/request"
+captured_build "${contexts_dir}/app" -f absolute-dir/Dockerfile .
+expect_output "-f through a directory symlink with an absolute target sends the resolved path" \
+    "DOCKERFILE=sub/Dockerfile" cat "${contexts_dir}/job/request"
 expect_output "-f that misses the working directory says where it looked" \
     "relative to the working directory" refused_build "${contexts_dir}" -f sub/Dockerfile app
 missing="$(refused_build / -f "${contexts_dir}/missing/Dockerfile" "${contexts_dir}/app")"
