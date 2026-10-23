@@ -229,3 +229,5 @@ replacing the older shot of the same state. The pull request links them.
 | `create-form-collapsed-<width>.png` | Create form, job features collapsed |
 | `create-form-expanded-1440.png` | Create form, job features open, cache on |
 | `create-form-no-limits-<width>.png` | Create form, custom size without CPU and memory limit, memory warning |
+| `create-form-directories-<width>.png` | Create form, optional features open, one project directory with the target filled in |
+| `settings-directories-1440.png` | Settings modal, tab "Directories" with one entry and the recreate warning |
