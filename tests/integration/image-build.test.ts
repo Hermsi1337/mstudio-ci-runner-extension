@@ -467,6 +467,84 @@ describe("image builds", () => {
         }
     }, 600_000);
 
+    // kaniko has no named contexts. mstudio-build folds them into the main
+    // context and puts one stage per context in front of the first FROM, so
+    // the global ARG has to stay global and both ignore files have to apply.
+    // kaniko cannot COPY --from=<stage> /, which a local context has to allow.
+    it("builds with an extra local context and an image context", async () => {
+        const builder = await startBuilder();
+        const runner = await startRunner();
+        try {
+            await writeContext(
+                runner,
+                [
+                    "ARG GREETING_FILE=greeting.txt",
+                    "FROM base",
+                    "ARG GREETING_FILE",
+                    "COPY --from=shared /$GREETING_FILE /greeting",
+                    "COPY --from=shared / /shared/",
+                    "COPY app.txt /app.txt",
+                ].join("\n"),
+            );
+            await writeContextFile(
+                runner,
+                ".dockerignore",
+                "*\n!Dockerfile\n!app.txt",
+            );
+            await writeContextFile(runner, "app.txt", "main");
+            const shared = await runner.exec([
+                "bash",
+                "-c",
+                [
+                    "mkdir -p /home/runner/shared && cd /home/runner/shared",
+                    "echo moin > greeting.txt",
+                    "echo hidden > secret.txt",
+                    "echo /secret.txt > .dockerignore",
+                ].join(" && "),
+            ]);
+            expect(shared.exitCode).toBe(0);
+
+            const build = await runner.exec([
+                "bash",
+                "-c",
+                [
+                    "cd /home/runner/app &&",
+                    `docker buildx build --push -t ${registryHost}/contexts:1`,
+                    "--build-context shared=../shared",
+                    "--build-context=base=docker-image://alpine:3.20 . 2>&1",
+                ].join(" "),
+            ]);
+            expect(build.output).toContain(
+                "with the build contexts shared base",
+            );
+            expect(build.exitCode).toBe(0);
+
+            const reference = `${registryHost}/contexts:1`;
+            expect(await readFromImage(runner, reference, "greeting")).toBe(
+                "moin",
+            );
+            expect(await readFromImage(runner, reference, "app.txt")).toBe(
+                "main",
+            );
+            expect(
+                await readFromImage(runner, reference, "etc/alpine-release"),
+            ).toMatch(/^3\.20\./);
+
+            const files = await runner.exec([
+                "bash",
+                "-c",
+                `crane export --insecure ${reference} - | tar -t`,
+            ]);
+            expect(files.exitCode).toBe(0);
+            expect(files.output).toContain("shared/greeting.txt");
+            expect(files.output).not.toContain("secret.txt");
+            expect(files.output).not.toContain(".mstudio-contexts");
+        } finally {
+            await runner.stop();
+            await builder.stop();
+        }
+    }, 600_000);
+
     // In the sandbox root owns the user namespace, so the unpack keeps the
     // capability. The patched warning only shows on the path without emulation.
     it("builds on a base image with file capabilities and warns without emulation", async () => {

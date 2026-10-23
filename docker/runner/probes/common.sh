@@ -85,6 +85,46 @@ expect_output "platform check ignores spaces in the list" "linux/arm64 linux/amd
 expect "platform check rejects an architecture the builder lacks" bash -c "! mstudio-platform-check linux/s390x 2>/dev/null"
 expect_output "a multi platform build without --push is refused" "needs --push" \
     bash -c "mstudio-build --platform linux/amd64,linux/arm64 -t probe:1 . 2>&1"
+expect_output "docker build refuses a build context the builder cannot provide" \
+    "takes a local directory or docker-image://REF" \
+    bash -c "docker build --build-context cache=oci-layout://cache -t probe:1 . 2>&1"
+
+contexts_dir="$(mktemp -d)"
+mkdir -p "${contexts_dir}/builds/queue" "${contexts_dir}/app" "${contexts_dir}/shared"
+printf "ARG BASE=base\nFROM \${BASE}\nCOPY --from=shared /file /file\n" >"${contexts_dir}/app/Dockerfile"
+printf '*\n!Dockerfile\n' >"${contexts_dir}/app/.dockerignore"
+echo shared >"${contexts_dir}/shared/file"
+# Stands in for the builder: keeps a copy of the first job and fails it, so
+# the probe sees what the shim sends without building anything.
+capture_job() {
+    local request
+    for _ in $(seq 100); do
+        for request in "${contexts_dir}"/builds/queue/*/request; do
+            if [[ -f "${request}" ]]; then
+                cp -R "${request%/request}" "${contexts_dir}/job"
+                echo exit=3 >"${request%/request}/result"
+                return 0
+            fi
+        done
+        sleep 0.1
+    done
+}
+capture_job &
+(cd "${contexts_dir}/app" && BUILD_QUEUE_DIR="${contexts_dir}/builds" docker build \
+    --build-context shared=../shared --build-context=base=docker-image://alpine:3.20 \
+    -t probe:contexts . >/dev/null 2>&1)
+wait
+expect_output "docker build sends --build-context with a rewritten Dockerfile" \
+    "DOCKERFILE=.mstudio-contexts/Dockerfile" cat "${contexts_dir}/job/request"
+expect_output "build contexts become stages after the global ARGs, COPY --from reads the local context" \
+    "$(printf "ARG BASE=base\nFROM scratch AS shared\nCOPY .mstudio-contexts/shared/ /\nFROM alpine:3.20 AS base\nFROM \${BASE}\nCOPY .mstudio-contexts/shared/file /file\n")" \
+    cat "${contexts_dir}/job/context/.mstudio-contexts/Dockerfile"
+expect "a local build context travels inside the main context" \
+    test -f "${contexts_dir}/job/context/.mstudio-contexts/shared/file"
+expect_output "an allowlist .dockerignore keeps the build contexts" \
+    "$(printf '*\n!Dockerfile\n\n!.mstudio-contexts\n!.mstudio-contexts/**\n')" \
+    cat "${contexts_dir}/job/context/.mstudio-contexts/Dockerfile.dockerignore"
+
 expect_output "setup-qemu-action gets the platforms of the builder" '"supported":["linux/' \
     docker run --rm --privileged tonistiigi/binfmt
 expect_output "a pinned binfmt image gets the platforms of the builder" '"supported":["linux/' \

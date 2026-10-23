@@ -296,6 +296,75 @@ Emulated steps are slower. Measured on Container Hosting, `apk add file python3`
 short Python loop took 18 s for arm64 against 3 s native. CPU bound code runs up to 30
 times slower, so compile in a `$BUILDPLATFORM` stage where the toolchain can cross-compile.
 
+## Extra build contexts
+
+`--build-context NAME=VALUE` works with a local directory or `docker-image://REF` as
+`VALUE`, so `build-contexts:` of `docker/build-push-action` runs unchanged:
+
+```yaml
+# GitHub Actions
+- uses: docker/build-push-action@v7
+  with:
+    context: hermes
+    build-contexts: |
+      shared=shared
+      base=docker-image://alpine:3.20
+    push: true
+    tags: ghcr.io/me/hermes:${{ github.sha }}
+```
+
+```dockerfile
+FROM base
+COPY --from=shared config.yaml /etc/hermes/
+```
+
+kaniko has no named contexts, and the builder receives one context per job. Before
+`mstudio-build` queues the job, it folds the extra contexts into the main one:
+
+1. Each local directory goes to `.mstudio-contexts/<NAME>/` inside the copied context. A
+   relative path is resolved against the working directory, like the docker CLI does.
+2. A rewritten Dockerfile, `.mstudio-contexts/Dockerfile`, goes to the builder as
+   `DOCKERFILE`. Directly before the first `FROM` it adds one stage per context:
+   `FROM scratch AS <NAME>` with `COPY .mstudio-contexts/<NAME>/ /` for a directory,
+   `FROM <REF> AS <NAME>` for an image. `FROM <NAME>` and `COPY --from=<NAME>` of an
+   image resolve to these stages. Parser directives and global `ARG`s stay above them,
+   and a numbered `COPY --from=<N>` moves by the number of inserted stages.
+3. `COPY --from=<NAME>` of a local directory becomes a `COPY` from
+   `.mstudio-contexts/<NAME>/`, on one line, with the other flags kept. kaniko saves
+   the whole root file system of a stage when a later `COPY --from` takes `/` or `.`
+   from it, and fails on `/proc`; the directory is in the build context anyway.
+4. kaniko reads only one ignore file, `.mstudio-contexts/Dockerfile.dockerignore`. It
+   holds the patterns of the main context (from `<Dockerfile>.dockerignore` or
+   `.dockerignore`), then `!.mstudio-contexts` and `!.mstudio-contexts/**` so an
+   allowlist (`*` followed by `!path`) keeps the extra contexts, then the `.dockerignore`
+   of each extra context with `.mstudio-contexts/<NAME>/` in front of every pattern.
+   The rewritten Dockerfile and the ignore file themselves are excluded.
+5. `mstudio-dockerfile-check` runs on the rewritten Dockerfile, so the line numbers in
+   its messages refer to `.mstudio-contexts/Dockerfile`.
+
+The build queue protocol and the builder stay as they are. The builder log shows
+`dockerfile=.mstudio-contexts/Dockerfile` for such a build.
+
+Limits of the emulation:
+
+- **The name has to be a stage name.** Lowercase letters, digits, `-`, `_` and `.`,
+  starting with a letter. BuildKit can replace `FROM alpine:3.20` through a context named
+  `alpine:3.20`; here only `FROM alpine` with a context named `alpine` works.
+- **A COPY of the whole main context takes the extra contexts along.** `COPY . /app`
+  puts `.mstudio-contexts/<NAME>/` into the image as well, because the extra contexts sit
+  inside the main context and one ignore file applies to every `COPY`. `mstudio-build`
+  names every such line in the log. An allowlist `.dockerignore` avoids it.
+- **Every extra context travels in full.** The whole directory goes through the project
+  file system with the main context, ignored files included.
+- **Every context stage is built.** kaniko builds a context stage even when no
+  instruction uses it: it pulls and unpacks an image context and copies a directory into
+  its scratch stage.
+
+Refused with a message, before a job is queued: an OCI layout (`oci-layout://`), another
+target (`target:`), a URL or git repository, a path that is no directory, a name that is
+no stage name, a name that is given twice or that a stage of the Dockerfile has, and a
+main context that already contains `.mstudio-contexts`.
+
 ## What the shim fills in
 
 | Flag or command | Behaviour |
@@ -307,6 +376,7 @@ times slower, so compile in a `$BUILDPLATFORM` stage where the toolchain can cro
 | `docker save`, `docker load` | copies the tarball in and out of the store. `docker load` needs `-i <file>`, it does not read from a pipe |
 | `docker login`, `docker logout` | `crane auth login`, writes the usual `~/.docker/config.json` |
 | `docker buildx create/inspect/ls`, `docker context inspect/ls` | answer with one fixed builder, so `setup-buildx-action` runs through. Its platforms are those in `builder.env` |
+| `--build-context` | a local directory or `docker-image://REF`, folded into the main context, see [Extra build contexts](#extra-build-contexts) |
 | `--platform` | one or both of `linux/amd64` and `linux/arm64`, see [above](#builds-for-the-other-architecture) |
 | `docker run` of a `binfmt` or `qemu-user-static` image | does nothing, prints the platforms of the builder as JSON, which is what `docker/setup-qemu-action` parses |
 | `docker version`, `docker buildx version` | report a docker version and buildx `v0.12.1`, which the docker actions parse before they do anything |
@@ -367,7 +437,8 @@ Failing early with a clear message beats a build that silently does something el
 
 | Input | Message |
 |---|---|
-| `--secret`, `--ssh`, `--build-context` | BuildKit features the builder cannot provide |
+| `--secret`, `--ssh` | BuildKit features the builder cannot provide |
+| `--build-context` with an OCI layout, another target, a URL or a git repository | only local directories and `docker-image://` work, see [Extra build contexts](#extra-build-contexts) |
 | `--platform` or `FROM --platform=` with an architecture other than amd64 and arm64 | the builder has no emulator for it |
 | `--platform` with several platforms and without `--push` | the images only come together as an index in a registry |
 | `RUN --mount=...`, `--network=`, `--security=` in the Dockerfile | checked before the job is queued |
@@ -419,7 +490,10 @@ the flag and pulls every base image for the platform of the build.
   stage with such a base image) loses it.
 - **Base images come from public registries.** The builder has no credentials and no
   `--insecure-pull`, so `FROM` a private registry or a registry inside the project fails
-  while pushing to the same registry works.
+  while pushing to the same registry works. The same holds for a `docker-image://`
+  build context.
+- **Extra build contexts are emulated.** They travel inside the main context, and a
+  `COPY .` takes them along, see [Extra build contexts](#extra-build-contexts).
 - **Images stay on the data volume.** Every build leaves its tarball in the image store.
   `docker rmi` deletes the tarball with its last reference, `docker image prune` deletes
   everything nothing points at any more.
