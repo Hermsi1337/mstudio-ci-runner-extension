@@ -1,5 +1,5 @@
 import { Alert, Text } from "@mittwald/flow-remote-react-components";
-import { type FC, useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import {
     type FieldPath,
     type FieldValues,
@@ -13,7 +13,7 @@ import { useTranslation } from "@/i18n/react.tsx";
 export function useFormErrorHandling<TFormValues extends FieldValues>(
     form: UseFormReturn<TFormValues>,
     submitHandler: SubmitHandler<TFormValues>,
-): [FC, SubmitHandler<TFormValues>] {
+): [ReactNode, SubmitHandler<TFormValues>] {
     const t = useTranslation();
     useEffect(() => {
         const subscription = form.watch(() => {
@@ -56,15 +56,12 @@ export function useFormErrorHandling<TFormValues extends FieldValues>(
         }
     };
 
-    const RootError: FC = () => (
-        <>
-            {form.formState.errors.root && (
-                <Alert status="danger">
-                    <Text>{form.formState.errors.root.message}</Text>
-                </Alert>
-            )}
-        </>
+    const rootErrorMessage = form.formState.errors.root?.message;
+    const rootError = rootErrorMessage && (
+        <Alert status="danger">
+            <Text>{rootErrorMessage}</Text>
+        </Alert>
     );
 
-    return [RootError, submitWithErrorHandling];
+    return [rootError, submitWithErrorHandling];
 }
