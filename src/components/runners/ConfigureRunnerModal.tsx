@@ -88,7 +88,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
             ...toResourceFormValues(runner),
         },
     });
-    const [RootError, handleSubmit] = useFormErrorHandling(
+    const [rootError, handleSubmit] = useFormErrorHandling(
         form,
         async (values) => {
             const configured = await RunnerClientGhost.configureRunner({
@@ -199,7 +199,7 @@ const ConfigureRunnerForm = ({ runner }: { runner: Runner }) => {
                         <Text>{t("form.configure.warning.text")}</Text>
                     </Alert>
                 )}
-                <RootError />
+                {rootError}
             </Content>
             <ActionGroup>
                 <SubmitButton color="primary" isDisabled={!changed}>

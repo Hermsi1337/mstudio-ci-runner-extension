@@ -22,19 +22,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DockerApiTokenRequest'
+              $ref: "#/components/schemas/DockerApiTokenRequest"
       responses:
-        '200':
+        "200":
           description: Token issued
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DockerApiTokenResponse'
-        '400':
+                $ref: "#/components/schemas/DockerApiTokenResponse"
+        "400":
           description: Body does not match the schema
-        '401':
+        "401":
           description: Secret missing, unknown or not valid for this stack
-        '502':
+        "502":
           description: mittwald did not issue an instance token
 components:
   securitySchemes:
@@ -71,14 +71,14 @@ components:
       description: Resource preset for the runner container. `custom` uses `cpus` and `memoryMb`, a null or missing value there means no limit.
       example: medium
     Cpus:
-      type: [number, 'null']
+      type: [number, "null"]
       minimum: 0.25
       maximum: 8
       multipleOf: 0.25
       description: CPU limit of the runner container. Only used with size custom, null means no CPU limit.
       example: 1.5
     MemoryMb:
-      type: [integer, 'null']
+      type: [integer, "null"]
       minimum: 512
       maximum: 16384
       multipleOf: 256
@@ -94,7 +94,17 @@ components:
       example: registration
     RunnerStatus:
       type: string
-      enum: [running, stopped, error, creating, starting, stopping, unknown, missing]
+      enum:
+        [
+          running,
+          stopped,
+          error,
+          creating,
+          starting,
+          stopping,
+          unknown,
+          missing,
+        ]
       description: Container status as reported by mittwald, plus `unknown` (status unavailable) and `missing` (stack deleted outside the extension).
       example: running
     RunnerBase:
@@ -113,23 +123,23 @@ components:
           description: Comma separated runner labels (GitHub, Forgejo). GitLab keeps its tags in GitLab and ignores the value.
           example: mittwald, node
         cache:
-          $ref: '#/components/schemas/CacheEnabled'
+          $ref: "#/components/schemas/CacheEnabled"
         cacheSizeGb:
-          $ref: '#/components/schemas/CacheSizeGb'
+          $ref: "#/components/schemas/CacheSizeGb"
         imageBuilds:
-          $ref: '#/components/schemas/ImageBuilds'
+          $ref: "#/components/schemas/ImageBuilds"
         dockerApi:
-          $ref: '#/components/schemas/DockerApi'
+          $ref: "#/components/schemas/DockerApi"
         concurrency:
-          $ref: '#/components/schemas/Concurrency'
+          $ref: "#/components/schemas/Concurrency"
         size:
-          $ref: '#/components/schemas/RunnerSize'
+          $ref: "#/components/schemas/RunnerSize"
         cpus:
-          $ref: '#/components/schemas/Cpus'
+          $ref: "#/components/schemas/Cpus"
         memoryMb:
-          $ref: '#/components/schemas/MemoryMb'
+          $ref: "#/components/schemas/MemoryMb"
         projectDirectories:
-          $ref: '#/components/schemas/ProjectDirectories'
+          $ref: "#/components/schemas/ProjectDirectories"
         stackId:
           type: string
           format: uuid
@@ -190,7 +200,7 @@ components:
       maxItems: 10
       description: Project directories mounted into the runner. Jobs write into a writable one with `mstudio-sync` (docs/runner-image.md).
       items:
-        $ref: '#/components/schemas/ProjectDirectory'
+        $ref: "#/components/schemas/ProjectDirectory"
     GitHubTarget:
       type: string
       minLength: 1
@@ -200,7 +210,7 @@ components:
       example: acme/app
     GitHubRunnerRequest:
       allOf:
-        - $ref: '#/components/schemas/RunnerBase'
+        - $ref: "#/components/schemas/RunnerBase"
         - type: object
           required: [provider, target, token]
           properties:
@@ -208,7 +218,7 @@ components:
               type: string
               enum: [github]
             target:
-              $ref: '#/components/schemas/GitHubTarget'
+              $ref: "#/components/schemas/GitHubTarget"
             tokenType:
               type: string
               enum: [registration]
@@ -229,7 +239,7 @@ components:
               example: Default
     GitLabRunnerRequest:
       allOf:
-        - $ref: '#/components/schemas/RunnerBase'
+        - $ref: "#/components/schemas/RunnerBase"
         - type: object
           required: [provider, instanceUrl, token]
           properties:
@@ -257,7 +267,7 @@ components:
               example: glrt-t1_AbCdEfGhIjKlMnOpQrSt
     ForgejoRunnerRequest:
       allOf:
-        - $ref: '#/components/schemas/RunnerBase'
+        - $ref: "#/components/schemas/RunnerBase"
         - type: object
           required: [provider, instanceUrl, uuid, token]
           properties:
@@ -286,20 +296,20 @@ components:
               type: string
               minLength: 10
               maxLength: 500
-              pattern: '^[A-Za-z0-9]+$'
+              pattern: "^[A-Za-z0-9]+$"
               description: Token Forgejo shows once after creating the runner. forgejo-runner accepts letters and digits only.
               example: 6634bb58be0db23cc013a2e72dd1828ae0257cf
     CreateRunnerRequest:
       oneOf:
-        - $ref: '#/components/schemas/GitHubRunnerRequest'
-        - $ref: '#/components/schemas/GitLabRunnerRequest'
-        - $ref: '#/components/schemas/ForgejoRunnerRequest'
+        - $ref: "#/components/schemas/GitHubRunnerRequest"
+        - $ref: "#/components/schemas/GitLabRunnerRequest"
+        - $ref: "#/components/schemas/ForgejoRunnerRequest"
       discriminator:
         propertyName: provider
         mapping:
-          github: '#/components/schemas/GitHubRunnerRequest'
-          gitlab: '#/components/schemas/GitLabRunnerRequest'
-          forgejo: '#/components/schemas/ForgejoRunnerRequest'
+          github: "#/components/schemas/GitHubRunnerRequest"
+          gitlab: "#/components/schemas/GitLabRunnerRequest"
+          forgejo: "#/components/schemas/ForgejoRunnerRequest"
     RunnerIdRequest:
       type: object
       required: [runnerId]
@@ -324,23 +334,23 @@ components:
           description: New display name. Updates the runner list and the descriptions of the service and the cache cronjob. The service name in the stack and the runner name in the CI system keep their values from creation.
           example: acme-app
         cache:
-          $ref: '#/components/schemas/CacheEnabled'
+          $ref: "#/components/schemas/CacheEnabled"
         cacheSizeGb:
-          $ref: '#/components/schemas/CacheSizeGb'
+          $ref: "#/components/schemas/CacheSizeGb"
         imageBuilds:
-          $ref: '#/components/schemas/ImageBuilds'
+          $ref: "#/components/schemas/ImageBuilds"
         dockerApi:
-          $ref: '#/components/schemas/DockerApi'
+          $ref: "#/components/schemas/DockerApi"
         concurrency:
-          $ref: '#/components/schemas/Concurrency'
+          $ref: "#/components/schemas/Concurrency"
         size:
-          $ref: '#/components/schemas/RunnerSize'
+          $ref: "#/components/schemas/RunnerSize"
         cpus:
-          $ref: '#/components/schemas/Cpus'
+          $ref: "#/components/schemas/Cpus"
         memoryMb:
-          $ref: '#/components/schemas/MemoryMb'
+          $ref: "#/components/schemas/MemoryMb"
         projectDirectories:
-          $ref: '#/components/schemas/ProjectDirectories'
+          $ref: "#/components/schemas/ProjectDirectories"
     RunnerLogsRequest:
       type: object
       required: [runnerId]
@@ -355,14 +365,45 @@ components:
           default: 200
     Runner:
       type: object
-      required: [id, provider, name, target, targetUrl, labels, ephemeral, tokenType, size, cpus, memoryMb, cache, cacheSizeGb, imageBuilds, dockerApi, concurrency, projectDirectories, stackId, serviceId, studioUrl, status, statusMessage, image, runnerVersion, latestRunnerVersion, latestImageVersion, imageVersion, updateAvailable, createdAt]
+      required:
+        [
+          id,
+          provider,
+          name,
+          target,
+          targetUrl,
+          labels,
+          ephemeral,
+          tokenType,
+          size,
+          cpus,
+          memoryMb,
+          cache,
+          cacheSizeGb,
+          imageBuilds,
+          dockerApi,
+          concurrency,
+          projectDirectories,
+          stackId,
+          serviceId,
+          studioUrl,
+          status,
+          statusMessage,
+          image,
+          runnerVersion,
+          latestRunnerVersion,
+          latestImageVersion,
+          imageVersion,
+          updateAvailable,
+          createdAt,
+        ]
       properties:
         id:
           type: string
           format: uuid
           example: 8c2f1d0e-5b4a-4c3d-9e2f-1a2b3c4d5e6f
         provider:
-          $ref: '#/components/schemas/Provider'
+          $ref: "#/components/schemas/Provider"
         name:
           type: string
           example: acme-app
@@ -383,15 +424,15 @@ components:
           type: boolean
           description: One job per registration. Only runners created in the disabled GitHub PAT mode carry true.
         tokenType:
-          $ref: '#/components/schemas/TokenType'
+          $ref: "#/components/schemas/TokenType"
         size:
-          $ref: '#/components/schemas/RunnerSize'
+          $ref: "#/components/schemas/RunnerSize"
         cpus:
-          type: [number, 'null']
+          type: [number, "null"]
           description: Effective CPU limit, from the preset or the custom value. Null when a custom runner has no CPU limit.
           example: 1
         memoryMb:
-          type: [integer, 'null']
+          type: [integer, "null"]
           description: Effective memory limit in MB, from the preset or the custom value. Null when a custom runner has no memory limit.
           example: 2048
         cache:
@@ -410,30 +451,30 @@ components:
           type: integer
           example: 1
         projectDirectories:
-          $ref: '#/components/schemas/ProjectDirectories'
+          $ref: "#/components/schemas/ProjectDirectories"
         stackId:
           type: string
           format: uuid
           example: 3f9a7c21-6d4e-4b8a-a1c2-7e5d9f0b2c4a
         serviceId:
-          type: [string, 'null']
+          type: [string, "null"]
           example: 5b1e8d3c-2a7f-4e9b-b6c0-9d8e7f6a5b4c
         studioUrl:
-          type: [string, 'null']
+          type: [string, "null"]
           format: uri
           description: Detail page of the runner container in mStudio. Null while the service id is unknown.
           example: https://studio.mittwald.de/projects/p-1/container/stacks/3f9a7c21/container/5b1e8d3c/general
         status:
-          $ref: '#/components/schemas/RunnerStatus'
+          $ref: "#/components/schemas/RunnerStatus"
         statusMessage:
-          type: [string, 'null']
+          type: [string, "null"]
           example: null
         image:
-          type: [string, 'null']
+          type: [string, "null"]
           description: Image the runner container was declared with.
           example: ghcr.io/hermsi1337/mstudio-ci-runner-github:0.1.0
         runnerVersion:
-          type: [string, 'null']
+          type: [string, "null"]
           description: Version of the runner software inside the image, e.g. `2.337.0` for actions/runner. Null for runners created before this field existed.
           example: 2.337.0
         latestRunnerVersion:
@@ -441,11 +482,11 @@ components:
           description: Runner software version shipped with this extension release.
           example: 2.337.0
         latestImageVersion:
-          type: [string, 'null']
+          type: [string, "null"]
           description: Tag of the runner image this extension release ships, e.g. `0.2.0`. Null when the configured image has no tag.
           example: 0.2.0
         imageVersion:
-          type: [string, 'null']
+          type: [string, "null"]
           description: Tag of the image the runner was created with, the extension version at creation time. Null when the image has no tag.
           example: 0.1.0
         updateAvailable:
@@ -458,7 +499,7 @@ components:
     RunnerList:
       type: array
       items:
-        $ref: '#/components/schemas/Runner'
+        $ref: "#/components/schemas/Runner"
     ProjectStack:
       type: object
       required: [id, description, serviceCount]
@@ -482,7 +523,7 @@ components:
     ProjectStackList:
       type: array
       items:
-        $ref: '#/components/schemas/ProjectStack'
+        $ref: "#/components/schemas/ProjectStack"
     ProjectCapabilities:
       type: object
       required: [containerHosting]
@@ -532,4 +573,4 @@ components:
             Releases up to and including `currentVersion`, newest first. Releases that
             GitHub lists but that are not deployed yet are left out.
           items:
-            $ref: '#/components/schemas/Release'
+            $ref: "#/components/schemas/Release"

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -92,6 +92,16 @@
   "json": {
     "formatter": {
       "indentWidth": 2
+    }
+  },
+  "yaml": {
+    "formatter": {
+      "indentWidth": 2
+    }
+  },
+  "markdown": {
+    "formatter": {
+      "enabled": false
     }
   },
   "overrides": []

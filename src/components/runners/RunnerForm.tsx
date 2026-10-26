@@ -227,7 +227,7 @@ export const RunnerForm = ({
         }
     }, [featuresInvalid, submitCount]);
 
-    const [RootError, handleSubmit] = useFormErrorHandling(
+    const [rootError, handleSubmit] = useFormErrorHandling(
         form,
         async (values) => {
             const created = await RunnerClientGhost.createRunner({
@@ -561,7 +561,7 @@ export const RunnerForm = ({
                         </AccordionGroup>
                     </Section>
 
-                    <RootError />
+                    {rootError}
                 </Content>
 
                 <AccentBox>

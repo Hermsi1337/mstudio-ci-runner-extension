@@ -8,12 +8,7 @@ const DOCKER_API_IMAGE_REPOSITORY = "ghcr.io/hermsi1337/mstudio-ci-docker-api";
 export const getEnvironmentVariables = () => {
     const extensionVersion =
         process.env.EXTENSION_VERSION || packageJson.version;
-    // The stack file renders an unset GitHub variable as an empty string.
-    const source = { ...process.env };
-    if (!source.PUBLIC_URL) {
-        delete source.PUBLIC_URL;
-    }
-    return cleanEnv(source, {
+    return cleanEnv(process.env, {
         PORT: num({ default: 3000 }),
         POSTGRES_USER: str(),
         POSTGRES_PASSWORD: str(),

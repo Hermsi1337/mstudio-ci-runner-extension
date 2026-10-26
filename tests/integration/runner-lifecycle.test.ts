@@ -1382,7 +1382,7 @@ describe("Docker in jobs", () => {
     // Prism does not echo the declared environment, so the tests put a known
     // secret in place of the one the extension generated.
     const secret = "mdapi_integration-test-secret";
-    const useKnownSecret = async (stackId: string) => {
+    const installKnownSecret = async (stackId: string) => {
         await db
             .update(schema.dockerApiStacks)
             .set({ secretHash: secrets.hashSecret(secret) })
@@ -1424,7 +1424,7 @@ describe("Docker in jobs", () => {
     it("issues an instance token for the secret of the stack", async () => {
         const token = await dockerApi.issueDockerApiToken(
             created.stackId,
-            await useKnownSecret(created.stackId),
+            await installKnownSecret(created.stackId),
         );
         expect(token.token).toEqual(expect.any(String));
         expect(Number.isNaN(Date.parse(token.expiresAt))).toBe(false);
@@ -1437,13 +1437,13 @@ describe("Docker in jobs", () => {
         await expect(
             dockerApi.issueDockerApiToken(
                 "99999999-9999-9999-9999-999999999999",
-                await useKnownSecret(created.stackId),
+                await installKnownSecret(created.stackId),
             ),
         ).rejects.toBeInstanceOf(dockerApi.DockerApiTokenDenied);
     });
 
     it("refuses the secret once the option is off for the last runner", async () => {
-        await useKnownSecret(created.stackId);
+        await installKnownSecret(created.stackId);
         await runner.configureRunner(client, extensionInstanceId, {
             runnerId: created.id,
             cache: false,
