@@ -64,7 +64,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.6.3",
+    "@biomejs/biome": "^2.6.4",
     "@hey-api/openapi-ts": "^0.99.0",
     "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^24.19.2",
@@ -72,9 +72,9 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "dotenv-cli": "^11.0.0",
+    "dotenv-cli": "^11.1.0",
     "drizzle-kit": "^0.31.11",
-    "seroval": "^1.7.2",
+    "seroval": "^1.7.5",
     "testcontainers": "^12.2.1",
     "typescript": "^5.9.3",
     "vite": "^8.3.5",
