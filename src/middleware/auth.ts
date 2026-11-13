@@ -29,7 +29,9 @@ async function getVerifiedSessionToken(): Promise<
     if (!sessionToken) {
         throw new Error("No session token found");
     }
-    const verifiedSessionToken = await verify(sessionToken);
+    const verifiedSessionToken = await verify(sessionToken, {
+        extensionId: getEnvironmentVariables().EXTENSION_ID,
+    });
     addLogContext({
         userId: verifiedSessionToken.userId,
         contextId: verifiedSessionToken.contextId,

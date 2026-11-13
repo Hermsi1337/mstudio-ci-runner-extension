@@ -26,7 +26,8 @@ export interface SessionTokenApi {
     stop(): Promise<void>;
 }
 
-const publicKeySerial = "test-key";
+// @mittwald/ext-bridge rejects tokens whose key serial is no UUID.
+const publicKeySerial = randomUUID();
 
 /**
  * Stands in for the two endpoints `@mittwald/ext-bridge/node` calls under
@@ -88,6 +89,7 @@ function signToken(claims: SessionTokenClaims, privateKey: KeyObject): string {
         { alg: "EdDSA", typ: "JWT" },
         {
             sub: claims.userId,
+            aud: claims.extensionId,
             sessionId: randomUUID(),
             extensionId: claims.extensionId,
             extensionInstanceId: claims.extensionInstanceId,

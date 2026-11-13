@@ -11,8 +11,11 @@ updates:
         patterns: ["@tanstack/*"]
       dev-dependencies:
         dependency-type: development
+    # pnpm refuses packages younger than one day (minimumReleaseAge)
+    cooldown:
+      default-days: 1
     ignore:
-      # nitro 3 betas change the build output; pinned until the stable release
+      # nitro 3 pre-releases change the build output; bumped by hand until the stable release
       - dependency-name: nitro
       # @weissaufschwarz/mitthooks-drizzle needs drizzle-orm 0.44
       - dependency-name: drizzle-orm
@@ -20,7 +23,7 @@ updates:
       # the image runs the current Node LTS; majors are bumped by hand together with the Dockerfile
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-      # @hey-api/openapi-ts needs the TypeScript 5 compiler API
+      # @hey-api/openapi-ts needs the TypeScript compiler API, which TypeScript 7 dropped
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
     commit-message:
@@ -37,6 +40,8 @@ updates:
   - package-ecosystem: docker
     directories:
       - /docker/extension
+      - /docker/builder
+      - /docker/docker-api
       - /docker/runner/github
       - /docker/runner/gitlab
       - /docker/runner/forgejo
@@ -48,5 +53,14 @@ updates:
         update-types: ["version-update:semver-major"]
       # only LTS releases; interim releases like 24.10 leave support after nine months
       - dependency-name: ubuntu
+    commit-message:
+      prefix: "chore(deps)"
+  - package-ecosystem: gomod
+    directory: /docker/docker-api
+    schedule:
+      interval: weekly
+    groups:
+      go-modules:
+        patterns: ["*"]
     commit-message:
       prefix: "chore(deps)"

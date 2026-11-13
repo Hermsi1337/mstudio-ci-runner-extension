@@ -125,8 +125,8 @@ and in the table above.
 The directory tree with one line per directory and key file is in
 [docs/architecture.md](docs/architecture.md#project-structure).
 
-The repository root stays lean: only files that tools require there
-(`package.json`, `tsconfig.json`, `biome.json`, `.editorconfig`, `.env.example`, `LICENSE`).
+The repository root stays lean: only files that tools require there (`package.json`,
+`pnpm-workspace.yaml`, `tsconfig.json`, `biome.json`, `.editorconfig`, `.env.example`, `LICENSE`).
 Everything else lives in a subdirectory.
 
 ## Conventions

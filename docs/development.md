@@ -6,15 +6,16 @@ for when you change them.
 
 ## Prerequisites
 
-- Node 24 (runs `scripts/*.ts` directly), pnpm via `corepack enable`
+- Node 26 (runs `scripts/*.ts` directly) and pnpm in the version of `packageManager` in
+  `package.json`. Node 26 no longer ships corepack, `npm install --global corepack` adds it.
 - Docker (database, tests, runner images)
-- Go 1.25 for `docker/docker-api` (`pnpm run docker-api:test`)
+- Go 1.27 for `docker/docker-api` (`pnpm run docker-api:test`)
 - Optional: [zrok](https://zrok.io) for webhooks
 
 ## Start
 
 ```bash
-corepack enable
+npm install --global corepack && corepack enable
 pnpm install
 cp .env.example .env            # fill in values
 pnpm run init:encryption        # fills ENCRYPTION_MASTER_PASSWORD and ENCRYPTION_SALT

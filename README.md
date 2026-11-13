@@ -89,7 +89,7 @@ into your project and open "CI Runners".
 For developers:
 
 ```bash
-corepack enable && pnpm install
+npm install --global corepack && corepack enable && pnpm install
 cp .env.example .env && pnpm run init:encryption
 pnpm run dev:all
 ```

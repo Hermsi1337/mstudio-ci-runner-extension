@@ -20,7 +20,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH="${TARGETARCH}" \
 # builder runs arm64 steps, an arm64 builder runs amd64 steps. Debian builds
 # qemu-user as static binaries, which work in the empty root a build runs in.
 # busybox of the other architecture is what the startup probe executes.
-FROM --platform=${BUILDPLATFORM} alpine:3.22 AS emulation
+FROM --platform=${BUILDPLATFORM} alpine:3.24 AS emulation
 
 ARG TARGETARCH
 ARG QEMU_VERSION
@@ -48,7 +48,7 @@ RUN case "${TARGETARCH}" in \
     && tar -xzf busybox-static-*.apk bin/busybox.static \
     && mv bin/busybox.static "/out/busybox-${foreign}"
 
-FROM alpine:3.22
+FROM alpine:3.24
 
 ARG KANIKO_VERSION
 ARG QEMU_VERSION

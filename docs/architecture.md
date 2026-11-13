@@ -215,7 +215,8 @@ answer within 6 seconds.
 
 ## Security
 
-- Session tokens are verified server side; access tokens never reach the client.
+- Session tokens are verified server side, including that mStudio issued them for this
+  extension (`EXTENSION_ID`); access tokens never reach the client.
 - GitHub: the registration token reaches the container as `RUNNER_TOKEN`, is worthless
   after one hour and is not stored in the database. The runner credentials live in the
   data volume of the runner. The PAT mode is disabled, see

@@ -72,7 +72,7 @@ export const TokenType = { REGISTRATION: 'registration', PAT: 'pat' } as const;
 export type TokenType = typeof TokenType[keyof typeof TokenType];
 
 /**
- * Container status as reported by mittwald, plus `unknown` (status unavailable) and `missing` (stack deleted outside the extension).
+ * Container status as reported by mittwald, plus `unknown` (status unavailable or reported as `unspecified`) and `missing` (stack deleted outside the extension).
  */
 export const RunnerStatus = {
     RUNNING: 'running',
@@ -86,7 +86,7 @@ export const RunnerStatus = {
 } as const;
 
 /**
- * Container status as reported by mittwald, plus `unknown` (status unavailable) and `missing` (stack deleted outside the extension).
+ * Container status as reported by mittwald, plus `unknown` (status unavailable or reported as `unspecified`) and `missing` (stack deleted outside the extension).
  */
 export type RunnerStatus = typeof RunnerStatus[keyof typeof RunnerStatus];
 
