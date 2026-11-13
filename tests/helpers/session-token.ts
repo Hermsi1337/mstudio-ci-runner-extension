@@ -26,6 +26,7 @@ export interface SessionTokenApi {
     stop(): Promise<void>;
 }
 
+// @mittwald/ext-bridge rejects tokens whose key serial is no UUID.
 const publicKeySerial = randomUUID();
 
 /**

@@ -2,6 +2,7 @@ FROM node:26-alpine AS deps
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Node 26 images no longer ship corepack, so npm installs the pinned pnpm.
 RUN npm install --global "$(node -p 'require("./package.json").packageManager')" && \
     pnpm install --frozen-lockfile
 

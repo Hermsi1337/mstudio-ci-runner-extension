@@ -129,8 +129,8 @@ Ubuntu LTS of the runner images, `nitro` (pinned to a pre-release whose build ou
 
 `packageManager` in `package.json` pins pnpm. CI and the extension image install exactly
 that version. pnpm rejects packages published less than a day ago (`minimumReleaseAge`),
-so Dependabot waits one day as well. `pnpm-workspace.yaml` lists the dependencies whose
-install scripts pnpm may run; all of them are denied, none is needed for the build.
+so Dependabot waits one day as well. `pnpm-workspace.yaml` answers which dependencies
+may run install scripts: all are denied, none is needed for the build.
 
 ## Deployment to mittwald Container Hosting
 

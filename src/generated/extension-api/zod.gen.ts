@@ -49,7 +49,7 @@ export const zMemoryMb = z.int().gte(512).lte(16384).nullable();
 export const zTokenType = z.enum(['registration', 'pat']);
 
 /**
- * Container status as reported by mittwald, plus `unknown` (status unavailable) and `missing` (stack deleted outside the extension).
+ * Container status as reported by mittwald, plus `unknown` (status unavailable or reported as `unspecified`) and `missing` (stack deleted outside the extension).
  */
 export const zRunnerStatus = z.enum([
     'running',
