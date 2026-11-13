@@ -118,12 +118,19 @@ from `docker/runner/versions.json` and `docker/builder/versions.json`. The relea
 is no `CHANGELOG.md`.
 
 `.github/dependabot.yml` opens weekly pull requests for npm packages (grouped:
-`@mittwald/*`, `@tanstack/*`, dev dependencies), GitHub Actions and the base images of
-the three Dockerfiles. Bumped by hand, not by Dependabot: the Node LTS of the extension
-image (`docker/extension/Dockerfile`, `@types/node`, `node-version` in `ci.yml`), the
-Ubuntu LTS of the runner images, `nitro` (pinned to the last alpha whose build output
-`server/index.mjs` the Dockerfile starts) and `drizzle-orm` (held at 0.44 by
-`@weissaufschwarz/mitthooks-drizzle`).
+`@mittwald/*`, `@tanstack/*`, dev dependencies), the Go modules of `docker/docker-api`,
+GitHub Actions and the base images of all Dockerfiles under `docker/`. Bumped by hand,
+not by Dependabot: the Node LTS of the extension image (`docker/extension/Dockerfile`,
+`@types/node`, `node-version` in the workflows), the
+Ubuntu LTS of the runner images, `nitro` (pinned to a pre-release whose build output
+`server/index.mjs` the Dockerfile starts), `drizzle-orm` (held at 0.44 by
+`@weissaufschwarz/mitthooks-drizzle`) and `typescript` (held at 6, because
+`@hey-api/openapi-ts` needs the compiler API that TypeScript 7 dropped).
+
+`packageManager` in `package.json` pins pnpm. CI and the extension image install exactly
+that version. pnpm rejects packages published less than a day ago (`minimumReleaseAge`),
+so Dependabot waits one day as well. `pnpm-workspace.yaml` lists the dependencies whose
+install scripts pnpm may run; all of them are denied, none is needed for the build.
 
 ## Deployment to mittwald Container Hosting
 

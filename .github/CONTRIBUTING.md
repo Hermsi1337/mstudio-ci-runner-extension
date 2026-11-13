@@ -15,7 +15,7 @@ code itself (language, codegen, validation, style, documentation duty) are in
 ## Setup
 
 ```bash
-corepack enable && pnpm install
+npm install --global corepack && corepack enable && pnpm install
 cp .env.example .env && pnpm run init:encryption
 pnpm run dev:all
 ```

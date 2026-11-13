@@ -258,6 +258,23 @@ describe("authentication middleware", () => {
         expect(response.result).toBeUndefined();
         expect(parsePublicError(response.error)).toEqual(unexpected);
     });
+
+    it("rejects a session token issued for another extension", async () => {
+        const response = await server.call(functions.listRunners, {
+            headers: {
+                "x-locale": "en",
+                "x-session-token": sessionTokens.issue({
+                    userId,
+                    extensionId: "00000000-0000-0000-0000-00000000ext2",
+                    extensionInstanceId: own.extensionInstanceId,
+                    contextId: own.projectId,
+                }),
+            },
+        });
+
+        expect(response.result).toBeUndefined();
+        expect(parsePublicError(response.error)).toEqual(unexpected);
+    });
 });
 
 describe("getChangelog", () => {

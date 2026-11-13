@@ -1,30 +1,30 @@
 {
   "github": {
-    "version": "2.338.0",
+    "version": "2.338.2",
     "sha256": {
-      "amd64": "af4b794c1bc41d73d40535e3fe092a39f9679cd8d965954c2aca25a05ca41d32",
-      "arm64": "628b4a7258487b80c1d3c221095a7ded349f5ae0175fd3dfab708d07428f041b"
+      "amd64": "baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40",
+      "arm64": "670adb2f268fe21dcbb58b3db0e0aa9d5b3bddfe2c651481336e561ff86de945"
     }
   },
   "gitlab": {
-    "version": "19.3.1",
+    "version": "19.5.3",
     "sha256": {
-      "amd64": "c5e647c3b2ab3ac51f577bc8b22575ab5cbe7ab0889ca82a2d79dab08156960e",
-      "arm64": "6bf1cd34c3decad55503414045db759db20ba3a2c05a3ac251d02eac7876dcbc"
+      "amd64": "cd586a217b0ba4d339b3f3d645b84f8f5e1cc711e73148c30a3eec0f8c78378b",
+      "arm64": "a03646eb5166a6035303d7bd1b3f8f76f55461cc7f1233bf8203539c7d7e8697"
     }
   },
   "forgejo": {
-    "version": "13.2.0",
+    "version": "13.2.1",
     "sha256": {
-      "amd64": "fadaec897f5e6641c363f87ecaf75f866f99c81b7097ec6b433e4c48123fcad1",
-      "arm64": "9d3d462ee83e4e629f959faeacceb20eed2f25290bddea402e65ace46a31afd9"
+      "amd64": "bb369fe1ecb50fdc983c0b1d993f19b0920df6e5864511892b3cdbf16d858b34",
+      "arm64": "eeddb7902f79abe488972f4189fbe3ea02762ee827d1b406b469420bf0d62dd9"
     }
   },
   "node": {
-    "version": "24.22.1",
+    "version": "24.22.3",
     "sha256": {
-      "amd64": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6",
-      "arm64": "dbabf7a1cbf947e6059ffad2c27b80041db97dea1e553b62afdee7f13fca336e"
+      "amd64": "4f2b175a6d53a5c617a80dba2676238a0688cef28c6da4eba35c7d844e66fcfb",
+      "arm64": "6e51a2ada00f0011cc266f65d98922b403d7ad88f809ca2aa615a5fe1ce6e86c"
     }
   },
   "crane": {
@@ -35,17 +35,17 @@
     }
   },
   "dockerCli": {
-    "version": "29.8.1",
+    "version": "29.9.3",
     "sha256": {
-      "amd64": "d8db66739d2e28d4933786d73e918d9be643a67fbd835db1bf740d650a259e70",
-      "arm64": "667395fbffab52901b80181dfbb39ea76da2fbd7642c4fbddd24e42146b07b48"
+      "amd64": "3fb5d1f13014c18cc54945bc177c58a9056a482dada031e17d12cf2e6922c973",
+      "arm64": "1b27fd739378ef938401e81ce5afb73b7ad7432d4f598814a9ff5f826bb464d2"
     }
   },
   "dockerCompose": {
-    "version": "v5.5.1",
+    "version": "v5.7.1",
     "sha256": {
-      "amd64": "db1889184726840f75c4f9c001048430d4f25b3be3cb084d3ddd762bc0aed576",
-      "arm64": "732e3a84c1a0f67256ce80bc2598a24546b10ca05f9faa97efceb1171ece2ef7"
+      "amd64": "af426722a8af5de812fcee30cc1c39f0639f5f723cbadefb25e5d4db054064cf",
+      "arm64": "f2f49f903240895fa764c0dca3a14548b754ad9426f6b609ccaf55ec5a3aa2a5"
     }
   }
 }

@@ -1,20 +1,19 @@
-FROM node:24-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@latest --activate
+FROM node:26-alpine AS deps
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')" && \
+    pnpm install --frozen-lockfile
 
-FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@latest --activate
+FROM node:26-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN pnpm run build
+RUN npm run build
 
-FROM node:24-alpine AS runner
+FROM node:26-alpine AS runner
 ARG EXTENSION_VERSION
 WORKDIR /app
 

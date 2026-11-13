@@ -16,6 +16,7 @@ import type {
     CreateRunnerRequest,
     Provider,
     Runner,
+    RunnerStatus,
 } from "@/generated/extension-api";
 import {
     ContainerHostingUnavailableError,
@@ -100,6 +101,17 @@ function imageTag(image: string | null): string | null {
     return reference.slice(tagSeparator + 1);
 }
 
+function runnerStatus(service?: ServiceResponse | null): RunnerStatus {
+    if (service === null) {
+        return "missing";
+    }
+    if (!service || service.status === "unspecified") {
+        return "unknown";
+    }
+
+    return service.status;
+}
+
 function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
     const provider = getProviderById(row.provider);
     const image = row.image ?? service?.deployedState.image ?? null;
@@ -127,7 +139,7 @@ function toView(row: RunnerRow, service?: ServiceResponse | null): Runner {
         stackId: row.stackId,
         serviceId,
         studioUrl: studioUrl(row, serviceId),
-        status: service === null ? "missing" : (service?.status ?? "unknown"),
+        status: runnerStatus(service),
         statusMessage: service?.message ?? null,
         image,
         runnerVersion: row.runnerVersion ?? null,
