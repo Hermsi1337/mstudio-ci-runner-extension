@@ -167,20 +167,20 @@ importers:
   .:
     dependencies:
       '@mittwald/api-client':
-        specifier: ^4.521.0
-        version: 4.521.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)
+        specifier: ^4.524.0
+        version: 4.524.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)
       '@mittwald/ext-bridge':
-        specifier: 1.5.65
-        version: 1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        specifier: 1.5.66
+        version: 1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mittwald/flow-react-components':
-        specifier: 1.5.65
-        version: 1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
+        specifier: 1.5.66
+        version: 1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
       '@mittwald/flow-remote-react-components':
-        specifier: 1.5.65
-        version: 1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
+        specifier: 1.5.66
+        version: 1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
       '@mittwald/mstudio-ext-react-components':
-        specifier: 1.5.65
-        version: 1.5.65(@mittwald/flow-remote-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(react@19.3.1)
+        specifier: 1.5.66
+        version: 1.5.66(@mittwald/flow-remote-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(react@19.3.1)
       '@mittwald/react-ghostmaker':
         specifier: ^1.6.0
         version: 1.6.0(@tanstack/react-query@5.107.1(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
@@ -1176,8 +1176,8 @@ packages:
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
 
-  '@mittwald/api-client-commons@4.521.0':
-    resolution: {integrity: sha512-4ymHoR2pCYv7r9SL5quENdXZKM5KffNEcWEpVHn//kEavZ8SmCIEuJOQgr1PT7wDFAYOINdttPHWKUvc0mIHew==}
+  '@mittwald/api-client-commons@4.524.0':
+    resolution: {integrity: sha512-Ne2DkEq2di0Fie64C6ggtOvONGMH+KDgqohULW/hkJGQzuqnqGa0AGO/AyqCViYwxr0rczkUs55MV2gIZITgwA==}
     peerDependencies:
       '@jest/globals': '*'
       '@mittwald/react-use-promise': ^2.6.0 || ^3.0.0 || ^4.0.0
@@ -1187,16 +1187,16 @@ packages:
       '@mittwald/react-use-promise':
         optional: true
 
-  '@mittwald/api-client@4.521.0':
-    resolution: {integrity: sha512-aQjJOuv1M2qGrs2oMw+JBy4JS1jTe2dP2MGQ+1mFyQZd4oLYWPO4XNRGQeMLAvLhlwarH7J/I8ALw2d8DfcMdQ==}
+  '@mittwald/api-client@4.524.0':
+    resolution: {integrity: sha512-ixQtUn+lMqDA7Ke3H5e4AlvXOvaS9IpyXON91WBldHm5J9of134sBM+w2OaUUHTgAi43ZykBis5ILok0WGsY1Q==}
     peerDependencies:
       '@mittwald/react-use-promise': ^2.6.0 || ^3.0.0 || ^4.0.0
     peerDependenciesMeta:
       '@mittwald/react-use-promise':
         optional: true
 
-  '@mittwald/ext-bridge@1.5.65':
-    resolution: {integrity: sha512-2kGWz8cE305lCZF6NgFE3nNKim5c2p+nGSZvRmqYo3tvxHMfz9/aAhDGtUzMvDPbu9vyX46Z7nYtj+JAMJqs6Q==}
+  '@mittwald/ext-bridge@1.5.66':
+    resolution: {integrity: sha512-4ttrXmAhkXFabYHJXjxFI4Z4w7mKnh/FDr7/lrhLYGR8fGU97NaCHK1MWF4mG/6u1JI48iEiDyXaR+XukoZ4Vw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       i18next: ^26.0.0
@@ -1210,18 +1210,18 @@ packages:
       react-dom:
         optional: true
 
-  '@mittwald/flow-icons@1.5.65':
-    resolution: {integrity: sha512-JYHQckxVVR1xXqMD1SXIlH8VsOgzpWJ4w1i75YKKapy61i4rd7DnTpPUWNvR3zbViICjj7abqT7LFQZ5yCLHtQ==}
+  '@mittwald/flow-icons@1.5.66':
+    resolution: {integrity: sha512-CPyVTqmGEde1qMOwBFWeK++2P9gbzEZBhlKNp0ESF039qcYkWAU923hsmBgsPK+sUFnXbybOiojisADYfiPmuA==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       react: ^19.2.0
 
-  '@mittwald/flow-react-components@1.5.65':
-    resolution: {integrity: sha512-eu1vBtjGOpsxp7ZaLZtn2/B9TYvpv2M26HfmVozP4PQKDmKRDy3ukkSOUbXoMoxindoyESpLekjlci4POFBLBA==}
+  '@mittwald/flow-react-components@1.5.66':
+    resolution: {integrity: sha512-0PDqpZE2AZ43RZ3gS7yEUt2Kj77l08BjjfrOaaDDzp6FxUfpOpmQbEQ4wN3sGBYSYOHbRvUj1S1sji/QEVl2Dw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@internationalized/date': ^3.12.2
-      '@mittwald/flow-icons-pro': 1.5.65
+      '@mittwald/flow-icons-pro': 1.5.66
       '@mittwald/react-use-promise': ^4.2.2
       next: ^16.2.3
       react: ^19.2.0
@@ -1237,28 +1237,28 @@ packages:
       react-hook-form:
         optional: true
 
-  '@mittwald/flow-remote-core@1.5.65':
-    resolution: {integrity: sha512-YzIpvH30dBobWS3KdtWCFglgr0Rl4V5aBUxCP4I6mV0RwiYQJ/+uo75ntonD/w8BuH92/akAyIOwq3YUgyHCKQ==}
+  '@mittwald/flow-remote-core@1.5.66':
+    resolution: {integrity: sha512-qtW83WojIZ9oiCKk+aF1RE6MndPrUWIaL+rTGoIj343ztEQSwbUsDpdASbYSksZQt+deHDXJc80x5WGnyfmcOw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@mittwald/ext-bridge': 1.5.65
-      '@mittwald/flow-react-components': 1.5.65
+      '@mittwald/ext-bridge': 1.5.66
+      '@mittwald/flow-react-components': 1.5.66
     peerDependenciesMeta:
       '@mittwald/ext-bridge':
         optional: true
 
-  '@mittwald/flow-remote-elements@1.5.65':
-    resolution: {integrity: sha512-J3lP9H3HKvEOBHsbk+jDErpWMe7KmaSZJi7JTcLoyATU0Pq/vNWBQM2yh+MWeGAy70qdjgMEO+mYDLrfnAxy8g==}
+  '@mittwald/flow-remote-elements@1.5.66':
+    resolution: {integrity: sha512-pclLoQO0c8NbCv4zqhT+cGTbVTMD1Uwh4aFUpQjqKtieaggqX2z2LmnD2nu5I4lhuCFpZN16tcdz3lMEphhhNw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@mittwald/flow-react-components': 1.5.65
+      '@mittwald/flow-react-components': 1.5.66
 
-  '@mittwald/flow-remote-react-components@1.5.65':
-    resolution: {integrity: sha512-czUnn0Wa+2dneAX1YaKglA2fWkdIz0wj+06d9KWhBqd3T1NbwOphAzRXgPli8w5TyLfynKYei8AKUHfXEiATAg==}
+  '@mittwald/flow-remote-react-components@1.5.66':
+    resolution: {integrity: sha512-rN48xEUgVqG/IaxNBIAnJjiKC07mwyCMAA0pqL41vv+Oj8XVNL7b/rmo3cUwuWYIjC+e7+EuZilVa35OdyiFjQ==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@internationalized/date': ^3.12.2
-      '@mittwald/ext-bridge': 1.5.65
+      '@mittwald/ext-bridge': 1.5.66
       react: ^19.2.0
       react-hook-form: ^7.65.0
     peerDependenciesMeta:
@@ -1269,11 +1269,11 @@ packages:
       react-hook-form:
         optional: true
 
-  '@mittwald/mstudio-ext-react-components@1.5.65':
-    resolution: {integrity: sha512-Tk1wf0kiTLTDrJRarYoGhAOlOJEDsAIPjPatzDfzyxfgwONQQD23tadKvHBsEta0JKxEwZZLFTPgtoT0pS/lcw==}
+  '@mittwald/mstudio-ext-react-components@1.5.66':
+    resolution: {integrity: sha512-lW4gGYGNP+1q9SAIPneyEtabGv1HVwamxGPg1bBrBiyycF35q30N0I+RGtloOxMA70sxJ6rG2Pq6iywO2aGT/A==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@mittwald/flow-remote-react-components': 1.5.65
+      '@mittwald/flow-remote-react-components': 1.5.66
       react: ^19.2.0
 
   '@mittwald/password-tools-js@3.0.0':
@@ -1295,8 +1295,8 @@ packages:
       react:
         optional: true
 
-  '@mittwald/react-tunnel@1.5.65':
-    resolution: {integrity: sha512-NFhaCkbFIsg66TIWjWYZtGaxLkSggYcauiD5Ajysv1ii46GKW+qLePnUM2x8/eyjPvLj8CIiAim19rYaTEtgkg==}
+  '@mittwald/react-tunnel@1.5.66':
+    resolution: {integrity: sha512-/rnOVjqEgm5x4i/YQsSmPe+K1MGGFSSFJ6uNw9jDmeDgj+rLz0J0Kou+UlOi1MeOabeOvSw0D8bBJAYPqoSQvg==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       react: ^19.2.0
@@ -5104,7 +5104,7 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.4': {}
 
-  '@mittwald/api-client-commons@4.521.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)':
+  '@mittwald/api-client-commons@4.524.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)':
     dependencies:
       axios: 1.21.1(debug@4.4.3)
       type-fest: 4.41.0
@@ -5114,9 +5114,9 @@ snapshots:
       - debug
       - supports-color
 
-  '@mittwald/api-client@4.521.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)':
+  '@mittwald/api-client@4.524.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)':
     dependencies:
-      '@mittwald/api-client-commons': 4.521.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)
+      '@mittwald/api-client-commons': 4.524.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)
       browser-or-node: 3.0.0
     optionalDependencies:
       '@mittwald/react-use-promise': 4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1)
@@ -5125,7 +5125,7 @@ snapshots:
       - debug
       - supports-color
 
-  '@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@mittwald/react-use-promise': 4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1)
       axios: 1.21.1(debug@4.4.3)
@@ -5139,11 +5139,11 @@ snapshots:
       - debug
       - supports-color
 
-  '@mittwald/flow-icons@1.5.65(react@19.3.1)':
+  '@mittwald/flow-icons@1.5.66(react@19.3.1)':
     dependencies:
       react: 19.3.1
 
-  '@mittwald/flow-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)':
+  '@mittwald/flow-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)':
     dependencies:
       '@codemirror/language': 6.13.1
       '@codemirror/lint': 6.9.7
@@ -5155,9 +5155,9 @@ snapshots:
       '@internationalized/string-compiler': 3.4.1
       '@lezer/common': 1.5.5
       '@lezer/highlight': 1.2.5
-      '@mittwald/flow-icons': 1.5.65(react@19.3.1)
+      '@mittwald/flow-icons': 1.5.66(react@19.3.1)
       '@mittwald/password-tools-js': 3.0.0(debug@4.4.3)
-      '@mittwald/react-tunnel': 1.5.65(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mittwald/react-tunnel': 1.5.66(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mittwald/react-use-promise': 4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1)
       '@react-aria/form': 3.2.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@react-aria/i18n': 3.13.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -5224,11 +5224,11 @@ snapshots:
       - redux
       - supports-color
 
-  '@mittwald/flow-remote-core@1.5.65(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)':
+  '@mittwald/flow-remote-core@1.5.66(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)':
     dependencies:
       '@internationalized/date': 3.12.4
       '@lit-labs/ssr-dom-shim': 1.6.0
-      '@mittwald/flow-react-components': 1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
+      '@mittwald/flow-react-components': 1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
       '@mittwald/remote-dom-core': 1.7.0-mittwald.10(@preact/signals-core@1.14.5)
       '@quilted/threads': 3.3.1(@preact/signals-core@1.14.5)
       '@types/invariant': 2.2.37
@@ -5236,15 +5236,15 @@ snapshots:
       remeda: 2.59.0
       zod: 4.6.7
     optionalDependencies:
-      '@mittwald/ext-bridge': 1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mittwald/ext-bridge': 1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     transitivePeerDependencies:
       - '@preact/signals-core'
       - preact
 
-  '@mittwald/flow-remote-elements@1.5.65(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)':
+  '@mittwald/flow-remote-elements@1.5.66(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)':
     dependencies:
-      '@mittwald/flow-react-components': 1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
-      '@mittwald/flow-remote-core': 1.5.65(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)
+      '@mittwald/flow-react-components': 1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
+      '@mittwald/flow-remote-core': 1.5.66(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)
       remeda: 2.59.0
       type-fest: 5.10.0
     transitivePeerDependencies:
@@ -5252,18 +5252,18 @@ snapshots:
       - '@preact/signals-core'
       - preact
 
-  '@mittwald/flow-remote-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)':
+  '@mittwald/flow-remote-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)':
     dependencies:
-      '@mittwald/flow-react-components': 1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
-      '@mittwald/flow-remote-core': 1.5.65(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)
-      '@mittwald/flow-remote-elements': 1.5.65(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)
+      '@mittwald/flow-react-components': 1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
+      '@mittwald/flow-remote-core': 1.5.66(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)
+      '@mittwald/flow-remote-elements': 1.5.66(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/flow-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(@preact/signals-core@1.14.5)
       '@mittwald/remote-dom-react': 1.2.2-mittwald.10(@preact/signals-core@1.14.5)(react@19.3.1)
       '@types/react': 19.3.0
       react: 19.3.1
       react-error-boundary: 6.1.6(@types/react@19.3.0)(react@19.3.1)
     optionalDependencies:
       '@internationalized/date': 3.12.4
-      '@mittwald/ext-bridge': 1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mittwald/ext-bridge': 1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react-hook-form: 7.92.0(@types/react@19.3.0)(react@19.3.1)
     transitivePeerDependencies:
       - '@babel/runtime'
@@ -5286,9 +5286,9 @@ snapshots:
       - redux
       - supports-color
 
-  '@mittwald/mstudio-ext-react-components@1.5.65(@mittwald/flow-remote-react-components@1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(react@19.3.1)':
+  '@mittwald/mstudio-ext-react-components@1.5.66(@mittwald/flow-remote-react-components@1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1))(react@19.3.1)':
     dependencies:
-      '@mittwald/flow-remote-react-components': 1.5.65(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.65(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
+      '@mittwald/flow-remote-react-components': 1.5.66(@babel/runtime@7.29.14)(@codemirror/autocomplete@6.20.4)(@codemirror/search@6.7.2)(@codemirror/theme-one-dark@6.1.3)(@internationalized/date@3.12.4)(@lezer/javascript@1.5.6)(@lezer/lr@1.4.12)(@mittwald/ext-bridge@1.5.66(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(@preact/signals-core@1.14.5)(codemirror@6.0.2)(debug@4.4.3)(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(react-is@19.3.1)(react@19.3.1)(redux@5.0.1)
       '@types/react': 19.3.0
       react: 19.3.1
 
@@ -5316,7 +5316,7 @@ snapshots:
       '@tanstack/react-query': 5.107.1(@types/react@19.3.0)(react@19.3.1)
       react: 19.3.1
 
-  '@mittwald/react-tunnel@1.5.65(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mittwald/react-tunnel@1.5.66(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       mobx: 6.16.1
       mobx-react-lite: 4.1.1(mobx@6.16.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -6116,7 +6116,7 @@ snapshots:
 
   '@weissaufschwarz/mitthooks@0.3.1(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)':
     dependencies:
-      '@mittwald/api-client': 4.521.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)
+      '@mittwald/api-client': 4.524.0(@mittwald/react-use-promise@4.3.0(axios@1.21.1(debug@4.4.3))(react@19.3.1))(debug@4.4.3)
       '@noble/ed25519': 2.3.0
       zod: 3.25.76
     transitivePeerDependencies:
