@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/mittwald/api-client-go v0.2.253
 	github.com/moby/docker-image-spec v1.3.1
-	github.com/moby/moby/api v1.56.1
+	github.com/moby/moby/api v1.57.0
 	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/onsi/gomega v1.44.0
 	github.com/opencontainers/image-spec v1.1.1
